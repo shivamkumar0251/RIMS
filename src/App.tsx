@@ -1,23 +1,25 @@
-import { useState } from 'react';
-import { Button } from './components/Button';
+
+import Navbar from "./layouts/Navbar";
+import Footer from "./layouts/Footer";
+import Home from "./pages/Home";
 
 function App() {
-  const [loading, setLoading] = useState(false);
 
-  const handleClick = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      alert("Action completed!");
-    }, 2000);
-  };
+
   return (
-    <div className='text-center'>
+  <>
+  
+  <Navbar />
+  <Home />
+  <Footer />
+  
+  
+  </>
+      
+
+    
      
-      <Button onClick={handleClick} loading={loading} buttonName='Submit' />
- 
-    </div>
-  )
+  );
 }
 
-export default App
+export default App;
