@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // for password toggle
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
 
@@ -23,7 +23,11 @@ const LoginPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      {/* CHANGE HERE: Removed bg-gray-100, added bg-cover/center and an inline style for the background image */}
+      <div 
+        className="flex items-center justify-center min-h-screen bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop')" }}
+      >
         <div className="w-full max-w-md p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800">Hops N Chops</h1>

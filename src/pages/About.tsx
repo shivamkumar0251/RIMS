@@ -1,22 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Users, Heart, ArrowRight } from 'lucide-react';
+import { FaLeaf, FaUsers, FaHeart, FaArrowRight } from 'react-icons/fa';
 import Layout from '../layouts/Layout';
 
 // --- Data for Sections ---
 const coreValues = [
   {
-    icon: <Leaf className="h-8 w-8 text-amber-500" />,
+
+    icon: <FaLeaf className="h-8 w-8 text-amber-500" />,
     title: 'Finest Ingredients',
     description: 'We believe that great food starts with the finest, freshest, and most seasonal ingredients available.',
   },
   {
-    icon: <Users className="h-8 w-8 text-amber-500" />,
+    
+    icon: <FaUsers className="h-8 w-8 text-amber-500" />,
     title: 'Community First',
     description: 'Hops N Chops is more than a restaurant; it’s a gathering place for friends, family, and food lovers.',
   },
   {
-    icon: <Heart className="h-8 w-8 text-amber-500" />,
+  
+    icon: <FaHeart className="h-8 w-8 text-amber-500" />,
     title: 'Passion for Culinary Arts',
     description: 'Our kitchen is driven by a deep passion for the culinary arts, pushing boundaries to create memorable dishes.',
   },
@@ -90,7 +93,7 @@ const AboutPage: React.FC = () => {
                 Our culinary vision is led by our Head Chef, whose innovative approach and dedication to quality are at the core of every dish we serve. With years of experience in world-class kitchens, they bring a unique blend of tradition and creativity to the Hops N Chops menu.
               </p>
               <Link to="/team" className="inline-flex items-center text-amber-500 font-semibold text-lg hover:text-amber-400 transition-colors">
-                Meet The Team <ArrowRight className="ml-2 h-5 w-5" />
+                Meet The Team <FaArrowRight className="ml-2 h-5 w-5" /> 
               </Link>
             </div>
           </div>
