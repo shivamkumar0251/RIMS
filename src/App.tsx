@@ -7,8 +7,9 @@ const LazyHome = lazy(() => import('./pages/Home'));
 const LazyLogin = lazy(() => import('./pages/Login'));
 const LazyAboutPage = lazy(() => import('./pages/About'));
 
-import OurOutlets from "./pages/Outlet";
+import Admindashboard from "./pages/Admin";
 import FranchisePage from "./pages/Franchise";
+import OurOutlets from "./pages/Outlet";
 import UserDashboard from "./pages/UserDashboard";
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
   // }, []);
   return (
     <>
-      <Suspense fallback={<MainSpinner  />}>
+      <Suspense fallback={<MainSpinner />}>
         <Routes>
           <Route path="/" element={<LazyHome />} />
           <Route path="/login" element={<LazyLogin />} />
@@ -26,8 +27,9 @@ function App() {
           <Route path="/outlets" element={<OurOutlets />} />
           <Route path="/franchise" element={<FranchisePage/>} />
           <Route path="/userdashboard" element={<UserDashboard/>} />
+          <Route path="/admin-dashboard" element={<Admindashboard />} />
           {/* <Route element={<ProtectedRoute />}> */}
-            {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* <Route path="/profile" element={<Profile />} /> */}
           {/* </Route> */}
         </Routes>
       </Suspense>
@@ -43,9 +45,8 @@ function App() {
         draggable
         pauseOnHover
       />
-
     </>
-  )
+  );
 }
 
 export default App;

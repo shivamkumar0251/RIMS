@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-// ⭐ CHANGE: Swapped lucide-react for react-icons/fa
 import { FaLeaf, FaUsers, FaHeart, FaArrowRight } from 'react-icons/fa';
 import Layout from '../layouts/Layout';
 
@@ -14,21 +13,18 @@ interface CoreValue {
 // --- Data for Sections ---
 const coreValues: CoreValue[] = [
   {
-    // ⭐ CHANGE: Using FaLeaf from react-icons
     icon: <FaLeaf className="h-8 w-8 text-amber-500" />,
     title: 'Finest Ingredients',
     description:
       'We believe that great food starts with the finest, freshest, and most seasonal ingredients available.',
   },
   {
-    // ⭐ CHANGE: Using FaUsers from react-icons
     icon: <FaUsers className="h-8 w-8 text-amber-500" />,
     title: 'Community First',
     description:
       'Hops N Chops is more than a restaurant; it’s a gathering place for friends, family, and food lovers.',
   },
   {
-    // ⭐ CHANGE: Using FaHeart from react-icons
     icon: <FaHeart className="h-8 w-8 text-amber-500" />,
     title: 'Passion for Culinary Arts',
     description:
@@ -117,7 +113,6 @@ const AboutPage: React.FC = () => {
               </p>
               <Link to="/team" className="inline-flex items-center text-amber-500 font-semibold text-lg hover:text-amber-400 transition-colors">
                 Meet The Team 
-                {/* ⭐ CHANGE: Using FaArrowRight from react-icons */}
                 <FaArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>

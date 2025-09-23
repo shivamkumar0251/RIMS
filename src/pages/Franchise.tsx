@@ -1,69 +1,65 @@
-// CHANGE 1: 'useState' ke saath 'useEffect' ko import kiya
 import React, { useState, useEffect } from 'react';
-// 'Link' ka import hata diya gaya hai kyunki woh use nahi ho raha tha
-
-import Layout from '../layouts/Layout';
 import { FaStore, FaChartLine, FaHandsHelping, FaUtensils, FaPlus, FaMinus } from 'react-icons/fa';
+import Layout from '../layouts/Layout';
 
-// --- Data for Page Sections ---
 
+
+// --- Data for Page Sections (Unchanged) ---
 const whyChooseUsData = [
-  {
-    icon: <FaStore className="h-10 w-10 text-yellow-500" />,
-    title: 'Proven Business Model',
-    description: 'Benefit from our established brand, operational excellence, and a business model designed for profitability.'
-  },
-  {
-    icon: <FaUtensils className="h-10 w-10 text-yellow-500" />,
-    title: 'Beloved Menu & Supply Chain',
-    description: 'Get access to our unique recipes and a high-quality, streamlined supply chain for all your ingredients.'
-  },
-  {
-    icon: <FaHandsHelping className="h-10 w-10 text-yellow-500" />,
-    title: 'Comprehensive Support',
-    description: 'From site selection and staff training to marketing, our dedicated team will support you at every step.'
-  },
-  {
-    icon: <FaChartLine className="h-10 w-10 text-yellow-500" />,
-    title: 'Strong Brand Recognition',
-    description: 'Leverage the growing popularity and positive brand image of Hops N Chops to attract customers from day one.'
-  }
+    {
+        icon: <FaStore className="h-10 w-10 text-yellow-500" />,
+        title: 'Proven Business Model',
+        description: 'Benefit from our established brand, operational excellence, and a business model designed for profitability.'
+    },
+    {
+        icon: <FaUtensils className="h-10 w-10 text-yellow-500" />,
+        title: 'Beloved Menu & Supply Chain',
+        description: 'Get access to our unique recipes and a high-quality, streamlined supply chain for all your ingredients.'
+    },
+    {
+        icon: <FaHandsHelping className="h-10 w-10 text-yellow-500" />,
+        title: 'Comprehensive Support',
+        description: 'From site selection and staff training to marketing, our dedicated team will support you at every step.'
+    },
+    {
+        icon: <FaChartLine className="h-10 w-10 text-yellow-500" />,
+        title: 'Strong Brand Recognition',
+        description: 'Leverage the growing popularity and positive brand image of Hops N Chops to attract customers from day one.'
+    }
 ];
 
 const faqData = [
-  {
-    question: 'What is the initial investment required?',
-    answer: 'The initial investment varies depending on the location, size, and model of the outlet. It typically ranges from ₹25 Lakhs to ₹50 Lakhs. Our team will provide a detailed breakdown after the initial discussion.'
-  },
-  {
-    question: 'Is prior restaurant experience necessary?',
-    answer: 'While prior experience is beneficial, it is not mandatory. We are looking for passionate and dedicated partners. We provide comprehensive training to cover all aspects of running a Hops N Chops outlet.'
-  },
-  {
-    question: 'What kind of training and support will I receive?',
-    answer: 'You will receive extensive training on our brand standards, recipes, operations, and management systems. Our support includes marketing assistance, supply chain management, and ongoing operational guidance.'
-  },
-  {
-    question: 'How long does it take to open an outlet?',
-    answer: 'On average, it takes about 3 to 6 months from signing the franchise agreement to the grand opening. This timeline can vary based on site selection and local regulations.'
-  }
+    {
+        question: 'What is the initial investment required?',
+        answer: 'The initial investment varies depending on the location, size, and model of the outlet. It typically ranges from ₹25 Lakhs to ₹50 Lakhs. Our team will provide a detailed breakdown after the initial discussion.'
+    },
+    {
+        question: 'Is prior restaurant experience necessary?',
+        answer: 'While prior experience is beneficial, it is not mandatory. We are looking for passionate and dedicated partners. We provide comprehensive training to cover all aspects of running a Hops N Chops outlet.'
+    },
+    {
+        question: 'What kind of training and support will I receive?',
+        answer: 'You will receive extensive training on our brand standards, recipes, operations, and management systems. Our support includes marketing assistance, supply chain management, and ongoing operational guidance.'
+    },
+    {
+        question: 'How long does it take to open an outlet?',
+        answer: 'On average, it takes about 3 to 6 months from signing the franchise agreement to the grand opening. This timeline can vary based on site selection and local regulations.'
+    }
 ];
 
 // --- Main Franchise Page Component ---
 
 const FranchisePage: React.FC = () => {
-  // CHANGE 2: useEffect hook add kar diya gaya hai
   useEffect(() => {
-    // Yeh function page ko top (0, 0) position par scroll kar dega
     window.scrollTo(0, 0);
-  }, []); // Empty array ensures this runs only once on component mount
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     city: '',
-    investment: '',
+    // 'investment' field removed from state
     message: ''
   });
   
@@ -71,7 +67,7 @@ const FranchisePage: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -83,7 +79,7 @@ const FranchisePage: React.FC = () => {
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid.';
     if (!formData.phone) newErrors.phone = 'Phone Number is required.';
     if (!formData.city) newErrors.city = 'Proposed City is required.';
-    if (!formData.investment) newErrors.investment = 'Please select an investment capacity.';
+    // 'investment' validation removed
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -100,8 +96,10 @@ const FranchisePage: React.FC = () => {
     <Layout>
       <div className="bg-white">
         {/* Hero Section */}
-        <section className="relative h-[60vh] bg-cover bg-center text-white flex items-center justify-center"
-                 style={{ backgroundImage: "url('https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=2070&auto=format&fit=crop')" }}>
+        <section 
+          className="relative h-[60vh] bg-cover bg-center text-white flex items-center justify-center"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=2070&auto=format&fit=crop')" }}
+        >
           <div className="absolute inset-0 bg-black/60"></div>
           <div className="relative z-10 text-center px-4">
             <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">Partner With a Growing Brand</h1>
@@ -167,16 +165,9 @@ const FranchisePage: React.FC = () => {
                                 <input type="text" id="city" name="city" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
                                 {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                             </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="investment" className="block text-sm font-medium text-gray-700 mb-1">Investment Capacity</label>
-                                <select id="investment" name="investment" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500">
-                                    <option value="">-- Select your budget --</option>
-                                    <option value="25-35L">₹25 Lakhs - ₹35 Lakhs</option>
-                                    <option value="35-50L">₹35 Lakhs - ₹50 Lakhs</option>
-                                    <option value="50L+">₹50 Lakhs+</option>
-                                </select>
-                                {errors.investment && <p className="text-red-500 text-sm mt-1">{errors.investment}</p>}
-                            </div>
+                            
+                            {/* Investment Capacity Field has been removed */}
+
                             <div className="md:col-span-2">
                                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Your Message (Optional)</label>
                                 <textarea id="message" name="message" rows={4} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500"></textarea>
@@ -200,13 +191,13 @@ const FranchisePage: React.FC = () => {
                 </div>
                 <div className="space-y-4">
                     {faqData.map((faq, index) => (
-                         <div key={index} className="border rounded-lg">
+                         <div key={index} className="border rounded-lg bg-white">
                             <button
                                 onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
                                 className="w-full flex justify-between items-center p-5 text-left font-semibold text-lg"
                             >
                                 <span>{faq.question}</span>
-                                {openFaqIndex === index ? <FaMinus /> : <FaPlus />}
+                                {openFaqIndex === index ? <FaMinus className="text-yellow-500" /> : <FaPlus className="text-gray-500" />}
                             </button>
                             {openFaqIndex === index && (
                                 <div className="p-5 pt-0 text-gray-600">
@@ -218,7 +209,6 @@ const FranchisePage: React.FC = () => {
                 </div>
             </div>
         </section>
-
       </div>
     </Layout>
   );

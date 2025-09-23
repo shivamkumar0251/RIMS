@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
-
 import { FaHome, FaBars, FaTimes } from 'react-icons/fa';
 import { FiLogIn } from 'react-icons/fi';
 import { IoRestaurant } from 'react-icons/io5'; 
 
 const navLinks = [
-  // ⭐ Home ke link mein icon add kiya hai
   { to: '/', label: 'Home', icon: <FaHome className="mr-2" /> },
   { to: '/about', label: 'About' },
   { to: '/outlets', label: 'Our Outlets' },
@@ -25,7 +23,6 @@ const Navbar: React.FC = () => {
           <div className="flex items-center justify-between h-16">
             
             <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gray-800">
-              {/* ⭐ Logo ke liye naya icon */}
               <IoRestaurant className="h-6 w-6 text-blue-600" />
               <span>Hops N Chops</span>
             </Link>
@@ -53,7 +50,6 @@ const Navbar: React.FC = () => {
                 to="/login"
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition-all duration-300"
               >
-                {/* ⭐ Login ke liye naya icon */}
                 <FiLogIn size={16} />
                 <span>Login</span>
               </Link>
