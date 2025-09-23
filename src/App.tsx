@@ -1,22 +1,39 @@
-import { useState } from 'react';
-import { Button } from './components/Button';
+import { Suspense } from "react";
+import { Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import MainSpinner from "./components/common/MainSpinner";
 
 function App() {
-  const [loading, setLoading] = useState(false);
-
-  const handleClick = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      alert("Action completed!");
-    }, 2000);
-  };
+  // const dispatch = useDispatch();
+  // useEffect(() => {
+  // dispatch(fetchUserDetails());
+  // }, []);
   return (
-    <div className='text-center'>
-     
-      <Button onClick={handleClick} loading={loading} buttonName='Submit' />
- 
-    </div>
+    <>
+      <Suspense fallback={<MainSpinner  />}>
+        <Routes>
+          {/* <Route path="/" element={<Home />} /> */}
+          {/* <Route path="/login" element={<Login />} /> */}
+          {/* <Route path="/aboutus" element={<AboutUs />} /> */}
+          {/* <Route element={<ProtectedRoute />}> */}
+            {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* </Route> */}
+        </Routes>
+      </Suspense>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+
+    </>
   )
 }
 

@@ -10,7 +10,7 @@ import type {
 // Create axios instance
 const axiosInstance: AxiosInstance = axios.create({});
 
-const authUrls: string[] = ['user/login', 'user/forgotPassword'];
+const authUrls: string[] = ['users/login', 'users/forgotPassword', 'users/resetPassword', 'outlet', 'franchise'];
 
 // Request interceptor
 axiosInstance.interceptors.request.use(

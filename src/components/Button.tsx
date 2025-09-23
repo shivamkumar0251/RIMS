@@ -1,4 +1,5 @@
 import React from "react";
+import { SmallSpinner } from "./common/SmallSpinner";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
@@ -23,7 +24,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={loading || disabled}
       {...props}
     >
-      {loading ? "Loading..." : children || buttonName || "etc Name"}
+      {loading ? <SmallSpinner size={30}/> : children || buttonName || "Button"}
     </button>
   );
 };
