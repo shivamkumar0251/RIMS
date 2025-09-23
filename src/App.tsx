@@ -5,6 +5,9 @@ import MainSpinner from "./components/common/MainSpinner";
 import AboutPage from "./pages/About";
 import LoginPage from "./pages/Login";
 import Home from "./pages/Home";
+import OurOutlets from "./pages/Outlet";
+import FranchisePage from "./pages/Franchise";
+import UserDashboard from "./pages/UserDashboard";
 
 function App() {
   // const dispatch = useDispatch();
@@ -18,6 +21,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/outlets" element={<OurOutlets />} />
+          <Route path="/franchise" element={<FranchisePage/>} />
+          <Route path="/userdashboard" element={<UserDashboard/>} />
           {/* <Route element={<ProtectedRoute />}> */}
             {/* <Route path="/profile" element={<Profile />} /> */}
           {/* </Route> */}

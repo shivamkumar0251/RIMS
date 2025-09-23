@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // for password toggle
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
 
 const LoginPage: React.FC = () => {
+  useEffect(() => {
+
+  window.scrollTo(0, 0);
+}, []);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
