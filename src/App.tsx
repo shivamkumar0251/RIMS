@@ -7,6 +7,9 @@ const LazyHome = lazy(() => import('./pages/Home'));
 const LazyLogin = lazy(() => import('./pages/Login'));
 const LazyAboutPage = lazy(() => import('./pages/About'));
 
+import OurOutlets from "./pages/Outlet";
+import FranchisePage from "./pages/Franchise";
+import UserDashboard from "./pages/UserDashboard";
 
 function App() {
   // const dispatch = useDispatch();
@@ -20,6 +23,9 @@ function App() {
           <Route path="/" element={<LazyHome />} />
           <Route path="/login" element={<LazyLogin />} />
           <Route path="/about" element={<LazyAboutPage />} />
+          <Route path="/outlets" element={<OurOutlets />} />
+          <Route path="/franchise" element={<FranchisePage/>} />
+          <Route path="/userdashboard" element={<UserDashboard/>} />
           {/* <Route element={<ProtectedRoute />}> */}
             {/* <Route path="/profile" element={<Profile />} /> */}
           {/* </Route> */}

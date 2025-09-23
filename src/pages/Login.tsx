@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // for password toggle
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
 import { showToast } from "../utils/toast";
@@ -10,6 +10,10 @@ import type { AppDispatch, RootState } from "../redux/store/store";
 import { useNavigate } from "react-router";
 
 const LoginPage: React.FC = () => {
+  useEffect(() => {
+
+  window.scrollTo(0, 0);
+}, []);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -34,7 +38,7 @@ const LoginPage: React.FC = () => {
         navigate('/admin-dashboard');
       } else if (payload.user.role === 'user') {
         showToast.success('Login Successful.');
-        navigate('/user-dashboard');
+        navigate('/userdashboard');
       }
     } else {
       showToast.error('Login Error.');
