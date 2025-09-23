@@ -4,6 +4,7 @@ import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store'; // Adjust path based on your store file
 import type { AxiosError } from 'axios';
+import { deleteCookie, getCookie, setCookie } from '../../utils/cookieUtils';
 
 // --------- Types ---------
 interface User {
@@ -12,17 +13,6 @@ interface User {
   name?: string;
   email?: string;
   // add other user fields here
-}
-
-interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-interface LoginResponse {
-  token: string;
-  user: User;
-  expiresIn: number;
 }
 
 interface AuthState {
@@ -35,6 +25,27 @@ interface AuthState {
   isAuthenticated: boolean;
   expiresIn: number | null;
 }
+interface TokenPayload {
+  token: string;
+  expiresIn: number; // in seconds
+}
+
+// Define login input payload
+interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+// Define login response
+interface LoginResponse {
+  token: string;
+  expiresIn: number; // in seconds
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 // --------- Initial State ---------
 const initialState: AuthState = {
@@ -43,48 +54,50 @@ const initialState: AuthState = {
   message: '',
   status: null,
   user: null,
-  token: localStorage.getItem('token') || null,
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: getCookie('token') || null,
+  isAuthenticated: !!getCookie('token'),
   expiresIn: null,
 };
 
-// --------- Thunks ---------
+// Thunk
 export const login = createAsyncThunk<
-  { token: string; id: User['id']; expiresIn: number; user: User },
-  LoginPayload,
-  { rejectValue: { message: string } }
->('auth/login', async ({ email, password }, thunkAPI) => {
-  try {
-    const response = await apiCaller({
-      url: API_ENDPOINTS.login,
-      method: 'POST',
-      data: { email, password },
-    });
+  { token: string; id: string; expiresIn: number; user: LoginResponse['user'] }, // return type
+  LoginPayload, // input type
+  { rejectValue: { message: string } } // thunkAPI reject type
+>(
+  'auth/login',
+  async ({ email, password }, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: API_ENDPOINTS.login,
+        method: 'POST',
+        data: { email, password },
+      });
 
-    if (response.status === 200) {
-      const { token, user, expiresIn } = response.data as LoginResponse;
+      if (response.status === 200) {
+        const { token, user, expiresIn } = response.data as LoginResponse;
+        const id = user.id;
 
-      const id = user.id;
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', id.toString());
+        // Set cookies
+        setCookie("token", token, expiresIn);
+        setCookie("userId", id.toString(), expiresIn);
 
-      // const userDetailsResponse = await thunkAPI.dispatch(
-      //   fetchUserById(id)
-      // ).unwrap();
 
-      return { token, id, expiresIn, user };
-    } else {
+        return { token, id, expiresIn, user };
+      } else {
+        return thunkAPI.rejectWithValue({
+          message: (response.data as { message?: string })?.message || 'Login Error',
+        });
+      }
+    } catch (error: unknown) {
+      const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Login Error',
+        message: err.response?.data?.message || 'Login Error',
       });
     }
-  } catch (error: unknown) {
-    const err = error as AxiosError<{ message: string }>;
-    return thunkAPI.rejectWithValue({
-      message: err.response?.data?.message || 'Login Error',
-    });
   }
-});
+);
+
 
 // export const fetchUserById = createAsyncThunk<User, User['id']>(
 //   'auth/fetchUserById',
@@ -106,6 +119,7 @@ export const login = createAsyncThunk<
 //   }
 // );
 
+
 // --------- Slice ---------
 const authSlice = createSlice({
   name: 'auth',
@@ -117,18 +131,16 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
     },
-    setToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;
-      const expirationTime = new Date().getTime() + 30 * 60 * 1000;
-      localStorage.setItem('token', action.payload);
-      localStorage.setItem('tokenExpiry', expirationTime.toString());
+    setToken: (state, action: PayloadAction<TokenPayload>) => {
+      const { token, expiresIn } = action.payload;
+      // Update state
+      state.token = token;
+      state.expiresIn = expiresIn;
+      setCookie("token", token, expiresIn);
     },
     clearToken: (state) => {
-      localStorage.removeItem('userDetails');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('persist:root');
-      localStorage.removeItem('token');
-      localStorage.removeItem('tokenExpiry');
+      deleteCookie('userId')
+      deleteCookie('token')
       state.token = null;
       state.isAuthenticated = false;
       state.user = null;

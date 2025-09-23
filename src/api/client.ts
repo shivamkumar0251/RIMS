@@ -6,6 +6,7 @@ import type {
   Method,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { deleteCookie, getCookie } from '../utils/cookieUtils';
 
 // Create axios instance
 const axiosInstance: AxiosInstance = axios.create({});
@@ -15,7 +16,7 @@ const authUrls: string[] = ['users/login', 'users/forgotPassword', 'users/resetP
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    const accessToken = localStorage.getItem('token');
+    const accessToken = getCookie('token');
 
     if (accessToken && config.url && !authUrls.includes(config.url)) {
       // Ensure headers exist
@@ -37,8 +38,7 @@ axiosInstance.interceptors.response.use(
     console.error('Error in API call:', error);
 
     if (error.response?.status === 403) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('tokenExpiry');
+      deleteCookie('token');
       window.location.href = '/';
     }
 

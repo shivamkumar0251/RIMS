@@ -1,10 +1,12 @@
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
-import AboutPage from "./pages/About";
-import LoginPage from "./pages/Login";
-import Home from "./pages/Home";
+
+const LazyHome = lazy(() => import('./pages/Home'));
+const LazyLogin = lazy(() => import('./pages/Login'));
+const LazyAboutPage = lazy(() => import('./pages/About'));
+
 
 function App() {
   // const dispatch = useDispatch();
@@ -15,9 +17,9 @@ function App() {
     <>
       <Suspense fallback={<MainSpinner  />}>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/about" element={<AboutPage />} />
+          <Route path="/" element={<LazyHome />} />
+          <Route path="/login" element={<LazyLogin />} />
+          <Route path="/about" element={<LazyAboutPage />} />
           {/* <Route element={<ProtectedRoute />}> */}
             {/* <Route path="/profile" element={<Profile />} /> */}
           {/* </Route> */}

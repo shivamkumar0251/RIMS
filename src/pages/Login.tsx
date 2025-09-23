@@ -3,22 +3,43 @@ import { FaEnvelope, FaLock } from "react-icons/fa";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // for password toggle
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
+import { showToast } from "../utils/toast";
+import { useDispatch, useSelector } from "react-redux";
+import { login } from "../redux/slices/authSlice";
+import type { AppDispatch, RootState } from "../redux/store/store";
+import { useNavigate } from "react-router";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const handleLoginSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const userData = useSelector((state: RootState) => state.auth);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+
+  const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const loginData = {
-      email: email,
-      password: password,
-    };
-    console.log("Login Data for API:", loginData);
-
-    alert(`Login data console mein log ho gaya hai!\nEmail: ${email}`);
+    const response = await dispatch(login({ email, password }))
+    if (response.type === 'auth/login/fulfilled') {
+      const payload = response.payload as {
+        token: string;
+        id: string;
+        expiresIn: number;
+        user: { id: string; email: string; role: string };
+      };
+      if (payload.user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (payload.user.role === 'user') {
+        showToast.success('Login Successful.');
+        navigate('/user-dashboard');
+      }
+    } else {
+      showToast.error('Login Error.');
+      console.log('response false', response);
+    }
   };
 
   return (
@@ -77,7 +98,7 @@ const LoginPage: React.FC = () => {
                 Forgot Password?
               </a>
             </div>
-            <Button type="submit" className="w-full py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105" >submit</Button>
+            <Button type="submit" loading={userData.loading} className="w-full py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105" >submit</Button>
           </form>
         </div>
       </div>
