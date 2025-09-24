@@ -2,12 +2,14 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
+import ForgetPassworld from './pages/Forgetpassworld.tsx';
+import ResetPassworld from "./pages/Resetpassworld";
 
-const LazyHome = lazy(() => import('./pages/Home'));
-const LazyLogin = lazy(() => import('./pages/Login'));
-const LazyAboutPage = lazy(() => import('./pages/About'));
 const LazyUserDashboard = lazy(() => import('./pages/UserDashboard'));
 const LazyAdmindashboard = lazy(() => import('./pages/Admin'));
+const LazyHome = lazy(() => import("./pages/Home"));
+const LazyLogin = lazy(() => import("./pages/Login"));
+const LazyAboutPage = lazy(() => import("./pages/About"));
 
 import FranchisePage from "./pages/Franchise";
 import NotFound from "./pages/NotFound";
@@ -32,7 +34,8 @@ function App() {
             <Route path="/about" element={<LazyAboutPage />} />
             <Route path="/outlets" element={<OurOutlets />} />
             <Route path="/franchise" element={<FranchisePage />} />
-
+            <Route path="/forgetPassworld" element={<ForgetPassworld />} />
+            <Route path="/resetPassworld" element={< ResetPassworld />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/admin-dashboard" element={<LazyAdmindashboard />} />
@@ -43,6 +46,13 @@ function App() {
             <Route path="/user/profile" element={<UserPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
+
+
+
+
+          {/* <Route element={<ProtectedRoute />}> */}
+          {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* </Route> */}
         </Routes>
       </Suspense>
 
