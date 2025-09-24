@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { FaLock } from "react-icons/fa";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
+import { useSelector } from "react-redux";
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
+import type { RootState } from "../redux/store/store";
 import { showToast } from "../utils/toast";
-import { useDispatch, useSelector } from "react-redux";
-import { login } from "../redux/slices/authSlice";
-import type { AppDispatch, RootState } from "../redux/store/store";
-import { useNavigate } from "react-router";
 
 const ResetPassworld: React.FC = () => {
   useEffect(() => {
@@ -22,8 +19,8 @@ const ResetPassworld: React.FC = () => {
 
   const userData = useSelector((state: RootState) => state.auth);
 
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
+//   const dispatch = useDispatch<AppDispatch>();
+//   const navigate = useNavigate();
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,25 +31,25 @@ const ResetPassworld: React.FC = () => {
       return;
     }
 
-    const response = await dispatch(login({ password }));
-    if (response.type === "auth/login/fulfilled") {
-      const payload = response.payload as {
-        token: string;
-        id: string;
-        expiresIn: number;
-        user: { id: string; role: string };
-      };
-      if (payload.user.role === "admin") {
-        showToast.success("Login Successful.");
-        navigate("/admin-dashboard");
-      } else if (payload.user.role === "user") {
-        showToast.success("Login Successful.");
-        navigate("/userdashboard");
-      }
-    } else {
-      showToast.error("Login Error.");
-      console.log("response false", response);
-    }
+    // const response = await dispatch(login({ password }));
+    // if (response.type === "auth/login/fulfilled") {
+    //   const payload = response.payload as {
+    //     token: string;
+    //     id: string;
+    //     expiresIn: number;
+    //     user: { id: string; role: string };
+    //   };
+    //   if (payload.user.role === "admin") {
+    //     showToast.success("Login Successful.");
+    //     navigate("/admin-dashboard");
+    //   } else if (payload.user.role === "user") {
+    //     showToast.success("Login Successful.");
+    //     navigate("/userdashboard");
+    //   }
+    // } else {
+    //   showToast.error("Login Error.");
+    //   console.log("response false", response);
+    // }
   };
 
   return (

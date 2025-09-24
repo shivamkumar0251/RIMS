@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { FaEnvelope } from "react-icons/fa";
+import { useSelector } from "react-redux";
 import { Button } from "../components/Button";
 import Layout from "../layouts/Layout";
-import { showToast } from "../utils/toast";
-import { useDispatch, useSelector } from "react-redux";
-import { login } from "../redux/slices/authSlice";
-import type { AppDispatch, RootState } from "../redux/store/store";
-import { useNavigate } from "react-router";
+import type { RootState } from "../redux/store/store";
 
 const ForgetPassworld: React.FC = () => {
   useEffect(() => {
@@ -16,32 +13,32 @@ const ForgetPassworld: React.FC = () => {
   const [email, setEmail] = useState<string>("");
 
   const userData = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
+  // const dispatch = useDispatch<AppDispatch>();
+  // const navigate = useNavigate();
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const response = await dispatch(login({ email }));
+    // const response = await dispatch(login({ email }));
 
-    if (response.type === "auth/login/fulfilled") {
-      const payload = response.payload as {
-        token: string;
-        id: string;
-        expiresIn: number;
-        user: { id: string; email: string; role: string };
-      };
-      if (payload.user.role === "admin") {
-        showToast.success("Login Successful.");
-        navigate("/admin-dashboard");
-      } else if (payload.user.role === "user") {
-        showToast.success("Login Successful.");
-        navigate("/userdashboard");
-      }
-    } else {
-      showToast.error("Login Error.");
-      console.log("response false", response);
-    }
+    // if (response.type === "auth/login/fulfilled") {
+    //   const payload = response.payload as {
+    //     token: string;
+    //     id: string;
+    //     expiresIn: number;
+    //     user: { id: string; email: string; role: string };
+    //   };
+    //   if (payload.user.role === "admin") {
+    //     showToast.success("Login Successful.");
+    //     navigate("/admin-dashboard");
+    //   } else if (payload.user.role === "user") {
+    //     showToast.success("Login Successful.");
+    //     navigate("/userdashboard");
+    //   }
+    // } else {
+    //   showToast.error("Login Error.");
+    //   console.log("response false", response);
+    // }
   };
 
   return (

@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
 import  ForgetPassworld from './pages/Forgetpassworld.tsx';
-import { ResetPassworld } from "./pages/Resetpassworld";
+import  ResetPassworld  from "./pages/Resetpassworld";
 
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/Login"));
