@@ -11,19 +11,16 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  allowedRoles,
-  redirectTo = "/login",
-}) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectTo = "/login", }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { data, loading } = useSelector((state: RootState) => state.checkToken);
 
   useEffect(() => {
-      const token = getCookie('token');
-      if (token) {
-          dispatch(checkToken(token));
-        }
-    }, [dispatch]);
+    const token = getCookie('token');
+    if (token) {
+      dispatch(checkToken(token));
+    }
+  }, [dispatch]);
   if (loading) return <MainSpinner />;
   if (!data) return <Navigate to={redirectTo} replace />;
   if (!allowedRoles.includes(data.role)) {
@@ -33,7 +30,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return <Outlet />;
 };
 interface PublicRouteProps {
-  redirectTo?: string; 
+  redirectTo?: string;
 }
 export const PublicRoute: React.FC<PublicRouteProps> = ({ redirectTo = "/userdashboard" }) => {
   const dispatch = useDispatch<AppDispatch>();

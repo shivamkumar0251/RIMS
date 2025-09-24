@@ -10,10 +10,13 @@ const LazyUserDashboard = lazy(() => import('./pages/UserDashboard'));
 const LazyAdmindashboard = lazy(() => import('./pages/Admin'));
 
 import FranchisePage from "./pages/Franchise";
+import NotFound from "./pages/NotFound";
 import OurOutlets from "./pages/Outlet";
 import ProtectedRoute, { PublicRoute } from "./routes/ProtectedRoute";
-import NotFound from "./pages/NotFound";
 
+import ProfilePage from "./pages/Profile";
+import UserPage from "./pages/User";
+// import UserRegistrationFor from "./pages/Registration";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -29,14 +32,15 @@ function App() {
             <Route path="/about" element={<LazyAboutPage />} />
             <Route path="/outlets" element={<OurOutlets />} />
             <Route path="/franchise" element={<FranchisePage />} />
+
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/admin-dashboard" element={<LazyAdmindashboard />} />
-            {/* <Route path="/admin/profile" element={<Profile />} /> */}
+            <Route path="/admin/profile" element={<ProfilePage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
-            {/* <Route path="/user/profile" element={<Profile />} /> */}
+            <Route path="/user/profile" element={<UserPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
