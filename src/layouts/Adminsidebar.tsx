@@ -1,6 +1,9 @@
 import {
   FaHome, FaChartBar, FaFileAlt, FaCog, FaSignOutAlt, FaTh, FaTimes,
 } from "react-icons/fa";
+import { useDispatch } from "react-redux";
+import { logout } from "../redux/slices/authSlice";
+import type { AppDispatch } from "../redux/store/store";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,6 +17,14 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
     { icon: <FaFileAlt />, name: "Reports" },
     { icon: <FaCog />, name: "Settings" },
   ];
+  const dispatch = useDispatch<AppDispatch>();
+
+  const handleLogout = () => {
+    dispatch(logout()).then(() => {
+      // redirect after logout
+      window.location.href = "/login";
+    });
+  };
 
   return (
     <div
@@ -49,7 +60,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
       </div>
       <div>
         <a
-          href="#"
+          // href="#"
+          onClick={handleLogout}
           className="flex items-center p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
         >
           <FaSignOutAlt className="mr-3 sm:mr-4 text-lg sm:text-xl" />

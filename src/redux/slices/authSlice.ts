@@ -82,14 +82,13 @@ export const login = createAsyncThunk<
         setCookie("token", token, expiresIn);
         setCookie("userId", id.toString(), expiresIn);
 
-
         return { token, id, expiresIn, user };
       } else {
         return thunkAPI.rejectWithValue({
           message: (response.data as { message?: string })?.message || 'Login Error',
         });
       }
-    } catch (error: unknown) {
+    } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
         message: err.response?.data?.message || 'Login Error',
@@ -97,6 +96,42 @@ export const login = createAsyncThunk<
     }
   }
 );
+
+
+// ---- Add in same file (authSlice.ts) ----
+export const logout = createAsyncThunk<
+  { message: string }, // return type on success
+  void,                // no input needed
+  { rejectValue: { message: string } }
+>(
+  "auth/logout",
+  async (_, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: API_ENDPOINTS.logout,
+        method: "POST",
+      });
+
+      if (response.status === 200) {
+        // ✅ Clear cookies
+        deleteCookie("token");
+        deleteCookie("userId");
+
+        return { message: (response.data as { message?: string })?.message || "Logout successful" };
+      } else {
+        return thunkAPI.rejectWithValue({
+          message: (response.data as { message?: string })?.message || "Logout failed",
+        });
+      }
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || "Logout error",
+      });
+    }
+  }
+);
+
 
 
 // export const fetchUserById = createAsyncThunk<User, User['id']>(
@@ -148,6 +183,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ---- Login ----
       .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -161,16 +197,33 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ? action.payload.message : 'Login failed';
+        state.error = action.payload ? action.payload.message : "Login failed";
+      })
+
+      // ---- Logout ----
+      .addCase(logout.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(logout.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.token = null;
+        state.user = null;
+        state.expiresIn = null;
+        state.message = action.payload.message;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ? action.payload.message : "Logout failed";
       });
-  },
+  }
 });
 
 // --------- Selectors ---------
 export const getToken = (state: RootState) => state.auth.token;
 
 // --------- Exports ---------
-export const { setAuthenticated, setUser, setToken, clearToken } =
-  authSlice.actions;
+export const { setAuthenticated, setUser, setToken, clearToken } = authSlice.actions;
 
 export default authSlice.reducer;

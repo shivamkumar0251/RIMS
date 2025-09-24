@@ -87,7 +87,6 @@ const FranchisePage: React.FC = () => {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log('Franchise Inquiry Data for API:', formData);
       setIsSubmitted(true);
     }
   };

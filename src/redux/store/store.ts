@@ -4,6 +4,7 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import persistConfig from './persistConfig';
 
 import authReducer from '../slices/authSlice';
+import checkTokenReducer from '../slices/checkTokenSlice';
 import userDetailsReducer from '../slices/userDetailsSlice'; // adjust path
 
 const persistedUserDetailsReducer = persistReducer(
@@ -15,6 +16,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     userDetails: persistedUserDetailsReducer,
+    checkToken: checkTokenReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

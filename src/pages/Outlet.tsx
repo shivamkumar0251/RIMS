@@ -78,7 +78,7 @@ const OutletCard: React.FC<{ outlet: Outlet }> = ({ outlet }) => (
         ))}
       </div>
       <a
-        href={outlet.googleMapsUrl}
+        // href={outlet.googleMapsUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-6 w-full inline-block text-center bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors duration-300"
