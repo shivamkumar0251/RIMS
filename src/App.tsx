@@ -11,7 +11,9 @@ import Admindashboard from "./pages/Admin";
 import FranchisePage from "./pages/Franchise";
 import OurOutlets from "./pages/Outlet";
 import UserDashboard from "./pages/UserDashboard";
-
+import ProfilePage from "./pages/Profile";
+import UserPage from "./pages/User";
+// import UserRegistrationFor from "./pages/Registration";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -28,6 +30,10 @@ function App() {
           <Route path="/franchise" element={<FranchisePage/>} />
           <Route path="/userdashboard" element={<UserDashboard/>} />
           <Route path="/admin-dashboard" element={<Admindashboard />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/user" element={<UserPage />} />
+          {/* <Route path="/userRegistrationFor" element={<UserRegistrationFor />} /> */}
+
           {/* <Route element={<ProtectedRoute />}> */}
           {/* <Route path="/profile" element={<Profile />} /> */}
           {/* </Route> */}
