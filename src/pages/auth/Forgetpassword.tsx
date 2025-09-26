@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { FaEnvelope } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { Button } from "../components/Button";
-import Layout from "../layouts/Layout";
-import type { RootState } from "../redux/store/store";
+import type { RootState } from "../../redux/store/store";
+import Layout from "../../layouts/Layout";
+import { Button } from "../../components/Button";
 
-const ForgetPassworld: React.FC = () => {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+const ForgetPassword: React.FC = () => {
+   useEffect(() => {
+      document.title = "Forget-Password | Inventory Management System"
+      window.scrollTo(0, 0);
+    }, []);
+
 
   const [email, setEmail] = useState<string>("");
 
@@ -53,7 +55,7 @@ const ForgetPassworld: React.FC = () => {
         <div className="w-full max-w-md p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800">Hops N Chops</h1>
-            <p className="mt-2 text-gray-600">Forget Passworld</p>
+            <p className="mt-2 text-gray-600">Forget Password</p>
           </div>
 
           <form onSubmit={handleLoginSubmit} className="space-y-6">
@@ -86,4 +88,4 @@ const ForgetPassworld: React.FC = () => {
   );
 };
 
-export default ForgetPassworld;
+export default ForgetPassword;

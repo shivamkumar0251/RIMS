@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaDollarSign, FaShoppingCart, FaBox, FaBuilding, FaFileCsv } from 'react-icons/fa';
-import { AdminLayout } from '../layouts/AdminLayout';
-import { exportToCsv } from '../utils/export';
+import { AdminLayout } from '../../layouts/AdminLayout';
+import { exportToCsv } from '../../utils/export';
 // import { exportToCsv } from '../utils/export'; // Import the utility function
 
 // --- Reusable Stats Card Component ---
@@ -80,61 +80,65 @@ const SalesPerformance = () => {
 
 // --- Stock Movement Table Component ---
 const StockMovement = () => {
-    const stockData = [
-        { id: 'Product ID', product: 'Product A', currentStock: '8 units', minThreshold: '5', status: 'In Stock', statusVal: 1 },
-        { id: 'Product 1D', product: 'Product B', currentStock: '8 units', minThreshold: '8', status: 'Low Stock', statusVal: 3 },
-        { id: 'Graduact 1Y', product: 'Product B', currentStock: '5 units', minThreshold: '8', status: 'Out of Stock', statusVal: 7 },
-        { id: 'Graduact RY', product: 'Product C', currentStock: '4 units', minThreshold: '3', status: 'In Stock', statusVal: 7 },
-        { id: 'Tredast RY', product: 'Product C', currentStock: '8 units', minThreshold: '8', status: 'In Stock', statusVal: 7 },
-    ];
-    
-    return (
-        <div className="bg-gray-800 p-2 sm:p-3 md:p-4 lg:p-6 rounded-lg overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <h2 className="text-white text-sm sm:text-base md:text-lg font-semibold">STOCK MOVEMENT</h2>
-              <button
-                onClick={() => exportToCsv(stockData, 'stock-movement.csv')}
-                className="flex items-center justify-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <FaFileCsv />
-                Export
-              </button>
-            </div>
-            <div className="overflow-x-auto -mx-2 sm:mx-0">
-                <div className="px-2 sm:px-0">
-                    <table className="w-full text-left text-xs sm:text-sm min-w-[600px]">
-                        <thead className="bg-gray-700 text-gray-400 uppercase">
-                            <tr>
-                                <th className="p-2 sm:p-3 rounded-l-lg">Product ID</th>
-                                <th className="p-2 sm:p-3">Product</th>
-                                <th className="p-2 sm:p-3">Current Stock</th>
-                                <th className="p-2 sm:p-3">Min Threshold</th>
-                                <th className="p-2 sm:p-3">Status</th>
-                                <th className="p-2 sm:p-3 rounded-r-lg">Status #</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-white">
-                            {stockData.map((item, index) => (
-                                <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/50">
-                                    <td className="p-2 sm:p-3">{item.id}</td>
-                                    <td className="p-2 sm:p-3">{item.product}</td>
-                                    <td className="p-2 sm:p-3">{item.currentStock}</td>
-                                    <td className="p-2 sm:p-3">{item.minThreshold} units</td>
-                                    <td className="p-2 sm:p-3">{item.status}</td>
-                                    <td className="p-2 sm:p-3">{item.statusVal}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+  const stockData = [
+    { id: 'Product ID', product: 'Product A', currentStock: '8 units', minThreshold: '5', status: 'In Stock', statusVal: 1 },
+    { id: 'Product 1D', product: 'Product B', currentStock: '8 units', minThreshold: '8', status: 'Low Stock', statusVal: 3 },
+    { id: 'Graduact 1Y', product: 'Product B', currentStock: '5 units', minThreshold: '8', status: 'Out of Stock', statusVal: 7 },
+    { id: 'Graduact RY', product: 'Product C', currentStock: '4 units', minThreshold: '3', status: 'In Stock', statusVal: 7 },
+    { id: 'Tredast RY', product: 'Product C', currentStock: '8 units', minThreshold: '8', status: 'In Stock', statusVal: 7 },
+  ];
+
+  return (
+    <div className="bg-gray-800 p-2 sm:p-3 md:p-4 lg:p-6 rounded-lg overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <h2 className="text-white text-sm sm:text-base md:text-lg font-semibold">STOCK MOVEMENT</h2>
+        <button
+          onClick={() => exportToCsv(stockData, 'stock-movement.csv')}
+          className="flex items-center justify-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition text-xs sm:text-sm w-full sm:w-auto"
+        >
+          <FaFileCsv />
+          Export
+        </button>
+      </div>
+      <div className="overflow-x-auto -mx-2 sm:mx-0">
+        <div className="px-2 sm:px-0">
+          <table className="w-full text-left text-xs sm:text-sm min-w-[600px]">
+            <thead className="bg-gray-700 text-gray-400 uppercase">
+              <tr>
+                <th className="p-2 sm:p-3 rounded-l-lg">Product ID</th>
+                <th className="p-2 sm:p-3">Product</th>
+                <th className="p-2 sm:p-3">Current Stock</th>
+                <th className="p-2 sm:p-3">Min Threshold</th>
+                <th className="p-2 sm:p-3">Status</th>
+                <th className="p-2 sm:p-3 rounded-r-lg">Status #</th>
+              </tr>
+            </thead>
+            <tbody className="text-white">
+              {stockData.map((item, index) => (
+                <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/50">
+                  <td className="p-2 sm:p-3">{item.id}</td>
+                  <td className="p-2 sm:p-3">{item.product}</td>
+                  <td className="p-2 sm:p-3">{item.currentStock}</td>
+                  <td className="p-2 sm:p-3">{item.minThreshold} units</td>
+                  <td className="p-2 sm:p-3">{item.status}</td>
+                  <td className="p-2 sm:p-3">{item.statusVal}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 
 // --- Main Dashboard Component ---
 function Admindashboard() {
+  useEffect(() => {
+    document.title = "Admin DashBoard | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <AdminLayout>
       <div className="w-full p-2 sm:p-3 md:p-4 lg:p-6">
@@ -148,8 +152,8 @@ function Admindashboard() {
 
         {/* Tables Section */}
         <div className="flex flex-col space-y-3 sm:space-y-4 md:space-y-6">
-            <SalesPerformance />
-            <StockMovement />
+          <SalesPerformance />
+          <StockMovement />
         </div>
       </div>
     </AdminLayout>

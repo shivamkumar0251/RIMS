@@ -50,9 +50,10 @@ const faqData = [
 // --- Main Franchise Page Component ---
 
 const FranchisePage: React.FC = () => {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+   useEffect(() => {
+        document.title = "Franchise Inquiry | Inventory Management System"
+        window.scrollTo(0, 0);
+      }, []);
 
   const [formData, setFormData] = useState({
     name: '',

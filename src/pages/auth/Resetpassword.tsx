@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { Button } from "../components/Button";
-import Layout from "../layouts/Layout";
-import type { RootState } from "../redux/store/store";
-import { showToast } from "../utils/toast";
+import { Button } from "../../components/Button";
+import Layout from "../../layouts/Layout";
+import type { RootState } from "../../redux/store/store";
+import { showToast } from "../../utils/toast";
 
-const ResetPassworld: React.FC = () => {
+const ResetPassword: React.FC = () => {
   useEffect(() => {
+    document.title = "Reset Password | Inventory Management System"
     window.scrollTo(0, 0);
   }, []);
 
@@ -19,8 +20,8 @@ const ResetPassworld: React.FC = () => {
 
   const userData = useSelector((state: RootState) => state.auth);
 
-//   const dispatch = useDispatch<AppDispatch>();
-//   const navigate = useNavigate();
+  //   const dispatch = useDispatch<AppDispatch>();
+  //   const navigate = useNavigate();
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,7 +52,7 @@ const ResetPassworld: React.FC = () => {
     //   console.log("response false", response);
     // }
   };
-
+  
   return (
     <Layout>
       <div
@@ -64,7 +65,7 @@ const ResetPassworld: React.FC = () => {
         <div className="w-full max-w-md p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800">Hops N Chops</h1>
-            <p className="mt-2 text-gray-600">Add Your New Passworld</p>
+            <p className="mt-2 text-gray-600">Add Your New Password</p>
           </div>
 
           <form onSubmit={handleLoginSubmit} className="space-y-6">
@@ -130,4 +131,4 @@ const ResetPassworld: React.FC = () => {
   );
 };
 
-export default ResetPassworld;
+export default ResetPassword;

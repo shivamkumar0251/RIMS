@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { ChangeEvent } from "react";
-import UserLayout from "../layouts/UserLayout";
+import UserLayout from "../../layouts/UserLayout";
 
 type ProfileData = {
   franchiseId: string;
@@ -27,6 +27,10 @@ const initialData = (): ProfileData => ({
 });
 
 export default function UserProfile() {
+  useEffect(() => {
+    document.title = "User Profile | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   const [data, setData] = useState<ProfileData>(initialData);
   const [passwordData, setPasswordData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});

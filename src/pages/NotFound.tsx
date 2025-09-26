@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const NotFound: React.FC = () => {
+  useEffect(() => {
+    document.title = "Page NotFound | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-6 py-12">
       <h1 className="text-9xl font-extrabold text-gray-800">404</h1>

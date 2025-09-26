@@ -34,9 +34,9 @@ const coreValues: CoreValue[] = [
 
 const AboutPage: React.FC = () => {
   useEffect(() => {
-  // Yeh function page ko top (0, 0) position par scroll kar dega
-  window.scrollTo(0, 0);
-}, []);
+    document.title = "About | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <Layout>
       <div className="bg-gray-50 text-gray-800">
@@ -112,7 +112,7 @@ const AboutPage: React.FC = () => {
                 blend of tradition and creativity to the Hops N Chops menu.
               </p>
               <Link to="/team" className="inline-flex items-center text-amber-500 font-semibold text-lg hover:text-amber-400 transition-colors">
-                Meet The Team 
+                Meet The Team
                 <FaArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>

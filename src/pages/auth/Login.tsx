@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { Button } from "../components/Button";
-import Layout from "../layouts/Layout";
-import { showToast } from "../utils/toast";
+import { Button } from "../../components/Button";
+import Layout from "../../layouts/Layout";
+import { showToast } from "../../utils/toast";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "../redux/slices/authSlice";
-import type { AppDispatch, RootState } from "../redux/store/store";
-import { useNavigate } from "react-router";
+import { login } from "../../redux/slices/authSlice";
+import type { AppDispatch, RootState } from "../../redux/store/store";
+import { Link, useNavigate } from "react-router";
 
 const LoginPage: React.FC = () => {
   useEffect(() => {
-
-  window.scrollTo(0, 0);
-}, []);
+    document.title = "Home | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
 
   return (
     <Layout>
-      <div 
+      <div
         className="flex items-center justify-center min-h-screen bg-cover bg-center"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop')" }}
       >
@@ -96,14 +96,13 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Forgot password */}
             <div className="text-right">
-              <a
-                href="#"
+              <Link
+                to="/forgetPassword"
                 className="text-sm font-medium text-blue-600 hover:underline"
               >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
             <Button type="submit" loading={userData.loading} className="w-full py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105" >submit</Button>
           </form>

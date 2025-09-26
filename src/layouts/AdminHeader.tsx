@@ -1,10 +1,13 @@
 import { FaSearch, FaBars, FaPrint } from 'react-icons/fa';
+import { CgProfile } from "react-icons/cg";
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   toggleSidebar: () => void;
 }
 
 export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
+  const navigate = useNavigate()
   return (
     <header className="flex justify-between items-center p-2 sm:p-3 md:p-4 bg-gray-800 md:bg-transparent">
       {/* Hamburger Menu - Visible only on mobile */}
@@ -29,6 +32,8 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           <FaPrint />
           <span className="hidden sm:inline">Print</span>
         </button>
+        
+          <CgProfile  size={30} color='white' onClick={()=>navigate('/admin/profile')} />
       </div>
     </header>
   );

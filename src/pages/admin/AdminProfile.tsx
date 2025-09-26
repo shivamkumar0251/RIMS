@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
-import { useRef, useState } from "react";
-import { AdminLayout } from "../layouts/AdminLayout";
+import { useEffect, useRef, useState } from "react";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
 interface ProfileData {
   fullName: string;
@@ -26,6 +26,10 @@ interface FormErrors {
 }
 
 export default function ProfilePage() {
+  useEffect(() => {
+    document.title = "Admin Profile | Inventory Management System"
+    window.scrollTo(0, 0);
+  }, []);
   const [editing, setEditing] = useState<EditingState>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [isUploading, setIsUploading] = useState<"avatar" | "logo" | null>(null);
@@ -561,7 +565,7 @@ function PasswordEditor({ onCancel, onSave }: PasswordEditorProps) {
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+          className="px-4 bg-indigo-600 py-2 border border-gray-300 rounded-lg hover:bg-indigo-700 transition-all duration-200"
           aria-label="Cancel password change"
         >
           Cancel

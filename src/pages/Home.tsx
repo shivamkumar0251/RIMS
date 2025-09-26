@@ -76,6 +76,7 @@ const DishCard = ({ name, description, imageUrl }: typeof signatureDishes[0]) =>
 
 const Home: React.FC = () => {
   useEffect(() => {
+    document.title = "Home | Inventory Management System"
     window.scrollTo(0, 0);
   }, []);
   return (
@@ -117,9 +118,6 @@ const Home: React.FC = () => {
             </div>
           </div>
         </section>
-
-
-
 
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">

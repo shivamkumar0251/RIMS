@@ -93,9 +93,9 @@ const OutletCard: React.FC<{ outlet: Outlet }> = ({ outlet }) => (
 // --- Main Outlets Page Component ---
 const OurOutlets: React.FC = () => {
   useEffect(() => {
-  // Yeh function page ko top (0, 0) position par scroll kar dega
-  window.scrollTo(0, 0);
-}, []);
+     document.title = "OurOutlets | Inventory Management System"
+     window.scrollTo(0, 0);
+   }, []);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredOutlets = outletsData.filter(outlet =>

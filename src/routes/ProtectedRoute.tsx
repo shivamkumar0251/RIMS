@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectTo = "/login", }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectTo = "/login", }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { data, loading } = useSelector((state: RootState) => state.checkToken);
 
@@ -58,4 +58,3 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ redirectTo = "/userdas
 };
 
 
-export default ProtectedRoute;
