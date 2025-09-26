@@ -13,7 +13,7 @@ import OurOutlets from "./pages/Outlet";
 import UserDashboard from "./pages/UserDashboard";
 import ProfilePage from "./pages/Profile";
 import UserPage from "./pages/User";
-// import UserRegistrationFor from "./pages/Registration";
+import UserRegistrationForm from "./pages/UserRegistration";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -32,10 +32,14 @@ function App() {
           <Route path="/admin-dashboard" element={<Admindashboard />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/user" element={<UserPage />} />
-          {/* <Route path="/userRegistrationFor" element={<UserRegistrationFor />} /> */}
+          <Route path="/userRegistrationForm" element={<UserRegistrationForm/>} />
+          
 
           {/* <Route element={<ProtectedRoute />}> */}
+          {/* <Route element={<ProtectedRoute />}> */}
           {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* </Route> */}
           {/* </Route> */}
         </Routes>
       </Suspense>
