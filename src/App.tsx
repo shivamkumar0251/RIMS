@@ -19,6 +19,7 @@ import ProfilePage from "./pages/admin/AdminProfile";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 // import UserRegistrationFor from "./pages/Registration";
+import UserRegistrationForm from "./pages/UserRegistration";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -40,12 +41,22 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/admin-dashboard" element={<LazyAdmindashboard />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
+            <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
+
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
             <Route path="/user/profile" element={<UserPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
+
+
+          {/* <Route element={<ProtectedRoute />}> */}
+          {/* <Route element={<ProtectedRoute />}> */}
+          {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* <Route path="/profile" element={<Profile />} /> */}
+          {/* </Route> */}
+          {/* </Route> */}
         </Routes>
       </Suspense>
 

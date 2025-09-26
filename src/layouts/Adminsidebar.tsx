@@ -4,6 +4,7 @@ import {
 import { useDispatch } from "react-redux";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
+import { Link } from "react-router-dom";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,10 +13,10 @@ interface SidebarProps {
 
 export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
-    { icon: <FaHome />, name: "Home" },
-    { icon: <FaChartBar />, name: "Analytics" },
-    { icon: <FaFileAlt />, name: "Reports" },
-    { icon: <FaCog />, name: "Settings" },
+    { icon: <FaHome />, name: "Home" , to:'/admin-dashboard'},
+    { icon: <FaChartBar />, name: "Analytics", to:'/userRegistrationForm' },
+    { icon: <FaFileAlt />, name: "Reports", to:'/admin-dashboard' },
+    { icon: <FaCog />, name: "Settings", to:'/admin-dashboard' },
   ];
   const dispatch = useDispatch<AppDispatch>();
 
@@ -46,13 +47,13 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
           <ul>
             {menuItems.map((item, index) => (
               <li key={index} className="mb-2 sm:mb-4">
-                <a
-                  href="#"
+                <Link
+                  to={item.to}
                   className="flex items-center p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
                 >
                   <span className="mr-3 sm:mr-4 text-lg sm:text-xl">{item.icon}</span>
                   {item.name}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
