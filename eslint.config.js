@@ -19,5 +19,9 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // 🔹 add custom rules here
+      'no-debugger': 'off', // disable debugger rule
+    },
   },
 ])

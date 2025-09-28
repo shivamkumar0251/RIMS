@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { AxiosError } from 'axios';
+import { getCookie } from '../../utils/cookieUtils';
 
 // ---------- Types ----------
 interface User {
@@ -38,7 +39,7 @@ export const fetchUserDetails = createAsyncThunk<
   void, // argument type (no params)
   { rejectValue: { message: string } } // reject type
 >('userDetails/fetchUserDetails', async (_, thunkAPI) => {
-  const id = localStorage.getItem('userId');
+  const id = getCookie('userId');
   try {
     const response = await apiCaller({
       url: `${API_ENDPOINTS.GET_USER_BY_ID}/${id}`,

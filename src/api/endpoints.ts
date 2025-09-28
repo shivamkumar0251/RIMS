@@ -4,6 +4,7 @@ export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
 export const API_ENDPOINTS = {
   login: `${API_BASE_URL}/users/login`,
   GET_USER_BY_ID: `${API_BASE_URL}/users/login`,
+  CHECK_TOKEN: `${API_BASE_URL}/users/checkToken`,
   logout: `${API_BASE_URL}/users/logout`,
   profile: `${API_BASE_URL}/users/profile`,
   forgotPassword: `${API_BASE_URL}/users/forgotPassword`,
