@@ -21,10 +21,9 @@ import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 // import UserRegistrationFor from "./pages/Registration";
 import UserRegistrationForm from "./pages/UserRegistration";
-import CategoryManagement from "./pages/admin/CategoryManagement";
 import AddProductAdvanced from "./pages/admin/AddProduct";
+import CategoryManagement from "./pages/admin/CategoryManagement";
 import AssetManagementPage from "./pages/user/UserLayout";
-import Dashboard from "./pages/user/UserDashboard2";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
