@@ -14,8 +14,9 @@ interface SidebarProps {
 export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { icon: <FaHome />, name: "Home" , to:'/admin-dashboard'},
-    { icon: <FaChartBar />, name: "Analytics", to:'/userRegistrationForm' },
-    { icon: <FaFileAlt />, name: "Reports", to:'/admin-dashboard' },
+    { icon: <FaChartBar />, name: "UserRegistration", to:'/userRegistrationForm' },
+    { icon: <FaFileAlt />, name: "Category", to:'/addCategoryManagement' },
+    { icon: <FaFileAlt />, name: "Products", to:'/addAdminProducts' },
     { icon: <FaCog />, name: "Settings", to:'/admin-dashboard' },
   ];
   const dispatch = useDispatch<AppDispatch>();

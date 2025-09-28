@@ -1,12 +1,10 @@
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-// import App from './App.tsx'
-import './index.css'
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { persistor, store } from './redux/store/store.ts'
-import { PersistGate } from 'redux-persist/integration/react'
-import CategoryManagement from './pages/admin/CategoryManagement.tsx';
-import AddProductAdvanced from './pages/admin/AddProduct.tsx';
+import { BrowserRouter } from 'react-router-dom';
+import { PersistGate } from 'redux-persist/integration/react';
+import App from './App.tsx';
+import './index.css';
+import { persistor, store } from './redux/store/store.ts';
 
 
 
@@ -14,8 +12,7 @@ createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
       <BrowserRouter>
-        <CategoryManagement/>
-        <AddProductAdvanced />
+        <App />
       </BrowserRouter>
     </PersistGate>
   </Provider>

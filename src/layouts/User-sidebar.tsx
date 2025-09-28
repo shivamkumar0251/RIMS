@@ -5,13 +5,14 @@ import { FaBars, FaTachometerAlt, FaChair, FaBoxes, FaShoppingCart, FaCog, FaSig
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../redux/store/store';
 import { logout } from '../redux/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 
 const dashboardData = [
-  { id: 1, name: 'Dashboard', icon: FaTachometerAlt },
-  { id: 2, name: 'Fixed Assets', icon: FaChair },
-  { id: 3, name: 'Store Stock', icon: FaBoxes },
-  { id: 4, name: 'Purchase Requests', icon: FaShoppingCart },
-  { id: 5, name: 'Settings', icon: FaCog },
+  { id: 1, name: 'Dashboard', icon: FaTachometerAlt, to:'/userdashboard' },
+  { id: 2, name: 'Products', icon: FaChair, to:'/user/products' },
+  { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/userdashboard' },
+  { id: 4, name: 'Purchase Requests', icon: FaShoppingCart, to:'/userdashboard' },
+  { id: 5, name: 'Settings', icon: FaCog, to:'/userdashboard' },
 ];
 
 interface SidebarProps {
@@ -23,6 +24,7 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [isPinned, setIsPinned] = useState(true);
   const [selectedId, setSelectedId] = useState(1);
   const isExpanded = isPinned;
+  const navigate = useNavigate()
 
   const dispatch = useDispatch<AppDispatch>();
 
@@ -59,6 +61,7 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               onClick={() => {
                 setSelectedId(item.id);
                 setIsOpen(false);
+                navigate(item.to)
               }}
               className={`flex w-full items-center rounded-lg p-3 text-left transition-colors duration-200 ${selectedId === item.id
                 ? 'bg-blue-600 text-white shadow-md'

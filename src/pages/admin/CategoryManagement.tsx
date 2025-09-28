@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 // Added FiHash for the new 'number' field type
-import { FiPlus, FiEdit, FiTrash2, FiFilePlus, FiX, FiSave, FiEye, FiType, FiList, FiCheckSquare, FiChevronsDown, FiAlertCircle, FiHash } from 'react-icons/fi';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { FiAlertCircle, FiCheckSquare, FiChevronsDown, FiEdit, FiEye, FiFilePlus, FiHash, FiList, FiPlus, FiTrash2, FiType, FiX } from 'react-icons/fi';
+import { AdminLayout } from '../../layouts/AdminLayout';
 
 // --- DATA STRUCTURES (UPDATED) ---
 export interface FormField {
@@ -29,11 +30,6 @@ export interface Category {
   subcategories: SubCategory[];
   formFields?: FormField[];
 }
-
-
-// ###################################################################################
-// ###                         SUB-COMPONENTS                                      ###
-// ###################################################################################
 
 // --- CATEGORY MODAL COMPONENT (No changes) ---
 const CategoryModal = ({ isOpen, onClose, onSubmit, mode, currentCategory }: { isOpen: boolean, onClose: () => void, onSubmit: (name: string, id?: number) => void, mode: 'add' | 'edit', currentCategory: Category | null }) => {
@@ -266,6 +262,7 @@ const CategoryManagement: React.FC = () => {
 
   // --- RENDER ---
   return (
+    <AdminLayout>
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -321,6 +318,7 @@ const CategoryManagement: React.FC = () => {
       {formBuilderTarget && <FormBuilderModal isOpen={isFormBuilderOpen} onClose={() => setIsFormBuilderOpen(false)} onSubmit={handleSaveForm} targetName={formBuilderTarget.item.name} initialFields={formBuilderTarget.item.formFields || []} />}
       <ViewFormModal isOpen={isViewFormModalOpen} onClose={() => setIsViewFormModalOpen(false)} formName={viewFormName} fields={viewFormFields} />
     </div>
+    </AdminLayout>
   );
 };
 

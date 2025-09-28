@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
-export const API_BASE_URL = 'http://localhost:5000/v1';
+export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
+// export const API_BASE_URL = 'http://localhost:5000/v1';
 
 export const API_ENDPOINTS = {
   login: `${API_BASE_URL}/users/login`,

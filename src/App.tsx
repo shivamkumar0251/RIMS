@@ -5,7 +5,8 @@ import MainSpinner from "./components/common/MainSpinner";
 import ForgetPassword from './pages/auth/Forgetpassword';
 import ResetPassword from "./pages/auth/Resetpassword";
 
-const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
+// const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
+const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard2'));
 const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/auth/Login"));
@@ -20,6 +21,10 @@ import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 // import UserRegistrationFor from "./pages/Registration";
 import UserRegistrationForm from "./pages/UserRegistration";
+import CategoryManagement from "./pages/admin/CategoryManagement";
+import AddProductAdvanced from "./pages/admin/AddProduct";
+import AssetManagementPage from "./pages/user/UserLayout";
+import Dashboard from "./pages/user/UserDashboard2";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -42,21 +47,16 @@ function App() {
             <Route path="/admin-dashboard" element={<LazyAdmindashboard />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
+            <Route path="/addCategoryManagement" element={<CategoryManagement />} />
+            <Route path="/addAdminProducts" element={<AddProductAdvanced />} />
 
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
             <Route path="/user/profile" element={<UserPage />} />
+            <Route path="/user/products" element={<AssetManagementPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
-
-
-          {/* <Route element={<ProtectedRoute />}> */}
-          {/* <Route element={<ProtectedRoute />}> */}
-          {/* <Route path="/profile" element={<Profile />} /> */}
-          {/* <Route path="/profile" element={<Profile />} /> */}
-          {/* </Route> */}
-          {/* </Route> */}
         </Routes>
       </Suspense>
 

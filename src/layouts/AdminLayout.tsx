@@ -15,7 +15,7 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex bg-gray-900 text-white min-h-screen font-sans">
+    <div className="flex bg-gray-500  min-h-screen font-sans">
       {/* Sidebar - Hidden on mobile by default, visible on desktop */}
   
 
