@@ -1,312 +1,205 @@
-import React, { useState } from 'react';
-import { FiChevronDown, FiPlus, FiUpload, FiX } from 'react-icons/fi';
-import { AdminLayout } from '../../layouts/AdminLayout';
+import React, { useEffect, useState } from "react";
+import { FiEdit, FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { useParams } from "react-router-dom";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
-// --- DATA STRUCTURES (Aap isse apne database ke structure se match kar sakte hain) ---
+// Import the initial data and the Product type
+import { mockAllProducts as initialMockProducts, type Product } from "../../components/data";
 
-// 1. Har custom form field ka structure
-interface FormField {
-  id: string;
-  key: string; // Backend me data save karne ke liye key (e.g., 'screen_size')
-  type: 'text' | 'number' | 'textarea';
-  label: string; // UI me dikhane ke liye label (e.g., 'Screen Size')
-  placeholder?: string;
-  required: boolean;
-}
+export default function AddProductAdvanced() {
+  const { categoryName, subCategoryName } = useParams<{ categoryName: string; subCategoryName: string }>();
 
-// 2. Har Subcategory ka structure
-interface SubCategory {
-  id: number;
-  name: string;
-  // Har subcategory ke apne custom fields ho sakte hain
-  formFields: FormField[];
-}
+  // --- STATE MANAGEMENT ---
+  // Master list of all products, now managed by state
+  const [allProducts, setAllProducts] = useState<Product[]>(initialMockProducts);
+  // The list of products currently visible in the table
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  
+  // State for the "Add Item" modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
+  const [newItemStock, setNewItemStock] = useState("");
 
-// 3. Har Category ka structure
-interface Category {
-  id: number;
-  name: string;
-  subcategories: SubCategory[];
-}
+  // State for the "Edit Item" modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Product | null>(null);
 
 
-// --- MOCK DATA (Isko aap API se fetch karenge) ---
-// Yahan hum alag-alag subcategories ke liye alag-alag dynamic forms define kar rahe hain
-const CATEGORIES_DATA: Category[] = [
-  {
-    id: 1,
-    name: 'Electronics',
-    subcategories: [
-      {
-        id: 101,
-        name: 'Mobiles',
-        formFields: [
-          { id: 'f1', key: 'screen_size', type: 'text', label: 'Screen Size (Inches)', placeholder: 'e.g., 6.7', required: true },
-          { id: 'f2', key: 'ram', type: 'number', label: 'RAM (GB)', placeholder: 'e.g., 8', required: true },
-          { id: 'f3', key: 'storage', type: 'number', label: 'Storage (GB)', placeholder: 'e.g., 128', required: true },
-        ],
-      },
-      {
-        id: 102,
-        name: 'Laptops',
-        formFields: [
-          { id: 'f4', key: 'processor', type: 'text', label: 'Processor', placeholder: 'e.g., Apple M3 Pro', required: true },
-          { id: 'f5', key: 'ram', type: 'number', label: 'RAM (GB)', placeholder: 'e.g., 16', required: true },
-          { id: 'f6', key: 'warranty', type: 'text', label: 'Warranty', placeholder: 'e.g., 1 Year International', required: false },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Clothing',
-    subcategories: [
-      {
-        id: 201,
-        name: 'Shirts',
-        formFields: [
-          { id: 'f7', key: 'material', type: 'text', label: 'Fabric Material', placeholder: 'e.g., 100% Cotton', required: true },
-          { id: 'f8', key: 'fit_type', type: 'text', label: 'Fit Type', placeholder: 'e.g., Slim Fit', required: true },
-        ],
-      },
-    ],
-  },
-];
-
-
-const DynamicFormField: React.FC<{ field: FormField; value: any; onChange: (key: string, value: any) => void; }> = ({ field, value, onChange }) => {
-  const commonClasses = "mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500";
-
-  return (
-    <div key={field.id}>
-      <label htmlFor={field.id} className="block text-sm font-medium text-gray-700">
-        {field.label} {field.required && <span className="text-red-500">*</span>}
-      </label>
-      {field.type === 'textarea' ? (
-        <textarea
-          id={field.id}
-          value={value}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          rows={3}
-          className={commonClasses}
-          placeholder={field.placeholder}
-          required={field.required}
-        />
-      ) : (
-        <input
-          id={field.id}
-          type={field.type}
-          value={value}
-          onChange={(e) => onChange(field.key, field.type === 'number' ? e.target.valueAsNumber : e.target.value)}
-          className={commonClasses}
-          placeholder={field.placeholder}
-          required={field.required}
-          step={field.type === 'number' ? 'any' : undefined}
-        />
-      )}
-    </div>
-  );
-};
-
-
-/**
- * The Modal (popup) for adding a product
- */
-const AddProductModal: React.FC<{ isOpen: boolean; onClose: () => void; subCategory: SubCategory | null; onSubmit: (data: any) => void; }> = ({ isOpen, onClose, subCategory, onSubmit }) => {
-  const [formData, setFormData] = useState<{ [key: string]: any }>({});
-
-  // Reset form when subCategory changes
-  React.useEffect(() => {
-    if (subCategory) {
-      const initialData: { [key: string]: any } = {
-        productName: '',
-        quantity: 0,
-        gst: 0,
-        price: 0,
-      };
-      subCategory.formFields.forEach(field => {
-        initialData[field.key] = '';
-      });
-      setFormData(initialData);
+  // --- DATA FILTERING ---
+  // This effect runs when the page loads or the data/URL changes
+  useEffect(() => {
+    if (subCategoryName) {
+      const filtered = allProducts.filter(
+        (product) => product.subcategory.toLowerCase() === subCategoryName.toLowerCase()
+      );
+      setFilteredProducts(filtered);
     }
-  }, [subCategory]);
+  }, [subCategoryName, allProducts]); // Re-filter whenever the master list changes
 
-  if (!isOpen || !subCategory) return null;
 
-  const handleFormChange = (key: string, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-  };
+  // --- CRUD FUNCTIONS (Create, Read, Update, Delete) ---
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const submissionData = {
-      ...formData,
-      subCategoryId: subCategory.id,
+  // CREATE: Handles new item submission
+  const handleAddItemSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const newItem: Product = {
+      id: `item_${Date.now()}`, // Create a unique ID
+      name: newItemName,
+      price: Number(newItemPrice),
+      stock: Number(newItemStock),
+      category: categoryName as "setup" | "products",
+      subcategory: subCategoryName,
     };
-    onSubmit(submissionData);
+    // Add the new item to the master list
+    setAllProducts([newItem, ...allProducts]);
+    alert(`New item "${newItemName}" added successfully!`);
+    closeAndResetAddModal();
   };
+  
+  // UPDATE: Opens the edit modal and pre-fills data
+  const handleEditClick = (product: Product) => {
+    setEditingItem(product);
+    setIsEditModalOpen(true);
+  };
+  
+  // UPDATE: Handles edit form submission
+  const handleUpdateItemSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingItem) return;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-modal-pop flex flex-col max-h-[90vh]">
-        <div className="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-          <div>
-            <h3 className="text-xl font-bold text-gray-800">Add New Product</h3>
-            <p className="text-sm text-gray-500">
-              Category: <span className="font-semibold text-indigo-600">{subCategory.name}</span>
-            </p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={24} /></button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 flex-grow overflow-y-auto space-y-6">
-          {/* --- Static Fields --- */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="productName" className="block text-sm font-medium text-gray-700">Product Name <span className="text-red-500">*</span></label>
-              <input type="text" id="productName" value={formData.productName || ''} onChange={(e) => handleFormChange('productName', e.target.value)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" required />
-            </div>
-            <div>
-              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Quantity <span className="text-red-500">*</span></label>
-              <input type="number" id="quantity" value={formData.quantity || ''} onChange={(e) => handleFormChange('quantity', e.target.valueAsNumber)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" required />
-            </div>
-            <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price (₹) <span className="text-red-500">*</span></label>
-              <input type="number" id="price" step="0.01" value={formData.price || ''} onChange={(e) => handleFormChange('price', e.target.valueAsNumber)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" required />
-            </div>
-            <div>
-              <label htmlFor="gst" className="block text-sm font-medium text-gray-700">GST (%) <span className="text-red-500">*</span></label>
-              <input type="number" id="gst" step="0.1" value={formData.gst || ''} onChange={(e) => handleFormChange('gst', e.target.valueAsNumber)} className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" required />
-            </div>
-          </div>
-
-          {/* --- Dynamic Fields --- */}
-          {subCategory.formFields.length > 0 && (
-            <div>
-              <hr className="my-6" />
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Additional Details</h4>
-              <div className="space-y-4">
-                {subCategory.formFields.map(field => (
-                  <DynamicFormField
-                    key={field.id}
-                    field={field}
-                    value={formData[field.key] || ''}
-                    onChange={handleFormChange}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-        </form>
-
-        <div className="p-5 border-t flex justify-end gap-3 bg-gray-50 rounded-b-xl">
-          <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">
-            Cancel
-          </button>
-          <button type="submit" onClick={handleSubmit} className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700">
-            Save Product
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-const AddProductAdvanced: React.FC = () => {
-  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
-
-  // Category list ko expand/collapse karne ke liye function
-  const toggleCategory = (categoryId: number) => {
-    setExpandedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+    // Find and update the item in the master list
+    const updatedProducts = allProducts.map((p) =>
+      p.id === editingItem.id ? editingItem : p
     );
+    setAllProducts(updatedProducts);
+    alert(`Item "${editingItem.name}" updated successfully!`);
+    closeAndResetEditModal();
   };
 
-  // "Add Product" button click hone par modal open karne ka function
-  const handleOpenAddProductForm = (subCategory: SubCategory) => {
-    setSelectedSubCategory(subCategory);
-    setIsModalOpen(true);
+  // DELETE: Deletes an item after confirmation
+  const handleDelete = (productId: string, productName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${productName}"?`)) {
+      const newProductList = allProducts.filter((p) => p.id !== productId);
+      setAllProducts(newProductList);
+      alert(`Item "${productName}" has been deleted.`);
+    }
   };
 
-  // Modal close karne ka function
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedSubCategory(null);
+  
+  // --- MODAL HELPER FUNCTIONS ---
+  const closeAndResetAddModal = () => {
+    setIsAddModalOpen(false);
+    setNewItemName(""); setNewItemPrice(""); setNewItemStock("");
+  };
+  
+  const closeAndResetEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingItem(null);
   };
 
-  // Form submit hone par data handle karne ka function
-  const handleFormSubmit = (data: any) => {
-    console.log('Final Product Data to be sent to API:', data);
-    alert(`Product "${data.productName}" added successfully! Check console for data.`);
-    handleCloseModal();
-  };
-
-  // "Upload Excel" button ke liye placeholder function
-  const handleExcelUpload = (subCategory: SubCategory) => {
-    alert(`Excel upload functionality for "${subCategory.name}" would be implemented here.`);
-  }
+  const pageTitle = subCategoryName
+    ? `Products in ${subCategoryName.charAt(0).toUpperCase() + subCategoryName.slice(1)}`
+    : "Products";
 
   return (
     <AdminLayout>
-      <div className="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8 font-sans">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6">Add New Product</h1>
-          <p className="text-gray-600 mb-8">
-            Select a category and subcategory below to begin adding a new product.
-          </p>
-
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="space-y-2 p-4">
-              {CATEGORIES_DATA.map(category => (
-                <div key={category.id} className="border-b last:border-b-0">
-                  {/* Category Header */}
-                  <button
-                    onClick={() => toggleCategory(category.id)}
-                    className="w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-gray-800 hover:bg-gray-50"
-                  >
-                    <span>{category.name}</span>
-                    <FiChevronDown className={`transform transition-transform ${expandedCategories.includes(category.id) ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {/* Subcategories List (Collapsible) */}
-                  {expandedCategories.includes(category.id) && (
-                    <div className="pl-6 pr-4 pb-4 animate-fade-in-down">
-                      {category.subcategories.map(sub => (
-                        <div key={sub.id} className="flex justify-between items-center p-3 my-1 rounded-lg hover:bg-gray-100">
-                          <span className="text-gray-700">{sub.name}</span>
-                          <div className="flex items-center gap-3">
-                            <button onClick={() => handleExcelUpload(sub)} className="flex items-center gap-2 text-sm text-green-600 font-medium hover:text-green-800" title="Upload using Excel">
-                              <FiUpload /> <span>Upload Excel</span>
-                            </button>
-                            <button onClick={() => handleOpenAddProductForm(sub)} className="flex items-center gap-2 text-sm bg-indigo-100 text-indigo-700 font-semibold py-2 px-3 rounded-lg hover:bg-indigo-200">
-                              <FiPlus /> <span>Add Product</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <h1 className="text-3xl font-bold text-slate-800">{pageTitle}</h1>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg shadow-md hover:bg-slate-800 transition w-full sm:w-auto"
+          >
+            <FiPlus /> Add New Item
+          </button>
         </div>
 
-        <AddProductModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          subCategory={selectedSubCategory}
-          onSubmit={handleFormSubmit}
-        />
+        <div className="bg-white rounded-lg shadow-xl overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-200 text-slate-700">
+              <tr>
+                <th className="p-4">Name</th>
+                <th className="p-4 hidden md:table-cell">Main Category</th>
+                <th className="p-4 hidden lg:table-cell">Subcategory</th>
+                <th className="p-4">Price</th>
+                <th className="p-4">Stock</th>
+                <th className="p-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="border-b border-slate-200 hover:bg-slate-50">
+                  <td className="p-4 font-medium text-slate-800">{product.name}</td>
+                  <td className="p-4 text-slate-600 hidden md:table-cell">{product.category}</td>
+                  <td className="p-4 text-slate-600 hidden lg:table-cell">{product.subcategory}</td>
+                  <td className="p-4 text-slate-600">₹{product.price.toLocaleString("en-IN")}</td>
+                  <td className="p-4 text-slate-600">{product.stock}</td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center gap-4">
+                      <button onClick={() => handleEditClick(product)} className="text-blue-600 hover:text-blue-800">
+                        <FiEdit size={18} />
+                      </button>
+                      <button onClick={() => handleDelete(product.id, product.name)} className="text-red-600 hover:text-red-800">
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* --- MODALS --- */}
+
+      {/* ADD ITEM MODAL */}
+      {isAddModalOpen && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={closeAndResetAddModal}>
+          <div className="bg-white rounded-lg shadow-2xl p-6 md:p-8 w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-slate-800">Add a New Item</h2><button onClick={closeAndResetAddModal}><FiX size={24}/></button></div>
+            <form onSubmit={handleAddItemSubmit}>
+              {/* Form content for adding is same as before */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-slate-600 mb-1">Category</label><p className="w-full px-3 py-2 bg-slate-100 rounded-md">{categoryName}</p></div>
+                  <div><label className="block text-sm font-medium text-slate-600 mb-1">Subcategory</label><p className="w-full px-3 py-2 bg-slate-100 rounded-md">{subCategoryName}</p></div>
+                </div>
+                <div><label htmlFor="itemName" className="block text-sm font-medium text-slate-600 mb-1">Item Name</label><input id="itemName" type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className="w-full px-3 py-2 border rounded-md" required /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><label htmlFor="itemPrice" className="block text-sm font-medium text-slate-600 mb-1">Price (₹)</label><input id="itemPrice" type="number" value={newItemPrice} onChange={(e) => setNewItemPrice(e.target.value)} className="w-full px-3 py-2 border rounded-md" required /></div>
+                  <div><label htmlFor="itemStock" className="block text-sm font-medium text-slate-600 mb-1">Stock</label><input id="itemStock" type="number" value={newItemStock} onChange={(e) => setNewItemStock(e.target.value)} className="w-full px-3 py-2 border rounded-md" required /></div>
+                </div>
+              </div>
+              <div className="mt-8 flex justify-end gap-4"><button type="button" onClick={closeAndResetAddModal} className="px-4 py-2 bg-slate-200 rounded-lg">Cancel</button><button type="submit" className="px-4 py-2 bg-slate-700 text-white rounded-lg">Submit Item</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT ITEM MODAL */}
+      {isEditModalOpen && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={closeAndResetEditModal}>
+          <div className="bg-white rounded-lg shadow-2xl p-6 md:p-8 w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-slate-800">Edit Item</h2><button onClick={closeAndResetEditModal}><FiX size={24}/></button></div>
+            <form onSubmit={handleUpdateItemSubmit}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-slate-600 mb-1">Category</label><p className="w-full px-3 py-2 bg-slate-100 rounded-md">{editingItem.category}</p></div>
+                  <div><label className="block text-sm font-medium text-slate-600 mb-1">Subcategory</label><p className="w-full px-3 py-2 bg-slate-100 rounded-md">{editingItem.subcategory}</p></div>
+                </div>
+                <div><label htmlFor="editItemName" className="block text-sm font-medium text-slate-600 mb-1">Item Name</label><input id="editItemName" type="text" value={editingItem.name} onChange={(e) => setEditingItem({...editingItem, name: e.target.value})} className="w-full px-3 py-2 border rounded-md" required /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><label htmlFor="editItemPrice" className="block text-sm font-medium text-slate-600 mb-1">Price (₹)</label><input id="editItemPrice" type="number" value={editingItem.price} onChange={(e) => setEditingItem({...editingItem, price: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-md" required /></div>
+                  <div><label htmlFor="editItemStock" className="block text-sm font-medium text-slate-600 mb-1">Stock</label><input id="editItemStock" type="number" value={editingItem.stock} onChange={(e) => setEditingItem({...editingItem, stock: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-md" required /></div>
+                </div>
+              </div>
+              <div className="mt-8 flex justify-end gap-4"><button type="button" onClick={closeAndResetEditModal} className="px-4 py-2 bg-slate-200 rounded-lg">Cancel</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Save Changes</button></div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
-};
-
-export default AddProductAdvanced;
+}

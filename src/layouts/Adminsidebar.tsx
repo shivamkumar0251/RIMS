@@ -1,10 +1,12 @@
+import { useState } from "react";
 import {
-  FaHome, FaChartBar, FaFileAlt, FaCog, FaSignOutAlt, FaTh, FaTimes,
+  FaHome, FaFileAlt, FaCog, FaSignOutAlt, FaTh, FaTimes, FaProductHunt, FaChevronRight, FaChevronDown, FaBorderAll 
 } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FaUserPlus } from "react-icons/fa";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,19 +14,50 @@ interface SidebarProps {
 }
 
 export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const toggleExpand = (name: string) => {
+    setExpanded(expanded === name ? null : name);
+  };
+
   const menuItems = [
-    { icon: <FaHome />, name: "Home" , to:'/admin-dashboard'},
-    { icon: <FaChartBar />, name: "UserRegistration", to:'/userRegistrationForm' },
-    { icon: <FaFileAlt />, name: "Category", to:'/addCategoryManagement' },
-    { icon: <FaFileAlt />, name: "Products", to:'/addAdminProducts' },
-    { icon: <FaCog />, name: "Settings", to:'/admin-dashboard' },
+    { icon: <FaHome />, name: "Home", to: '/admin-dashboard' },
+    { icon: <FaUserPlus />, name: "UserRegistration", to: '/userRegistrationForm' },
+    { icon: <FaFileAlt />, name: "Category", to: '/addCategoryManagement' },
+    {
+      icon: <FaProductHunt />, name: "SetUp", to: '/addAdminProducts', children: [
+        "Kitchen",
+        "Interior",
+        "Crockery",
+        "Electronics",
+        "Furniture",
+        "Lighting",
+        "Appliances",
+        "Decor"
+      ],
+    },
+    {
+      icon: <FaProductHunt />, name: "Products", to: '/addAdminProducts', children: [
+        "Grocory",
+        "Sweets",
+        "Cleaning Supplies",
+        "Sweet-Specific Ingredients",
+        "Beverages"
+      ],
+    },
+    // --- THIS IS THE LINE I CHANGED ---
+    { icon: <FaBorderAll />, name: "Order Management", to: '/admin/orders' },
+    // ------------------------------------
+    { icon: <FaCog />, name: "Settings", to: '/admin-dashboard' },
   ];
+
   const dispatch = useDispatch<AppDispatch>();
 
   const handleLogout = () => {
     dispatch(logout()).then(() => {
-      // redirect after logout
-      window.location.href = "/login";
+      navigate("/login");
     });
   };
 
@@ -48,27 +81,58 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
           <ul>
             {menuItems.map((item, index) => (
               <li key={index} className="mb-2 sm:mb-4">
-                <Link
-                  to={item.to}
-                  className="flex items-center p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
-                >
-                  <span className="mr-3 sm:mr-4 text-lg sm:text-xl">{item.icon}</span>
-                  {item.name}
-                </Link>
+                {/* This part handles rendering the links and dropdowns */}
+                {item.children ? (
+                  // This is a dropdown item
+                  <div>
+                    <button
+                      onClick={() => toggleExpand(item.name)}
+                      className="flex items-center justify-between w-full p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
+                    >
+                      <div className="flex items-center">
+                        <span className="mr-3 sm:mr-4 text-lg sm:text-xl">{item.icon}</span>
+                        <span>{item.name}</span>
+                      </div>
+                      {expanded === item.name ? <FaChevronDown className="text-gray-400" /> : <FaChevronRight className="text-gray-400" />}
+                    </button>
+                    {expanded === item.name && (
+                      <ul className="ml-10 mt-1 space-y-1">
+                        {item.children.map((sub, subIndex) => (
+                          <li key={subIndex}>
+                            <Link
+                              to={`${item.to}/${item.name}/${sub.toLowerCase()}`}
+                              className="block p-2 rounded-lg text-gray-300 hover:bg-gray-600 transition-colors duration-200 text-sm"
+                            >
+                              {sub}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  // This is a regular link item
+                  <Link
+                    to={item.to!}
+                    className="flex items-center w-full p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
+                  >
+                    <span className="mr-3 sm:mr-4 text-lg sm:text-xl">{item.icon}</span>
+                    {item.name}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
         </nav>
       </div>
       <div>
-        <a
-          // href="#"
+        <button
           onClick={handleLogout}
-          className="flex items-center p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
+          className="flex items-center w-full p-2 sm:p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm sm:text-base"
         >
           <FaSignOutAlt className="mr-3 sm:mr-4 text-lg sm:text-xl" />
           Logout
-        </a>
+        </button>
       </div>
     </div>
   );
