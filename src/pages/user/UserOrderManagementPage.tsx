@@ -1,16 +1,6 @@
-// src/components/OrderManagementPage.tsx
 import React, { useState } from 'react';
-import { orders, type Order, type Product } from '../../userOrdersData';
+import { orders, type Order, type Product } from '../../data/userOrdersData';
 import UserLayout from '../../layouts/UserLayout';
-
-// ==================================================================
-// FIX: THIS IS THE LINE CAUSING THE ERROR.
-// Try changing '../data' to './data' if both files are in the same folder.
-// import { orders, Order, Product } from '../../userOrdersData'; 
-// ==================================================================
-
-
-// Helper function to get status badge color
 const getStatusColor = (status: Order['status']) => {
   switch (status) {
     case 'Delivered': return 'bg-green-100 text-green-800';
@@ -21,7 +11,6 @@ const getStatusColor = (status: Order['status']) => {
   }
 };
 
-// Helper function to calculate total amount for an order
 const calculateTotalAmount = (order: Order) => {
   return order.products.reduce((total: number, product: Product) => {
     const productTotal = product.price * product.quantity;
@@ -31,13 +20,10 @@ const calculateTotalAmount = (order: Order) => {
 };
 
 
-const OrderManagementPage: React.FC = () => {
+const UserOrderManagementPage: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const selectedOrder = orders.find((o: Order) => o.id === selectedOrderId);
-
-  // ... the rest of the component code is correct and remains the same ...
-  // (You can leave the rest of the file as it was from the previous answer)
   return (
     <UserLayout>
       <div className="container mx-auto p-4 md:p-6 lg:p-8 font-sans">
@@ -150,4 +136,4 @@ const OrderManagementPage: React.FC = () => {
   );
 };
 
-export default OrderManagementPage;
+export default UserOrderManagementPage;

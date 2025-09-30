@@ -19,17 +19,14 @@ import OurOutlets from "./pages/Outlet";
 import ProfilePage from "./pages/admin/AdminProfile";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
-// import UserRegistrationFor from "./pages/Registration";
-import UserRegistrationForm from "./pages/UserRegistration";
+import UserRegistrationForm from "./pages/admin/UserRegistration";
 import AddProductAdvanced from "./pages/admin/AddProduct";
 import CategoryManagement from "./pages/admin/CategoryManagement";
 import AssetManagementPage from "./pages/user/UserLayout";
-import OrderManagementPage from "./pages/user/OrderManagementPage";
+import UserOrderManagementPage from "./pages/user/UserOrderManagementPage";
+import OrderDetailPage from "./pages/admin/OrderDetailPage";
+import OrderManagementPage from "./pages/admin/Ordermanagement";
 function App() {
-  // const dispatch = useDispatch();
-  // useEffect(() => {
-  // dispatch(fetchUserDetails());
-  // }, []);
   return (
     <>
       <Suspense fallback={<MainSpinner />}>
@@ -48,14 +45,16 @@ function App() {
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
             <Route path="/addCategoryManagement" element={<CategoryManagement />} />
-            <Route path="/addAdminProducts" element={<AddProductAdvanced />} />
+            <Route path="/admin/orders" element={<OrderManagementPage />} />
+            <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
+            <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
 
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
             <Route path="/user/profile" element={<UserPage />} />
             <Route path="/user/products" element={<AssetManagementPage />} />
-            <Route path="/user/orders" element={<OrderManagementPage />} />
+            <Route path="/user/orders" element={<UserOrderManagementPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
