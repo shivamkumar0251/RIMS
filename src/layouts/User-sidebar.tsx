@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { FaBars, FaTachometerAlt, FaChair, FaBoxes, FaShoppingCart, FaCog, FaSignOutAlt, FaBorderAll } from "react-icons/fa";
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '../redux/store/store';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../redux/store/store';
 import { logout } from '../redux/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/Button';
 
 const dashboardData = [
   { id: 1, name: 'Dashboard', icon: FaTachometerAlt, to:'/userdashboard' },
@@ -22,6 +23,7 @@ interface SidebarProps {
 }
 
 const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+  const userData = useSelector((state: RootState) => state.auth);
   const [isPinned, setIsPinned] = useState(true);
   const [selectedId, setSelectedId] = useState(1);
   const isExpanded = isPinned;
@@ -76,10 +78,19 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         </nav>
 
         <div className="border-t p-2">
-          <button onClick={handleLogout} className="flex w-full items-center rounded-lg p-3 text-left text-slate-600 transition-colors duration-200 hover:bg-red-50 hover:text-red-600">
-            <FaSignOutAlt className="h-5 w-5 shrink-0" />
-            {isExpanded && <span className="ml-4 whitespace-nowrap font-medium">Logout</span>}
-          </button>
+          <Button
+    loading={userData.loading}
+    onClick={handleLogout}
+    className="
+        flex w-full items-center rounded-lg p-3 text-left font-medium text-gray-600
+        transition-transform duration-200 ease-in-out  
+        hover:scale-105
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500
+    "
+>
+    <FaSignOutAlt className="h-5 w-5 shrink-0" />
+    {isExpanded && <span className="ml-4 whitespace-nowrap">Logout</span>}
+</Button>
         </div>
       </div>
     </>
