@@ -29,7 +29,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
   };
 
   const menuItems = [
-    { icon: <FaHome />, name: "Home", to: '/admin-dashboard' },
+    { icon: <FaHome />, name: "DashBoard", to: '/admin-dashboard' },
     { icon: <FaUserPlus />, name: "UserRegistration", to: '/userRegistrationForm' },
     { icon: <FaFileAlt />, name: "Category", to: '/addCategoryManagement' },
     {
@@ -56,7 +56,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
     // --- THIS IS THE LINE I CHANGED ---
     { icon: <FaBorderAll />, name: "Order Management", to: '/admin/orders' },
     // ------------------------------------
-    { icon: <FaCog />, name: "Settings", to: '/admin-dashboard' },
+   
   ];
 
   const dispatch = useDispatch<AppDispatch>();
