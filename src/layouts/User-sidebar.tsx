@@ -1,18 +1,17 @@
 
 
 import React, { useState } from 'react';
-import { FaBars, FaTachometerAlt, FaChair, FaBoxes, FaShoppingCart, FaCog, FaSignOutAlt, FaBorderAll } from "react-icons/fa";
+import { FaBars, FaBorderAll, FaBoxes, FaChair, FaCog, FaSignOutAlt, FaTachometerAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch, RootState } from '../redux/store/store';
-import { logout } from '../redux/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
+import { logout } from '../redux/slices/authSlice';
+import type { AppDispatch, RootState } from '../redux/store/store';
 
 const dashboardData = [
   { id: 1, name: 'Dashboard', icon: FaTachometerAlt, to:'/userdashboard' },
   { id: 2, name: 'Products', icon: FaChair, to:'/user/products' },
-  { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/userdashboard' },
-  { id: 4, name: 'Purchase Requests', icon: FaShoppingCart, to:'/userdashboard' },
+  { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/user/storestock' },
   { id: 5, name: 'Orders', icon: FaBorderAll, to:'/user/orders' },
   { id: 6, name: 'Settings', icon: FaCog, to:'/user/setting' },
 ];

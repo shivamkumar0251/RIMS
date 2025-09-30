@@ -27,6 +27,7 @@ import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
+import StoreStockPage from "./pages/user/StoreStockPage";
 function App() {
   return (
     <>
@@ -57,6 +58,7 @@ function App() {
             <Route path="/user/profile" element={<UserPage />} />
             <Route path="/user/products" element={<AssetManagementPage />} />
             <Route path="/user/orders" element={<UserOrderManagementPage />} />
+            <Route path="/user/storestock" element={<StoreStockPage />} />
             <Route path="/user/setting" element={<TabbedSettingsUI />} />
           </Route>
           <Route path="*" element={<NotFound />} />
