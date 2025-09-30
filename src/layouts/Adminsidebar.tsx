@@ -1,12 +1,19 @@
 import { useState } from "react";
 import {
-  FaHome, FaFileAlt, FaCog, FaSignOutAlt, FaTh, FaTimes, FaProductHunt, FaChevronRight, FaChevronDown, FaBorderAll 
+  FaBorderAll,
+  FaChevronDown,
+  FaChevronRight,
+  FaCog,
+  FaFileAlt,
+  FaHome,
+  FaProductHunt,
+  FaSignOutAlt, FaTh, FaTimes,
+  FaUserPlus
 } from "react-icons/fa";
 import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
-import { Link, useNavigate } from "react-router-dom";
-import { FaUserPlus } from "react-icons/fa";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,7 +23,6 @@ interface SidebarProps {
 export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
 
   const [expanded, setExpanded] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const toggleExpand = (name: string) => {
     setExpanded(expanded === name ? null : name);
@@ -57,7 +63,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
 
   const handleLogout = () => {
     dispatch(logout()).then(() => {
-      navigate("/login");
+      window.location.href = '/login'
+      // navigate("/login");
     });
   };
 
