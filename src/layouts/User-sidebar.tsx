@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { FaBars, FaTachometerAlt, FaChair, FaBoxes, FaShoppingCart, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { FaBars, FaTachometerAlt, FaChair, FaBoxes, FaShoppingCart, FaCog, FaSignOutAlt, FaBorderAll } from "react-icons/fa";
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../redux/store/store';
 import { logout } from '../redux/slices/authSlice';
@@ -12,7 +12,8 @@ const dashboardData = [
   { id: 2, name: 'Products', icon: FaChair, to:'/user/products' },
   { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/userdashboard' },
   { id: 4, name: 'Purchase Requests', icon: FaShoppingCart, to:'/userdashboard' },
-  { id: 5, name: 'Settings', icon: FaCog, to:'/userdashboard' },
+  { id: 5, name: 'Orders', icon: FaBorderAll, to:'/user/orders' },
+  { id: 6, name: 'Settings', icon: FaCog, to:'/userdashboard' },
 ];
 
 interface SidebarProps {

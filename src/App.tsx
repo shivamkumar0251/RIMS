@@ -24,6 +24,7 @@ import UserRegistrationForm from "./pages/UserRegistration";
 import AddProductAdvanced from "./pages/admin/AddProduct";
 import CategoryManagement from "./pages/admin/CategoryManagement";
 import AssetManagementPage from "./pages/user/UserLayout";
+import OrderManagementPage from "./pages/user/OrderManagementPage";
 function App() {
   // const dispatch = useDispatch();
   // useEffect(() => {
@@ -54,6 +55,7 @@ function App() {
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
             <Route path="/user/profile" element={<UserPage />} />
             <Route path="/user/products" element={<AssetManagementPage />} />
+            <Route path="/user/orders" element={<OrderManagementPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
