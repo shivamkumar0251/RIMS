@@ -14,7 +14,7 @@ const dashboardData = [
   { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/userdashboard' },
   { id: 4, name: 'Purchase Requests', icon: FaShoppingCart, to:'/userdashboard' },
   { id: 5, name: 'Orders', icon: FaBorderAll, to:'/user/orders' },
-  { id: 6, name: 'Settings', icon: FaCog, to:'/userdashboard' },
+  { id: 6, name: 'Settings', icon: FaCog, to:'/user/setting' },
 ];
 
 interface SidebarProps {

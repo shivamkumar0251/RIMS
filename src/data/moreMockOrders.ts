@@ -175,5 +175,16 @@ export const mockOrders: Order[] = [
         { id: "item_7", name: "Crystal Wine Glasses (Set of 6)", quantity: 2, price: 3200 },
     ],
     totalAmount: 6400,
+  },
+  {
+    id: "ORD-016",
+    customerName: "Arjun Reddy",
+    orderDate: "2025-09-30",
+    status: "Pending",
+    items: [
+      { id: "item_40", name: "Wireless Bluetooth Headphones", quantity: 1, price: 3500 },
+      { id: "item_41", name: "Portable Power Bank (20000mAh)", quantity: 1, price: 2500 },
+    ],
+    totalAmount: 6000,
   }
 ];

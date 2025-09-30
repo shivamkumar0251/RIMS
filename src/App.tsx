@@ -23,9 +23,10 @@ import UserRegistrationForm from "./pages/admin/UserRegistration";
 import AddProductAdvanced from "./pages/admin/AddProduct";
 import CategoryManagement from "./pages/admin/CategoryManagement";
 import AssetManagementPage from "./pages/user/UserLayout";
-import UserOrderManagementPage from "./pages/user/UserOrderManagementPage";
+import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
+import TabbedSettingsUI from "./pages/user/SettingsPage";
 function App() {
   return (
     <>
@@ -46,6 +47,7 @@ function App() {
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
             <Route path="/addCategoryManagement" element={<CategoryManagement />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
+
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
 
@@ -55,6 +57,7 @@ function App() {
             <Route path="/user/profile" element={<UserPage />} />
             <Route path="/user/products" element={<AssetManagementPage />} />
             <Route path="/user/orders" element={<UserOrderManagementPage />} />
+            <Route path="/user/setting" element={<TabbedSettingsUI />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

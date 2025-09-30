@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import React, { useEffect, useState } from 'react';
 import { FiCheckCircle, FiGithub, FiSlack } from 'react-icons/fi';
+import UserLayout from '../../layouts/UserLayout';
 
 // --- Global Types ---
 type Section = 'profile' | 'security' | 'billing' | 'notifications' | 'integrations';
@@ -90,6 +91,7 @@ const TabbedSettingsUI: React.FC = () => {
     };
 
     return (
+        <UserLayout>
         <div className="min-h-screen bg-gray-100 font-sans p-4 sm:p-6 lg:p-8">
             <AnimationStyles />
             <header className="mb-6">
@@ -112,6 +114,7 @@ const TabbedSettingsUI: React.FC = () => {
                 </main>
             </div>
         </div>
+        </UserLayout>
     );
 };
 
