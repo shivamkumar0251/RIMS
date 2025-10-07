@@ -9,11 +9,11 @@ import { logout } from '../redux/slices/authSlice';
 import type { AppDispatch, RootState } from '../redux/store/store';
 
 const dashboardData = [
-  { id: 1, name: 'Dashboard', icon: FaTachometerAlt, to:'/userdashboard' },
-  { id: 2, name: 'Products', icon: FaChair, to:'/user/products' },
-  { id: 3, name: 'Store Stock', icon: FaBoxes, to:'/user/storestock' },
-  { id: 5, name: 'Orders', icon: FaBorderAll, to:'/user/orders' },
-  { id: 6, name: 'Settings', icon: FaCog, to:'/user/setting' },
+  { id: 1, name: 'Dashboard', icon: FaTachometerAlt, to: '/userdashboard' },
+  { id: 2, name: 'Products', icon: FaChair, to: '/user/products' },
+  { id: 3, name: 'Store Stock', icon: FaBoxes, to: '/user/storestock' },
+  { id: 5, name: 'Orders', icon: FaBorderAll, to: '/user/orders' },
+  { id: 6, name: 'Settings', icon: FaCog, to: '/user/setting' },
 ];
 
 interface SidebarProps {
@@ -77,19 +77,16 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         </nav>
 
         <div className="border-t p-2">
+
           <Button
-    loading={userData.loading}
-    onClick={handleLogout}
-    className="
-        flex w-full items-center rounded-lg p-3 text-left font-medium text-gray-600
-        transition-transform duration-200 ease-in-out  
-        hover:scale-105
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500
-    "
->
-    <FaSignOutAlt className="h-5 w-5 shrink-0" />
-    {isExpanded && <span className="ml-4 whitespace-nowrap">Logout</span>}
-</Button>
+            loading={userData.loading}
+            onClick={handleLogout}
+            className="flex w-full items-center rounded-lg p-3 text-left font-medium text-gray-600 transition-transform duration-200 ease-in-out hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            <FaSignOutAlt className="h-5 w-5 shrink-0" />
+            {isExpanded && <span className="ml-4 whitespace-nowrap">Logout</span>}
+          </Button>
+
         </div>
       </div>
     </>

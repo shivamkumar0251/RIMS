@@ -3,7 +3,6 @@ import {
   FaBorderAll,
   FaChevronDown,
   FaChevronRight,
-  FaCog,
   FaFileAlt,
   FaHome,
   FaProductHunt,
