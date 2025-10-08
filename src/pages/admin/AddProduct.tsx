@@ -48,8 +48,8 @@ export default function AddProductAdvanced() {
       name: newItemName,
       price: Number(newItemPrice),
       stock: Number(newItemStock),
-      category: categoryName as "setup" | "products",
-      subcategory: subCategoryName,
+      category: (categoryName || "") as "setup" | "products",
+      subcategory: subCategoryName!,
     };
     // Add the new item to the master list
     setAllProducts([newItem, ...allProducts]);
