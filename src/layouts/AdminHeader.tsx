@@ -1,19 +1,28 @@
 import { FaSearch, FaBars, FaPrint } from 'react-icons/fa';
-import { CgProfile } from "react-icons/cg";
-import { useNavigate } from 'react-router-dom';
+// import { CgProfile } from "react-icons/cg";
+// import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   toggleSidebar: () => void;
 }
 
 export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
   return (
-    <header className="flex justify-between items-center p-2 sm:p-3 md:p-4 bg-gray-800 md:bg-transparent">
+    <header className="sticky top-0 flex justify-between items-center p-2 sm:p-3 md:p-4 bg-white shadow-sm border-b border-gray-200 z-40">
       {/* Hamburger Menu - Visible only on mobile */}
-      <button onClick={toggleSidebar} className="text-white text-lg sm:text-xl md:text-2xl md:hidden">
-        <FaBars />
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={toggleSidebar}
+          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200 md:hidden"
+        >
+          <FaBars className="text-lg" />
+        </button>
+        <h1 className="hidden md:block text-gray-800 text-xl font-bold">
+          {/* {currentPageTitle} */}
+          Admin Sidebar
+        </h1>
+      </div>
 
       {/* Right-side items */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 ml-auto">
@@ -33,7 +42,7 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           <span className="hidden sm:inline">Print</span>
         </button>
         
-          <CgProfile  size={30} color='white' onClick={()=>navigate('/admin/profile')} />
+          {/* <CgProfile  size={30} color='black' onClick={()=>navigate('/admin/profile')} /> */}
       </div>
     </header>
   );

@@ -16,18 +16,21 @@ import FranchisePage from "./pages/Franchise";
 import NotFound from "./pages/NotFound";
 import OurOutlets from "./pages/Outlet";
 
-import ProfilePage from "./pages/admin/AdminProfile";
-import UserPage from "./pages/user/UserProfile";
-import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
-import UserRegistrationForm from "./pages/admin/UserRegistration";
+import AccountSetting from "./pages/admin/AccountSettings";
 import AddProductAdvanced from "./pages/admin/AddProduct";
+import ProfilePage from "./pages/admin/AdminProfile";
 import CategoryManagement from "./pages/admin/CategoryManagement";
-import AssetManagementPage from "./pages/user/UserLayout";
-import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
+import ProductTable from "./pages/admin/ProductTable";
+import StoreStock from "./pages/admin/StoreStock";
+import UserRegistrationForm from "./pages/admin/UserRegistration";
+import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
 import StoreStockPage from "./pages/user/StoreStockPage";
+import AssetManagementPage from "./pages/user/UserLayout";
+import UserPage from "./pages/user/UserProfile";
+import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 function App() {
   return (
     <>
@@ -48,6 +51,11 @@ function App() {
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
             <Route path="/addCategoryManagement" element={<CategoryManagement />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
+            <Route path="/storeStock" element={<ProductTable />} />
+            <Route path="/categorys" element={<StoreStock />} />
+            <Route path="/admin/products" element={<ProductTable />} />
+            <Route path="/assets" element={<StoreStock />} />
+            <Route path="/admin/setting" element={<AccountSetting />} />
 
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />

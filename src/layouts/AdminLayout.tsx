@@ -15,9 +15,8 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex bg-gray-500  min-h-screen font-sans">
+    <div className="flex min-h-screen font-sans">
       {/* Sidebar - Hidden on mobile by default, visible on desktop */}
-  
 
       {/* Mobile Sidebar */}
       <AdminSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -30,9 +29,9 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
         ></div>
       )}
 
-      <main className="flex-1 flex flex-col min-w-0">
-        <AdminHeader toggleSidebar={toggleSidebar} />
-        <div className="flex-1 overflow-y-auto p-0">
+      <main className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <AdminHeader toggleSidebar={toggleSidebar}/>
+        <div className="flex-1 bg-gray-500 overflow-y-auto p-0">
           {children}
         </div>
       </main>
