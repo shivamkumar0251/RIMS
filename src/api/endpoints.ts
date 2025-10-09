@@ -25,4 +25,9 @@ export const API_ENDPOINTS = {
   deleteProducts: (productId: string) => `${API_BASE_URL}/products/deleteProducts/${productId}`,
   productRequirements: (id?: string) => id ? `${API_BASE_URL}/product-requirements/${id}` : `${API_BASE_URL}/product-requirements/`,
 
+  GET_CATEGORIES: `${API_BASE_URL}/categories/getCategories`,
+  ADD_CATEGORIES: `${API_BASE_URL}/categories/addCategory`,
+  UPDATE_CATEGORIES: (id: string) => `${API_BASE_URL}/categories/updateCategories/${id}`,
+  DELETE_CATEGORIES: (id: string) => `${API_BASE_URL}/categories/deleteCategories/${id}`,
+
 };

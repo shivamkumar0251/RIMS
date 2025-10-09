@@ -1,18 +1,17 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
-import type { RootState } from '../store/store'; // Adjust path based on your store file
-import type { AxiosError } from 'axios';
+import type { RootState } from '../store/store';
 import { deleteCookie, getCookie, setCookie } from '../../utils/cookieUtils';
 
 // --------- Types ---------
-interface User {
+export interface User {
   id: number | string;
   role: string;
   name?: string;
   email?: string;
-  // add other user fields here
+  // add more fields as needed
 }
 
 interface AuthState {
@@ -24,22 +23,23 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   expiresIn: number | null;
-}
-interface TokenPayload {
-  token: string;
-  expiresIn: number; // in seconds
+  usersList: User[];
+  selectedUser: User | null;
 }
 
-// Define login input payload
+interface TokenPayload {
+  token: string;
+  expiresIn: number;
+}
+
 interface LoginPayload {
   email: string;
   password: string;
 }
 
-// Define login response
 interface LoginResponse {
   token: string;
-  expiresIn: number; // in seconds
+  expiresIn: number;
   user: {
     id: string;
     email: string;
@@ -57,13 +57,17 @@ const initialState: AuthState = {
   token: getCookie('token') || null,
   isAuthenticated: !!getCookie('token'),
   expiresIn: null,
+  usersList: [],
+  selectedUser: null,
 };
 
-// Thunk
+// --------- Async Thunks ---------
+
+// ---- Login ----
 export const login = createAsyncThunk<
-  { token: string; id: string; expiresIn: number; user: LoginResponse['user'] }, // return type
-  LoginPayload, // input type
-  { rejectValue: { message: string } } // thunkAPI reject type
+  { token: string; id: string; expiresIn: number; user: LoginResponse['user'] },
+  LoginPayload,
+  { rejectValue: { message: string } }
 >(
   'auth/login',
   async ({ email, password }, thunkAPI) => {
@@ -78,82 +82,90 @@ export const login = createAsyncThunk<
         const { token, user, expiresIn } = response.data as LoginResponse;
         const id = user.id;
 
-        // Set cookies
-        setCookie("token", token, expiresIn);
-        setCookie("userId", id.toString(), expiresIn);
+        // Save tokens in cookies
+        setCookie('token', token, expiresIn);
+        setCookie('userId', id.toString(), expiresIn);
 
         return { token, id, expiresIn, user };
       } else {
         return thunkAPI.rejectWithValue({
-          message: (response.data as { message?: string })?.message || 'Login Error',
+          message: (response.data as { message?: string })?.message || 'Login error',
         });
       }
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Login Error',
+        message: err.response?.data?.message || 'Login error',
       });
     }
   }
 );
 
-
-// ---- Add in same file (authSlice.ts) ----
+// ---- Logout ----
 export const logout = createAsyncThunk<
-  { message: string }, // return type on success
-  void,                // no input needed
+  { message: string },
+  void,
   { rejectValue: { message: string } }
 >(
-  "auth/logout",
+  'auth/logout',
   async (_, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.logout,
-        method: "POST",
+        method: 'POST',
       });
 
       if (response.status === 200) {
-        // ✅ Clear cookies
-        deleteCookie("token");
-        deleteCookie("userId");
-
-        return { message: (response.data as { message?: string })?.message || "Logout successful" };
+        deleteCookie('token');
+        deleteCookie('userId');
+        return { message: (response.data as { message?: string })?.message || 'Logout successful' };
       } else {
         return thunkAPI.rejectWithValue({
-          message: (response.data as { message?: string })?.message || "Logout failed",
+          message: (response.data as { message?: string })?.message || 'Logout failed',
         });
       }
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || "Logout error",
+        message: err.response?.data?.message || 'Logout error',
       });
     }
   }
 );
 
+// ---- Get Users List or Single User ----
+export const getUsersList = createAsyncThunk<
+  User[] | User,
+  string | undefined, // userId (optional)
+  { rejectValue: { message: string } }
+>(
+  'auth/getUsersList',
+  async (userId, thunkAPI) => {
+    try {
+      const url = userId
+        ? `${API_ENDPOINTS.GET_USERS_LIST}?userId=${userId}`
+        : `${API_ENDPOINTS.GET_USERS_LIST}`;
 
+      const response = await apiCaller({
+        url,
+        method: 'GET'
+      });
 
-// export const fetchUserById = createAsyncThunk<User, User['id']>(
-//   'auth/fetchUserById',
-//   async (userId) => {
-//     try {
-//       const response = await apiCaller({
-//         url: `${API_ENDPOINTS.GET_USER_BY_ID}/${userId}`,
-//         method: 'GET',
-//       });
-//       if (response.status === 200) {
-//         return response.data as User;
-//       } else {
-//         throw new Error('Error fetching user details');
-//       }
-//     } catch (error) {
-//       console.error('Error fetching user by ID:', error);
-//       throw error;
-//     }
-//   }
-// );
-
+      if (response.status === 200) {
+        return response.data as User[] | User;
+      } else {
+        return thunkAPI.rejectWithValue({
+          message: (response.data as { message?: string })?.message || 'Failed to fetch users',
+        });
+      }
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || 'Server error while fetching users',
+      });
+    }
+  }
+);
 
 // --------- Slice ---------
 const authSlice = createSlice({
@@ -168,14 +180,13 @@ const authSlice = createSlice({
     },
     setToken: (state, action: PayloadAction<TokenPayload>) => {
       const { token, expiresIn } = action.payload;
-      // Update state
       state.token = token;
       state.expiresIn = expiresIn;
-      setCookie("token", token, expiresIn);
+      setCookie('token', token, expiresIn);
     },
     clearToken: (state) => {
-      deleteCookie('userId')
-      deleteCookie('token')
+      deleteCookie('userId');
+      deleteCookie('token');
       state.token = null;
       state.isAuthenticated = false;
       state.user = null;
@@ -197,7 +208,7 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ? action.payload.message : "Login failed";
+        state.error = action.payload ? action.payload.message : 'Login failed';
       })
 
       // ---- Logout ----
@@ -212,18 +223,40 @@ const authSlice = createSlice({
         state.user = null;
         state.expiresIn = null;
         state.message = action.payload.message;
+        state.usersList = [];
+        state.selectedUser = null;
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ? action.payload.message : "Logout failed";
+        state.error = action.payload ? action.payload.message : 'Logout failed';
+      })
+
+      // ---- Get Users ----
+      .addCase(getUsersList.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUsersList.fulfilled, (state, action) => {
+        state.loading = false;
+        if (Array.isArray(action.payload)) {
+          state.usersList = action.payload;
+          state.selectedUser = null;
+        } else {
+          state.selectedUser = action.payload;
+        }
+      })
+      .addCase(getUsersList.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ? action.payload.message : 'Failed to fetch users';
       });
-  }
+  },
 });
 
 // --------- Selectors ---------
 export const getToken = (state: RootState) => state.auth.token;
+export const selectUsersList = (state: RootState) => state.auth;
+export const selectSelectedUser = (state: RootState) => state.auth.selectedUser;
 
 // --------- Exports ---------
 export const { setAuthenticated, setUser, setToken, clearToken } = authSlice.actions;
-
 export default authSlice.reducer;

@@ -4,10 +4,11 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Button } from "../../components/Button";
 import Layout from "../../layouts/Layout";
 import { showToast } from "../../utils/toast";
-import { useDispatch, useSelector } from "react-redux";
-import { login } from "../../redux/slices/authSlice";
-import type { AppDispatch, RootState } from "../../redux/store/store";
+// import { useDispatch, useSelector } from "react-redux";
+import { login, selectUsersList } from "../../redux/slices/authSlice";
+// import type { AppDispatch, RootState } from "../../redux/store/store";
 import { Link, useNavigate } from "react-router";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 const LoginPage: React.FC = () => {
   useEffect(() => {
@@ -18,9 +19,10 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const userData = useSelector((state: RootState) => state.auth);
+  // const userData = useSelector((state: RootState) => state.auth);
+  const userData = useAppSelector(selectUsersList);
 
-  const dispatch = useDispatch<AppDispatch>();
+ const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
