@@ -32,6 +32,7 @@ import {
     FiEye,
     FiEdit,
     FiTrash2,
+    FiPlus,
 } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
 import ProductModal from "../../layouts/ProductModal";
@@ -67,7 +68,8 @@ const ProductTable: React.FC = () => {
     const [rowsPerPage, setRowsPerPage] = useState<number>(10);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const location = useLocation();
-    console.log(setData);
+
+    const isProductsPath = location.pathname.includes('/products');
 
     // ✅ Filter data
     const filteredData = data.filter((item) => {
@@ -105,7 +107,8 @@ const ProductTable: React.FC = () => {
     const handleExportExcel = () => console.log("Export to Excel");
     const handleRefresh = () => console.log("Refresh data");
     const handleImportProducts = () => console.log("Import products");
-    //   const handleAddProduct = () => setIsModalOpen(true);
+    
+    const handleAddProduct = () => setIsModalOpen(true);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -169,6 +172,21 @@ const ProductTable: React.FC = () => {
 
                     {/* Action Buttons */}
                     <Box sx={{ display: "flex", gap: 1 }}>
+
+                        {isProductsPath && (
+                            <Button
+                                variant="contained"
+                                startIcon={<FiPlus />}
+                                onClick={handleAddProduct}
+                                sx={{
+                                    backgroundColor: "#1976d2",
+                                    "&:hover": { backgroundColor: "#1565c0" },
+                                }}
+                            >
+                                Add Product
+                            </Button>
+                        )}
+                        
                         <Tooltip title="Export to PDF">
                             <IconButton
                                 onClick={handleExportPDF}
@@ -213,11 +231,11 @@ const ProductTable: React.FC = () => {
                             startIcon={<FiUpload />}
                             onClick={handleImportProducts}
                             sx={{
-                                backgroundColor: "#1976d2",
-                                "&:hover": { backgroundColor: "#1565c0" },
+                                backgroundColor: "#607d8b",
+                                "&:hover": { backgroundColor: "#546e7a" },
                             }}
                         >
-                            Import Product
+                            Import
                         </Button>
                     </Box>
                 </Box>
@@ -342,7 +360,15 @@ const ProductTable: React.FC = () => {
                     />
                 </Box>
 
-                {isModalOpen && <ProductModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />}
+                {/* ✅ MODAL CALL UPDATED: categories aur brands ko props ke through modal me bheja jaa rha hai */}
+                {isModalOpen && (
+                    <ProductModal
+                        open={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        categories={categories}
+                        brands={brands}
+                    />
+                )}
             </Box>
         </AdminLayout>
     );
