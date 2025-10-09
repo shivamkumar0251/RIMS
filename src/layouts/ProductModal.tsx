@@ -1,233 +1,184 @@
 import React, { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
-  Button,
-  MenuItem,
+    Dialog, Box, Typography, Grid, TextField, Button, IconButton,
+    FormControl, InputLabel, Select, MenuItem, InputAdornment, styled, DialogContent, DialogActions,
 } from "@mui/material";
+import { FiX, FiUpload } from "react-icons/fi";
 
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-
-// --- Interfaces ---
-export interface ProductFormData {
-  batch: string;
-  name: string;
-  description: string;
-  costPrice: string;
-  sellingPrice: string;
-  qty: string;
-  supplier: string;
-  category: string;
-  warehouse: string;
-  mftDate: Date | null;
-  expiryDate: Date | null;
-}
-
+// ✅ Interface mein categories aur brands props add kiye gaye
 interface ProductModalProps {
-  open: boolean;
-  onClose: () => void;
-  // onSubmit: (product: ProductFormData) => void;
+    open: boolean;
+    onClose: () => void;
+    categories: string[];
+    brands: string[];
 }
 
-// --- Component ---
-const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
-  const [formData, setFormData] = useState<ProductFormData>({
-    batch: "",
-    name: "",
-    description: "",
-    costPrice: "",
-    sellingPrice: "",
-    qty: "",
-    supplier: "",
-    category: "",
-    warehouse: "",
-    mftDate: null,
-    expiryDate: null,
-  });
+// Custom styled input for hidden file upload
+const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden',
+    position: 'absolute', bottom: 0, left: 0, whiteSpace: 'nowrap', width: 1,
+});
 
-  // Generic field change handler
-  const handleChange = <K extends keyof ProductFormData>(field: K, value: ProductFormData[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Reset and close
-  const handleCancel = () => {
-    setFormData({
-      batch: "",
-      name: "",
-      description: "",
-      costPrice: "",
-      sellingPrice: "",
-      qty: "",
-      supplier: "",
-      category: "",
-      warehouse: "",
-      mftDate: null,
-      expiryDate: null,
+// ✅ Component mein categories aur brands props receive kiye gaye
+const ProductModal: React.FC<ProductModalProps> = ({ open, onClose, categories, brands }) => {
+    // State for all your 14 form fields
+    const [formData, setFormData] = useState({
+        product_name: "", category: "", brand: "", packSize: "", unit: "",
+        quantity: "", shape: "", colour: "", printStatus: "Not Printed",
+        openingStock: "", closingStock: "", image: null as File | null,
+        gst: "", price: "",
     });
-    onClose();
-  };
 
-  // Submit handler
-  const handleSubmit = () => {
-    // onSubmit(formData);
-    handleCancel(); // Reset after submit
-  };
+    // Handlers
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name as string]: value }));
+    };
 
-  return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="md">
-        <DialogTitle>Add Product</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} mt={1}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Product Batch"
-                fullWidth
-                value={formData.batch}
-                onChange={(e) => handleChange("batch", e.target.value)}
-              />
-            </Grid>
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData(prev => ({ ...prev, image: e.target.files![0] }));
+        }
+    };
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Product Name"
-                fullWidth
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-              />
-            </Grid>
+    const handleCancel = () => {
+        // Reset form to initial state
+        setFormData({
+            product_name: "", category: "", brand: "", packSize: "", unit: "",
+            quantity: "", shape: "", colour: "", printStatus: "Not Printed",
+            openingStock: "", closingStock: "", image: null,
+            gst: "", price: "",
+        });
+        onClose();
+    };
 
-            <Grid item xs={12}>
-              <TextField
-                label="Product Description"
-                fullWidth
-                multiline
-                value={formData.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-              />
-            </Grid>
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log("Form Submitted Data:", formData);
+        alert("Product Added! Check console for data.");
+        handleCancel();
+    };
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Cost Price"
-                type="number"
-                fullWidth
-                value={formData.costPrice}
-                onChange={(e) => handleChange("costPrice", e.target.value)}
-              />
-            </Grid>
+    return (
+        <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="lg">
+            <Box component="form" onSubmit={handleSubmit}>
+                {/* --- MODAL HEADER --- */}
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+                    <Typography variant="h6" component="h2" fontWeight="600">
+                        Add New Product
+                    </Typography>
+                    <IconButton onClick={handleCancel}><FiX /></IconButton>
+                </Box>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Selling Price"
-                type="number"
-                fullWidth
-                value={formData.sellingPrice}
-                onChange={(e) => handleChange("sellingPrice", e.target.value)}
-              />
-            </Grid>
+                {/* --- MODAL CONTENT --- */}
+                <DialogContent>
+                    <Grid container spacing={3} mt={0.5}>
+                        
+                        {/* --- Row 1 --- */}
+                        <Grid item xs={12} sm={6} md={4}>
+                            <TextField variant="standard" name="product_name" label="Product Name" fullWidth required size="small" value={formData.product_name} onChange={handleChange} />
+                        </Grid>
+                        
+                        {/* ✅ Category TextField ko Dropdown se replace kiya gaya */}
+                        <Grid item xs={12} sm={6} md={4}>
+                            <FormControl fullWidth size="small" variant="standard" required>
+                                <InputLabel>Category</InputLabel>
+                                <Select
+                                    name="category"
+                                    value={formData.category}
+                                    label="Category"
+                                    onChange={handleChange as any}
+                                >
+                                    {categories.map((category) => (
+                                        <MenuItem key={category} value={category}>
+                                            {category}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        
+                        {/* ✅ Brand TextField ko Dropdown se replace kiya gaya */}
+                        <Grid item xs={12} sm={6} md={4}>
+                             <FormControl fullWidth size="small" variant="standard" required>
+                                <InputLabel>Brand</InputLabel>
+                                <Select
+                                    name="brand"
+                                    value={formData.brand}
+                                    label="Brand"
+                                    onChange={handleChange as any}
+                                >
+                                    {brands.map((brand) => (
+                                        <MenuItem key={brand} value={brand}>
+                                            {brand}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Qty (Cartons)"
-                type="number"
-                fullWidth
-                value={formData.qty}
-                onChange={(e) => handleChange("qty", e.target.value)}
-              />
-            </Grid>
+                        {/* --- Row 2 --- */}
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="packSize" label="Pack Size" fullWidth size="small" value={formData.packSize} onChange={handleChange} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="unit" label="Unit" fullWidth size="small" value={formData.unit} onChange={handleChange} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="quantity" label="Quantity" type="number" fullWidth required size="small" value={formData.quantity} onChange={handleChange} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                           <FormControl fullWidth size="small" variant="standard">
+                                <InputLabel>Print Status</InputLabel>
+                                <Select name="printStatus" value={formData.printStatus} label="Print Status" onChange={handleChange as any}>
+                                    <MenuItem value="Not Printed">Not Printed</MenuItem>
+                                    <MenuItem value="Printed">Printed</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Supplier"
-                fullWidth
-                select
-                value={formData.supplier}
-                onChange={(e) => handleChange("supplier", e.target.value)}
-              >
-                <MenuItem value="Supplier One Ltd">Supplier One Ltd</MenuItem>
-                <MenuItem value="Supplier Two Ltd">Supplier Two Ltd</MenuItem>
-              </TextField>
-            </Grid>
+                        {/* --- Row 3 --- */}
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="openingStock" label="Opening Stock" type="number" fullWidth required size="small" value={formData.openingStock} onChange={handleChange} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="closingStock" label="Closing Stock" type="number" fullWidth required size="small" value={formData.closingStock} onChange={handleChange} />
+                        </Grid>
+                         <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="shape" label="Shape" fullWidth size="small" value={formData.shape} onChange={handleChange} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <TextField variant="standard" name="colour" label="Colour" fullWidth size="small" value={formData.colour} onChange={handleChange} />
+                        </Grid>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Category"
-                fullWidth
-                select
-                value={formData.category}
-                onChange={(e) => handleChange("category", e.target.value)}
-              >
-                <MenuItem value="Food">Food</MenuItem>
-                <MenuItem value="Stationery">Stationery</MenuItem>
-              </TextField>
-            </Grid>
+                        {/* --- Row 4 --- */}
+                        <Grid item xs={12} sm={6}>
+                            <TextField variant="standard" name="price" label="Price" type="number" fullWidth required size="small" value={formData.price} onChange={handleChange} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField variant="standard" name="gst" label="GST" type="number" fullWidth required size="small" value={formData.gst} onChange={handleChange} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} />
+                        </Grid>
+                        
+                        {/* --- Row 5 --- */}
+                        <Grid item xs={12}>
+                            <Button component="label" variant="outlined" startIcon={<FiUpload />} fullWidth size="large" sx={{ py: 1.5, mt: 1 }}>
+                                Upload Product Image
+                                <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
+                            </Button>
+                            {formData.image && <Typography variant="body2" mt={1} noWrap>Selected File: {formData.image.name}</Typography>}
+                        </Grid>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Warehouse"
-                fullWidth
-                select
-                value={formData.warehouse}
-                onChange={(e) => handleChange("warehouse", e.target.value)}
-              >
-                <MenuItem value="Store One">Store One</MenuItem>
-                <MenuItem value="Store Two">Store Two</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <DatePicker
-                label="MFT Date"
-                value={formData.mftDate}
-                onChange={(date) => handleChange("mftDate", date)}
-                slotProps={{
-                  textField: { fullWidth: true },
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <DatePicker
-                label="Expiry Date"
-                value={formData.expiryDate}
-                onChange={(date) => handleChange("expiryDate", date)}
-                slotProps={{
-                  textField: { fullWidth: true },
-                }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-
-        <DialogActions>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleCancel}
-            sx={{ textTransform: "capitalize" }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleSubmit}
-            sx={{ textTransform: "capitalize" }}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </LocalizationProvider>
-  );
+                    </Grid>
+                </DialogContent>
+                
+                {/* --- MODAL ACTIONS --- */}
+                <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+                    <Button onClick={handleCancel} variant="contained" color="error">Cancel</Button>
+                    <Button type="submit" variant="contained" color="success">Submit</Button>
+                </DialogActions>
+            </Box>
+        </Dialog>
+    );
 };
 
 export default ProductModal;
