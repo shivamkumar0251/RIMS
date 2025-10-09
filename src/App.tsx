@@ -31,6 +31,7 @@ import StoreStockPage from "./pages/user/StoreStockPage";
 import AssetManagementPage from "./pages/user/UserLayout";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
+import InventoryTabs from "./pages/admin/InventoryTabs";
 function App() {
   return (
     <>
@@ -54,7 +55,7 @@ function App() {
             <Route path="/storeStock" element={<ProductTable />} />
             <Route path="/categorys" element={<StoreStock />} />
             <Route path="/admin/products" element={<ProductTable />} />
-            <Route path="/assets" element={<StoreStock />} />
+            <Route path="/assets" element={<InventoryTabs />} />
             <Route path="/admin/setting" element={<AccountSetting />} />
 
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
