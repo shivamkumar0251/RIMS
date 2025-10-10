@@ -23,7 +23,6 @@ import CategoryManagement from "./pages/admin/CategoryManagement";
 import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import ProductTable from "./pages/admin/ProductTable";
-import StoreStock from "./pages/admin/StoreStock";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
@@ -33,6 +32,9 @@ import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import InventoryTabs from "./pages/admin/InventoryTabs";
 import ProductCategories from "./pages/admin/Categorys";
+import StoreStock from "./pages/admin/StoreStock";
+import KitchenStoke from "./pages/admin/KitchenStoke";
+import Consumables from "./pages/admin/Consumables";
 function App() {
   return (
     <>
@@ -53,11 +55,13 @@ function App() {
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
             <Route path="/addCategoryManagement" element={<CategoryManagement />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
-            <Route path="/storeStock" element={<ProductTable />} />
+            <Route path="/storeStock" element={<StoreStock />} />
             <Route path="/categorys" element={<ProductCategories />} />
             <Route path="/admin/products" element={<ProductTable />} />
             <Route path="/assets" element={<InventoryTabs />} />
             <Route path="/admin/setting" element={<AccountSetting />} />
+            <Route path="/admin/kitchenStoke" element={<KitchenStoke />} />
+            <Route path="/admin/consumables" element={<Consumables />} />
 
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />

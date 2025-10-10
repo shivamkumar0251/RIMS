@@ -20,7 +20,7 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
         </button>
         <h1 className="hidden md:block text-gray-800 text-xl font-bold">
           {/* {currentPageTitle} */}
-          Admin Sidebar
+          Admin Dashboard
         </h1>
       </div>
 

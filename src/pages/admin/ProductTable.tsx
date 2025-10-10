@@ -1,332 +1,248 @@
-import React, { useEffect, useState } from "react";
 import {
     Box,
-    Typography,
     Button,
-    IconButton,
-    TextField,
-    InputAdornment,
-    Select,
-    MenuItem,
+    Chip,
     FormControl,
+    IconButton,
+    InputAdornment,
     InputLabel,
+    MenuItem,
+    Pagination,
+    Paper,
+    Select,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    Paper,
-    Checkbox,
-    Avatar,
-    Chip,
-    Pagination,
+    TextField,
     Tooltip,
+    Typography
 } from "@mui/material";
+import React, { useEffect, useState } from "react";
 import {
-    FiSearch,
-    FiFileText,
-    FiTable,
-    FiRefreshCw,
-    FiUpload,
-    FiEye,
     FiEdit,
-    FiTrash2,
+    FiFileText,
     FiPlus,
+    FiRefreshCw,
+    FiSearch,
+    FiTable,
+    FiTrash2,
+    FiUpload,
 } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
-import ProductModal from "../../layouts/ProductModal";
-import { productData, categories, brands } from "../../data/productData";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import ProductModal from "../../layouts/ProductModal";
 
-// ✅ Define Product type
-interface CreatedBy {
-    avatar: string;
-    name: string;
-}
+// MUI Date Picker
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import dayjs, { Dayjs } from "dayjs";
 
+// ✅ Product Type
 export interface Product {
     id: number;
-    sku: string;
-    productName: string;
+    product_name: string;
     category: string;
     brand: string;
-    price: number;
+    packSize: string;
     unit: string;
-    qty: number;
-    icon?: React.ReactNode;
-    createdBy: CreatedBy;
+    shape: string;
+    colour: string;
+    printStatus: string;
+    openingStock: number;
+    quantity: number;
+    perUnitRate: number;
+    gst: number;
+    image: string;
+    createdAt: string;
 }
+
+// ✅ Dummy Categories and Brands
+export const categories = ["Dairy", "Bakery", "Beverages", "Snacks", "Personal Care"];
+export const brands = ["Amul", "Nestle", "Britannia", "Parle", "Colgate"];
+
+// ✅ Dummy Data
+const productData: Product[] = Array.from({ length: 50 }, (_, i) => ({
+    id: i + 1,
+    product_name: `Product ${i + 1}`,
+    category: categories[i % categories.length],
+    brand: brands[i % brands.length],
+    packSize: `${(i % 5) + 1}L`,
+    unit: "liter",
+    shape: i % 2 === 0 ? "Round" : "Square",
+    colour: i % 3 === 0 ? "White" : "Blue",
+    printStatus: i % 2 === 0 ? "Printed" : "Not Printed",
+    openingStock: 50 + i,
+    quantity: (i % 10) + 5,
+    perUnitRate: 25 + (i % 10),
+    gst: (i % 5) * 3 + 5,
+    image: `https://picsum.photos/seed/${i + 1}/60/60`,
+    createdAt: dayjs().subtract(i, 'day').toISOString(),
+}));
 
 const ProductTable: React.FC = () => {
     const [data, setData] = useState<Product[]>(productData);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedCategory, setSelectedCategory] = useState<string>("All Categories");
     const [selectedBrand, setSelectedBrand] = useState<string>("All Brands");
-    const [selectedRows, setSelectedRows] = useState<number[]>([]);
+    const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
     const [page, setPage] = useState<number>(1);
     const [rowsPerPage, setRowsPerPage] = useState<number>(10);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const location = useLocation();
 
-    const isProductsPath = location.pathname.includes('/products');
-
-    // ✅ Filter data
+    // ✅ Filter Data
     const filteredData = data.filter((item) => {
-        const matchesSearch =
-            item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = item.product_name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase());
         const matchesCategory =
             selectedCategory === "All Categories" || item.category === selectedCategory;
         const matchesBrand = selectedBrand === "All Brands" || item.brand === selectedBrand;
-        return matchesSearch && matchesCategory && matchesBrand;
+        const matchesDate = selectedDate
+            ? dayjs(item.createdAt).isSame(selectedDate, 'day')
+            : true;
+
+        return matchesSearch && matchesCategory && matchesBrand && matchesDate;
     });
 
     // ✅ Pagination
     const startIndex = (page - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
+    const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
+    const safeValue = (val: any) =>
+        val === null || val === undefined || val === "" ? "N.A" : val;
+
     // ✅ Handlers
-    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.checked) {
-            setSelectedRows(paginatedData.map((item) => item.id));
-        } else {
-            setSelectedRows([]);
-        }
-    };
-
-    const handleSelectRow = (id: number) => {
-        setSelectedRows((prev) =>
-            prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-        );
-    };
-
     const handleExportPDF = () => console.log("Export to PDF");
     const handleExportExcel = () => console.log("Export to Excel");
     const handleRefresh = () => console.log("Refresh data");
     const handleImportProducts = () => console.log("Import products");
-    
     const handleAddProduct = () => setIsModalOpen(true);
+    const handleEdit = (id: number) => setIsModalOpen(true);
+    const handleDelete = (id: number) => setData(prev => prev.filter(p => p.id !== id));
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         if (params.get("addProduct") === "1") setIsModalOpen(true);
     }, [location.search]);
 
-    const handleView = (id: number) => console.log("View product:", id);
-    const handleEdit = (id: number) => console.log("Edit product:", id);
-    const handleDelete = (id: number) => console.log("Delete product:", id);
-
     return (
         <AdminLayout>
             <Box sx={{ p: 3, bgcolor: "#f9f9f9", minHeight: "100vh" }}>
-                {/* Search and Filters */}
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
+                {/* Filters & Actions */}
+                <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={2}>
+                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
                         <TextField
-                            placeholder="Search"
+                            placeholder="Search Products..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <FiSearch />
-                                    </InputAdornment>
-                                ),
-                            }}
-                            sx={{ minWidth: 300 }}
+                            InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch /></InputAdornment> }}
+                            sx={{ minWidth: 250 }}
                         />
-
                         <FormControl sx={{ minWidth: 150 }}>
                             <InputLabel>Category</InputLabel>
-                            <Select
-                                value={selectedCategory}
-                                label="Category"
-                                onChange={(e) => setSelectedCategory(e.target.value)}
-                            >
-                                {categories.map((category) => (
-                                    <MenuItem key={category} value={category}>
-                                        {category}
-                                    </MenuItem>
-                                ))}
+                            <Select value={selectedCategory} label="Category" onChange={(e) => setSelectedCategory(e.target.value)}>
+                                <MenuItem value="All Categories">All Categories</MenuItem>
+                                {categories.map(cat => <MenuItem key={cat} value={cat}>{cat}</MenuItem>)}
+                            </Select>
+                        </FormControl>
+                        <FormControl sx={{ minWidth: 150 }}>
+                            <InputLabel>Brand</InputLabel>
+                            <Select value={selectedBrand} label="Brand" onChange={(e) => setSelectedBrand(e.target.value)}>
+                                <MenuItem value="All Brands">All Brands</MenuItem>
+                                {brands.map(brand => <MenuItem key={brand} value={brand}>{brand}</MenuItem>)}
                             </Select>
                         </FormControl>
 
-                        <FormControl sx={{ minWidth: 150 }}>
-                            <InputLabel>Brand</InputLabel>
-                            <Select
-                                value={selectedBrand}
-                                label="Brand"
-                                onChange={(e) => setSelectedBrand(e.target.value)}
-                            >
-                                {brands.map((brand) => (
-                                    <MenuItem key={brand} value={brand}>
-                                        {brand}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        {/* Created Date */}
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                label="Filter by Created Date"
+                                value={selectedDate}
+                                onChange={(newValue) => setSelectedDate(newValue)}
+                                renderInput={(params) => <TextField {...params} sx={{ minWidth: 180 }} />}
+                            />
+                        </LocalizationProvider>
                     </Box>
 
                     {/* Action Buttons */}
-                    <Box sx={{ display: "flex", gap: 1 }}>
-
-                        {isProductsPath && (
-                            <Button
-                                variant="contained"
-                                startIcon={<FiPlus />}
-                                onClick={handleAddProduct}
-                                sx={{
-                                    backgroundColor: "#1976d2",
-                                    "&:hover": { backgroundColor: "#1565c0" },
-                                }}
-                            >
-                                Add Product
-                            </Button>
-                        )}
-                        
-                        <Tooltip title="Export to PDF">
-                            <IconButton
-                                onClick={handleExportPDF}
-                                sx={{
-                                    backgroundColor: "#f44336",
-                                    color: "white",
-                                    "&:hover": { backgroundColor: "#d32f2f" },
-                                }}
-                            >
-                                <FiFileText />
-                            </IconButton>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <Button variant="contained" startIcon={<FiPlus />} onClick={handleAddProduct}>Add Product</Button>
+                        <Tooltip title="Export PDF">
+                            <IconButton onClick={handleExportPDF} sx={{ backgroundColor: "#f44336", color: "white" }}><FiFileText /></IconButton>
                         </Tooltip>
-
-                        <Tooltip title="Export to Excel">
-                            <IconButton
-                                onClick={handleExportExcel}
-                                sx={{
-                                    backgroundColor: "#4caf50",
-                                    color: "white",
-                                    "&:hover": { backgroundColor: "#388e3c" },
-                                }}
-                            >
-                                <FiTable />
-                            </IconButton>
+                        <Tooltip title="Export Excel">
+                            <IconButton onClick={handleExportExcel} sx={{ backgroundColor: "#4caf50", color: "white" }}><FiTable /></IconButton>
                         </Tooltip>
-
                         <Tooltip title="Refresh">
-                            <IconButton
-                                onClick={handleRefresh}
-                                sx={{
-                                    backgroundColor: "#2196f3",
-                                    color: "white",
-                                    "&:hover": { backgroundColor: "#1976d2" },
-                                }}
-                            >
-                                <FiRefreshCw />
-                            </IconButton>
+                            <IconButton onClick={handleRefresh} sx={{ backgroundColor: "#2196f3", color: "white" }}><FiRefreshCw /></IconButton>
                         </Tooltip>
-
-                        <Button
-                            variant="contained"
-                            startIcon={<FiUpload />}
-                            onClick={handleImportProducts}
-                            sx={{
-                                backgroundColor: "#607d8b",
-                                "&:hover": { backgroundColor: "#546e7a" },
-                            }}
-                        >
-                            Import
-                        </Button>
+                        <Button variant="contained" startIcon={<FiUpload />} onClick={handleImportProducts}>Import</Button>
                     </Box>
                 </Box>
 
                 {/* Table */}
                 <TableContainer component={Paper} sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
                     <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                                <TableCell padding="checkbox">
-                                    <Checkbox
-                                        indeterminate={
-                                            selectedRows.length > 0 && selectedRows.length < paginatedData.length
-                                        }
-                                        checked={
-                                            paginatedData.length > 0 &&
-                                            selectedRows.length === paginatedData.length
-                                        }
-                                        onChange={handleSelectAll}
-                                    />
-                                </TableCell>
-                                <TableCell>SKU</TableCell>
+                        <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                            <TableRow>
+                                <TableCell>S.No</TableCell>
                                 <TableCell>Product Name</TableCell>
                                 <TableCell>Category</TableCell>
                                 <TableCell>Brand</TableCell>
-                                <TableCell>Price</TableCell>
+                                <TableCell>Pack Size</TableCell>
                                 <TableCell>Unit</TableCell>
-                                <TableCell>Qty</TableCell>
-                                <TableCell>Created By</TableCell>
-                                <TableCell>Actions</TableCell>
+                                <TableCell>Shape</TableCell>
+                                <TableCell>Colour</TableCell>
+                                <TableCell>Print Status</TableCell>
+                                <TableCell>Opening Stock</TableCell>
+                                <TableCell>Quantity</TableCell>
+                                <TableCell>Closing Stock</TableCell>
+                                <TableCell>Created Date</TableCell>
+                                <TableCell>Per Unit Rate</TableCell>
+                                <TableCell>Taxable Value</TableCell>
+                                <TableCell>GST (%)</TableCell>
+                                <TableCell>Total</TableCell>
+                                <TableCell align="center">Actions</TableCell>
                             </TableRow>
                         </TableHead>
+
                         <TableBody>
-                            {paginatedData.map((product) => (
-                                <TableRow key={product.id} hover>
-                                    <TableCell padding="checkbox">
-                                        <Checkbox
-                                            checked={selectedRows.includes(product.id)}
-                                            onChange={() => handleSelectRow(product.id)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>{product.sku}</TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                            {product.icon}
-                                            <Typography variant="body2">{product.productName}</Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip label={product.category} size="small" color="primary" />
-                                    </TableCell>
-                                    <TableCell>{product.brand}</TableCell>
-                                    <TableCell>${product.price}</TableCell>
-                                    <TableCell>{product.unit}</TableCell>
-                                    <TableCell>{product.qty}</TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                            <Avatar
-                                                sx={{
-                                                    width: 24,
-                                                    height: 24,
-                                                    fontSize: "0.75rem",
-                                                    backgroundColor: "#1976d2",
-                                                }}
-                                            >
-                                                {product.createdBy.avatar}
-                                            </Avatar>
-                                            <Typography variant="body2">{product.createdBy.name}</Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: "flex", gap: 0.5 }}>
-                                            <Tooltip title="View">
-                                                <IconButton size="small" onClick={() => handleView(product.id)}>
-                                                    <FiEye color="#2196f3" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Edit">
-                                                <IconButton size="small" onClick={() => handleEdit(product.id)}>
-                                                    <FiEdit color="#ff9800" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete">
-                                                <IconButton size="small" onClick={() => handleDelete(product.id)}>
-                                                    <FiTrash2 color="#f44336" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {paginatedData.map((product, index) => {
+                                const closingStock = product.openingStock + product.quantity;
+                                const taxableValue = product.quantity * product.perUnitRate;
+                                const total = taxableValue + taxableValue * (product.gst / 100);
+
+                                return (
+                                    <TableRow key={product.id} hover>
+                                        <TableCell>{startIndex + index + 1}</TableCell>
+                                        <TableCell>{safeValue(product.product_name)}</TableCell>
+                                        <TableCell><Chip label={safeValue(product.category)} color="primary" size="small" /></TableCell>
+                                        <TableCell>{safeValue(product.brand)}</TableCell>
+                                        <TableCell>{safeValue(product.packSize)}</TableCell>
+                                        <TableCell>{safeValue(product.unit)}</TableCell>
+                                        <TableCell>{safeValue(product.shape)}</TableCell>
+                                        <TableCell>{safeValue(product.colour)}</TableCell>
+                                        <TableCell>{safeValue(product.printStatus)}</TableCell>
+                                        <TableCell>{safeValue(product.openingStock)}</TableCell>
+                                        <TableCell>{safeValue(product.quantity)}</TableCell>
+                                        <TableCell>{safeValue(closingStock)}</TableCell>
+                                        <TableCell>{dayjs(product.createdAt).format("DD-MM-YYYY")}</TableCell>
+                                        <TableCell>₹{safeValue(product.perUnitRate)}</TableCell>
+                                        <TableCell>₹{safeValue(taxableValue.toFixed(2))}</TableCell>
+                                        <TableCell>{safeValue(product.gst)}%</TableCell>
+                                        <TableCell>₹{safeValue(total.toFixed(2))}</TableCell>
+                                        <TableCell align="center">
+                                            <Tooltip title="Edit"><IconButton color="primary" onClick={() => handleEdit(product.id)}><FiEdit /></IconButton></Tooltip>
+                                            <Tooltip title="Delete"><IconButton color="error" onClick={() => handleDelete(product.id)}><FiTrash2 /></IconButton></Tooltip>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -334,41 +250,18 @@ const ProductTable: React.FC = () => {
                 {/* Pagination */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography variant="body2" sx={{ color: "#666" }}>
-                            Rows per page
-                        </Typography>
-                        <Select<number>
-                            value={rowsPerPage}
-                            onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                            size="small"
-                            sx={{ minWidth: 80 }}
-                        >
-                            <MenuItem value={5}>5 Entries</MenuItem>
-                            <MenuItem value={10}>10 Entries</MenuItem>
-                            <MenuItem value={25}>25 Entries</MenuItem>
-                            <MenuItem value={50}>50 Entries</MenuItem>
+                        <Typography variant="body2" sx={{ color: "#666" }}>Rows per page</Typography>
+                        <Select<number> value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} size="small" sx={{ minWidth: 80 }}>
+                            <MenuItem value={5}>5</MenuItem>
+                            <MenuItem value={10}>10</MenuItem>
+                            <MenuItem value={25}>25</MenuItem>
+                            <MenuItem value={50}>50</MenuItem>
                         </Select>
                     </Box>
-
-                    <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={(_, value) => setPage(value)}
-                        color="primary"
-                        showFirstButton
-                        showLastButton
-                    />
+                    <Pagination count={totalPages} page={page} onChange={(_, value) => setPage(value)} color="primary" showFirstButton showLastButton />
                 </Box>
 
-                {/* ✅ MODAL CALL UPDATED: categories aur brands ko props ke through modal me bheja jaa rha hai */}
-                {isModalOpen && (
-                    <ProductModal
-                        open={isModalOpen}
-                        onClose={() => setIsModalOpen(false)}
-                        categories={categories}
-                        brands={brands}
-                    />
-                )}
+                {isModalOpen && <ProductModal open={isModalOpen} onClose={() => setIsModalOpen(false)} categories={categories} brands={brands} />}
             </Box>
         </AdminLayout>
     );

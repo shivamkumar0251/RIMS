@@ -17,6 +17,9 @@ import { useDispatch } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
+import { FaKitchenSet } from "react-icons/fa6";
+import { SiMaterialdesignicons } from "react-icons/si";
+import { SiHiveBlockchain } from "react-icons/si";
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
@@ -49,7 +52,9 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
     { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
     { icon: <FaProductHunt />, name: "Product Categorys", to: "/categorys" },
     { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
-    { icon: <FaCog />, name: "Assets", to: "/assets" },
+    { icon: <SiHiveBlockchain  />, name: "Assets", to: "/assets" },
+    { icon: <FaKitchenSet />, name: "Kitchen Stoke", to: "/admin/kitchenStoke" },
+    { icon:  <SiMaterialdesignicons />, name: "Consumables", to: "/admin/consumables" },
     { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
   ];
 
