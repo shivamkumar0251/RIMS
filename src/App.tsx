@@ -35,6 +35,7 @@ import ProductCategories from "./pages/admin/Categorys";
 import StoreStock from "./pages/admin/StoreStock";
 import KitchenStoke from "./pages/admin/KitchenStoke";
 import Consumables from "./pages/admin/Consumables";
+import UserConsumables from "./pages/user/UserConsumables";
 function App() {
   return (
     <>
@@ -74,6 +75,7 @@ function App() {
             <Route path="/user/orders" element={<UserOrderManagementPage />} />
             <Route path="/user/storestock" element={<StoreStockPage />} />
             <Route path="/user/setting" element={<TabbedSettingsUI />} />
+            <Route path="/user/Consumables" element={<UserConsumables />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
