@@ -399,7 +399,7 @@ export default function KitchenStock() {
                             value={selectedProduct}
                             onChange={(_, newValue) => {
                                 setSelectedProduct(newValue);
-                                setOpeningStock(newValue?.openingStoke || 0);
+                                setOpeningStock(newValue?.openingStock || 0);
                                 setPerUnitRate(newValue?.perUnitRate || 0);
                             }}
                             renderInput={(params) => (

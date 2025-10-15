@@ -1,34 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  Box,
-  Typography,
-  Grid,
-  TextField,
-  Button,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  InputAdornment,
-  DialogContent,
-  DialogActions,
-  Autocomplete,
-} from "@mui/material";
 import { FiX } from "react-icons/fi";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs, { Dayjs } from "dayjs";
-import { productData, categories, brands } from "../data/ProductDummyData";
-
-interface ProductModalProps {
-  open: boolean;
-  onClose: () => void;
-  categories: string[];
-  brands: string[];
-}
+import { brands, categories, productData } from "../data/ProductDummyData";
 
 interface ProductOption {
   product_name: string;
@@ -61,6 +33,12 @@ interface FormData {
   taxableValue: number | "";
   gst: number | "";
   total: number | "";
+  stockAlert: number | "";
+}
+
+interface ProductModalProps {
+  open: boolean;
+  onClose: () => void;
 }
 
 const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
@@ -80,39 +58,31 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
     taxableValue: "",
     gst: "",
     total: "",
+    stockAlert: "",
   });
 
-  const [createdDate, setCreatedDate] = useState<Dayjs | null>(dayjs());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleChange = (
-    e:
-      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | React.ChangeEvent<{ name?: string; value: unknown }>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target as HTMLInputElement;
-    if (["openingStock", "quantity", "gst", "price"].includes(name)) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value === "" ? "" : Number(value),
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleDateChange = (newValue: Dayjs | null) => {
-    setCreatedDate(newValue);
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      createdAt: newValue ? newValue.format("DD/MM/YYYY") : "",
+      [name]: ["openingStock", "quantity", "gst", "price", "stockAlert"].includes(name)
+        ? value === ""
+          ? ""
+          : Number(value)
+        : value,
     }));
   };
 
+  // Calculate total + GST automatically
   useEffect(() => {
     const quantity = Number(formData.quantity || 0);
     const price = Number(formData.price || 0);
     const gst = Number(formData.gst || 0);
-
     const taxableValue = quantity * price;
     const total = taxableValue + (taxableValue * gst) / 100;
 
@@ -123,349 +93,258 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
     }));
   }, [formData.quantity, formData.price, formData.gst]);
 
-  const handleCancel = () => {
+  const handleSelectProduct = (product: ProductOption) => {
     setFormData({
-      product_name: "",
-      category: "",
-      brand: "",
-      packSize: "",
-      unit: "",
-      shape: "",
-      colour: "",
-      printStatus: "N.A",
-      openingStock: "",
-      quantity: "",
+      product_name: product.product_name,
+      category: product.category,
+      brand: product.brand,
+      packSize: product.packSize,
+      unit: product.unit,
+      shape: product.shape,
+      colour: product.colour,
+      printStatus: product.printStatus,
+      openingStock: product.openingStock,
+      quantity: product.quantity,
       createdAt: new Date().toLocaleDateString(),
-      price: "",
-      taxableValue: "",
-      gst: "",
-      total: "",
+      price: product.perUnitRate,
+      taxableValue: product.quantity * product.perUnitRate,
+      gst: product.gst,
+      total:
+        product.quantity * product.perUnitRate +
+        (product.quantity * product.perUnitRate * product.gst) / 100,
+      stockAlert: 5,
     });
-    setCreatedDate(dayjs());
+    setSearchTerm(product.product_name);
+    setShowDropdown(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Submitted:", formData);
+    alert("Product Added Successfully!");
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("Form Submitted Data:", formData);
-    alert("Product Added! Check console for data.");
-    handleCancel();
-  };
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="lg">
-      <Box component="form" onSubmit={handleSubmit}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}
+    <div className="fixed inset-0 flex justify-center items-center bg-black/5 backdrop-blur-[0.5px] z-50">
+      <div className="bg-white rounded-2xl shadow-lg w-11/12 max-w-6xl h-[95vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex justify-between items-center border-b px-6 py-4">
+          <h2 className="text-lg font-semibold">Add New Product</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-red-500">
+            <FiX size={22} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h6" component="h2" fontWeight="600">
-              Add New Product
-            </Typography>
-
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Created Date"
-                value={createdDate}
-                onChange={handleDateChange}
-                slotProps={{
-                  textField: { size: "small", sx: { minWidth: 180 } },
-                }}
-              />
-            </LocalizationProvider>
-          </Box>
-
-          <IconButton onClick={handleCancel}>
-            <FiX />
-          </IconButton>
-        </Box>
-
-        <DialogContent>
-          <Grid container spacing={3} mt={0.5} >
-            {/* Autocomplete Product */}
-            <Grid component="div" >
-              <Autocomplete<ProductOption>
-                options={productData}
-                getOptionLabel={(option) => option.product_name}
-                onChange={(_, value) => {
-                  if (value) {
-                    setFormData({
-                      product_name: value.product_name,
-                      category: value.category,
-                      brand: value.brand,
-                      packSize: value.packSize,
-                      unit: value.unit,
-                      shape: value.shape,
-                      colour: value.colour,
-                      printStatus: value.printStatus,
-                      openingStock: value.openingStock,
-                      quantity: value.quantity,
-                      createdAt: new Date().toLocaleDateString(),
-                      price: value.perUnitRate,
-                      taxableValue: value.quantity * value.perUnitRate,
-                      gst: value.gst,
-                      total:
-                        value.quantity * value.perUnitRate +
-                        (value.quantity * value.perUnitRate * value.gst) / 100,
-                    });
-                  } else {
-                    setFormData({
-                      product_name: "",
-                      category: "",
-                      brand: "",
-                      packSize: "",
-                      unit: "",
-                      shape: "",
-                      colour: "",
-                      printStatus: "N.A",
-                      openingStock: "",
-                      quantity: "",
-                      createdAt: new Date().toLocaleDateString(),
-                      price: "",
-                      taxableValue: "",
-                      gst: "",
-                      total: "",
-                    });
-                  }
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Product"
-                    placeholder="Type to search..."
-                    size="small"
-                    variant="outlined"
-                    fullWidth
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Product Name */}
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="product_name"
-                label="Product Name"
-                fullWidth
-                required
-                size="small"
-                value={formData.product_name}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            {/* Category */}
-            <Grid component="div">
-              <FormControl fullWidth size="small" variant="outlined" required>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  name="category"
-                  value={formData.category}
-                  label="Category"
-                  onChange={handleChange as any}
-                >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
+          {/* Autocomplete Product Search */}
+          <div className="relative">
+            <label className="block text-sm font-medium mb-1">Search Product</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowDropdown(true);
+              }}
+              placeholder="Type to search..."
+              className="border rounded-md w-full p-2 focus:ring-2 focus:ring-blue-400"
+            />
+            {showDropdown && (
+              <ul className="absolute z-10 bg-white border mt-1 w-full max-h-40 overflow-y-auto rounded-md shadow-lg">
+                {productData
+                  .filter((p) =>
+                    p.product_name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((p, idx) => (
+                    <li
+                      key={idx}
+                      onClick={() => handleSelectProduct(p)}
+                      className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                    >
+                      {p.product_name}
+                    </li>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+              </ul>
+            )}
+          </div>
 
-            {/* Brand */}
-            <Grid component="div">
-              <FormControl fullWidth size="small" variant="outlined" required>
-                <InputLabel>Brand</InputLabel>
-                <Select
-                  name="brand"
-                  value={formData.brand}
-                  label="Brand"
-                  onChange={handleChange as any}
-                >
-                  {brands.map((b) => (
-                    <MenuItem key={b} value={b}>
-                      {b}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+          {/* Product Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Product Name</label>
+            <input
+              name="product_name"
+              value={formData.product_name}
+              onChange={handleChange}
+              className="border rounded-md w-full p-2"
+              required
+            />
+          </div>
 
-            {/* PackSize, Unit, Shape, Colour */}
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="packSize"
-                label="Pack Size"
-                fullWidth
-                size="small"
-                value={formData.packSize}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="unit"
-                label="Unit"
-                fullWidth
-                size="small"
-                value={formData.unit}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="shape"
-                label="Shape"
-                fullWidth
-                size="small"
-                value={formData.shape}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="colour"
-                label="Colour"
-                fullWidth
-                size="small"
-                value={formData.colour}
-                onChange={handleChange}
-              />
-            </Grid>
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="border rounded-md w-full p-2"
+            >
+              <option value="">Select Category</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {/* Print Status, Opening Stock, Quantity */}
-            <Grid component="div">
-              <FormControl fullWidth size="small" variant="outlined">
-                <InputLabel>Print Status</InputLabel>
-                <Select
-                  name="printStatus"
-                  value={formData.printStatus}
-                  label="Print Status"
-                  onChange={handleChange as any}
-                >
-                  <MenuItem value="N.A">N.A</MenuItem>
-                  <MenuItem value="Not Printed">Not Printed</MenuItem>
-                  <MenuItem value="Printed">Printed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="openingStock"
-                label="Opening Stock"
-                type="number"
-                fullWidth
-                required
-                size="small"
-                value={formData.openingStock}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="quantity"
-                label="Quantity"
-                type="number"
-                fullWidth
-                required
-                size="small"
-                value={formData.quantity}
-                onChange={handleChange}
-              />
-            </Grid>
+          {/* Brand */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Brand</label>
+            <select
+              name="brand"
+              value={formData.brand}
+              onChange={handleChange}
+              className="border rounded-md w-full p-2"
+            >
+              <option value="">Select Brand</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {/* Price, Taxable, GST, Total */}
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="price"
-                label="Per Unit Rate"
-                type="number"
-                fullWidth
-                required
-                size="small"
-                value={formData.price}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₹</InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="taxableValue"
-                label="Taxable Value"
-                type="number"
-                fullWidth
-                size="small"
-                value={
-                  formData.taxableValue !== "" ? formData.taxableValue : "N.A"
-                }
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">₹</InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="gst"
-                label="GST (%)"
-                type="number"
-                fullWidth
-                required
-                size="small"
-                value={formData.gst}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid component="div">
-              <TextField
-                variant="outlined"
-                name="total"
-                label="Total"
-                type="number"
-                fullWidth
-                size="small"
-                value={formData.total !== "" ? formData.total : "N.A"}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">₹</InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
+          {/* PackSize, Unit, Shape, Colour */}
+          <input
+            name="packSize"
+            value={formData.packSize}
+            onChange={handleChange}
+            placeholder="Pack Size"
+            className="border rounded-md w-full p-2"
+          />
+          <input
+            name="unit"
+            value={formData.unit}
+            onChange={handleChange}
+            placeholder="Unit"
+            className="border rounded-md w-full p-2"
+          />
+          <input
+            name="shape"
+            value={formData.shape}
+            onChange={handleChange}
+            placeholder="Shape"
+            className="border rounded-md w-full p-2"
+          />
+          <input
+            name="colour"
+            value={formData.colour}
+            onChange={handleChange}
+            placeholder="Colour"
+            className="border rounded-md w-full p-2"
+          />
 
-        <DialogActions sx={{ p: 2, borderTop: "1px solid #e0e0e0" }}>
-          <Button onClick={handleCancel} variant="contained" color="error">
+          {/* Print Status, Opening Stock */}
+          <select
+            name="printStatus"
+            value={formData.printStatus}
+            onChange={handleChange}
+            className="border rounded-md w-full p-2"
+          >
+            <option value="N.A">N.A</option>
+            <option value="Printed">Printed</option>
+            <option value="Not Printed">Not Printed</option>
+          </select>
+          <input
+            name="openingStock"
+            type="number"
+            value={formData.openingStock}
+            onChange={handleChange}
+            placeholder="Opening Stock"
+            className="border rounded-md w-full p-2"
+          />
+
+          {/* Quantity, Price */}
+          <input
+            name="quantity"
+            type="number"
+            value={formData.quantity}
+            onChange={handleChange}
+            placeholder="Quantity"
+            className="border rounded-md w-full p-2"
+          />
+          <input
+            name="price"
+            type="number"
+            value={formData.price}
+            onChange={handleChange}
+            placeholder="Per Unit Rate"
+            className="border rounded-md w-full p-2"
+          />
+
+          {/* Taxable, GST, Total */}
+          <input
+            readOnly
+            name="taxableValue"
+            value={formData.taxableValue}
+            placeholder="Taxable Value"
+            className="border rounded-md w-full p-2 bg-gray-100"
+          />
+          <input
+            name="gst"
+            type="number"
+            value={formData.gst}
+            onChange={handleChange}
+            placeholder="GST (%)"
+            className="border rounded-md w-full p-2"
+          />
+          <input
+            readOnly
+            name="total"
+            value={formData.total}
+            placeholder="Total"
+            className="border rounded-md w-full p-2 bg-gray-100"
+          />
+
+          {/* Stock Alert */}
+          <input
+            name="stockAlert"
+            type="number"
+            value={formData.stockAlert}
+            onChange={handleChange}
+            placeholder="Stock Alert"
+            className="border rounded-md w-full p-2"
+          />
+        </form>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-4 flex justify-end gap-3 bg-gray-50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+          >
             Cancel
-          </Button>
-          <Button type="submit" variant="contained" color="success">
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          >
             Submit
-          </Button>
-        </DialogActions>
-      </Box>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

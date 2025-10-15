@@ -33,7 +33,7 @@ import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import InventoryTabs from "./pages/admin/InventoryTabs";
 import ProductCategories from "./pages/admin/Categories";
 import StoreStock from "./pages/admin/StoreStock";
-import KitchenStoke from "./pages/admin/KitchenStoke";
+import KitchenStock from "./pages/admin/KitchenStock";
 import Consumables from "./pages/admin/Consumables";
 import UserConsumables from "./pages/user/UserConsumables";
 function App() {
@@ -61,9 +61,8 @@ function App() {
             <Route path="/admin/products" element={<ProductTable />} />
             <Route path="/assets" element={<InventoryTabs />} />
             <Route path="/admin/setting" element={<AccountSetting />} />
-            <Route path="/admin/kitchenStoke" element={<KitchenStoke />} />
+            <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/consumables" element={<Consumables />} />
-
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
 

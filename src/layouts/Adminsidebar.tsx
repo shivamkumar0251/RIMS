@@ -53,7 +53,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
     { icon: <FaProductHunt />, name: "Product categories", to: "/categories" },
     { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
     { icon: <SiHiveBlockchain  />, name: "Assets", to: "/assets" },
-    { icon: <FaKitchenSet />, name: "Kitchen Stoke", to: "/admin/kitchenStoke" },
+    { icon: <FaKitchenSet />, name: "Kitchen Stock", to: "/admin/kitchenStock" },
     { icon:  <SiMaterialdesignicons />, name: "Consumables", to: "/admin/consumables" },
     { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
   ];

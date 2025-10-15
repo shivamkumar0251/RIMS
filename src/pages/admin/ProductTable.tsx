@@ -246,10 +246,11 @@ const ProductTable: React.FC = () => {
                     <Pagination count={totalPages} page={page} onChange={(_, value) => setPage(value)} color="primary" showFirstButton showLastButton />
                 </Box>
 
-                {isModalOpen && <ProductModal open={isModalOpen} onClose={() => setIsModalOpen(false)} categories={categories} brands={brands} />}
+                {isModalOpen && <ProductModal open={isModalOpen} onClose={() => setIsModalOpen(false)}  />}
             </Box>
         </AdminLayout>
     );
 };
 
 export default ProductTable;
+

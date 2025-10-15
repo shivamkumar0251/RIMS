@@ -8,6 +8,7 @@ import {
   FiEdit2,
 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import TeamManagement from "../../components/adminComponents/TeamManagement";
 // import TeamManagement from "../../components/adminComponents/TeamManagement";
 // import { useProfileContext } from "../../../components/layouts/ProfileContext";
 
@@ -182,8 +183,7 @@ const AccountSetting: React.FC<AccountSettingProps> = () => {
           </div>
         );
       case "Team Members":
-        // return <TeamManagement />;
-        return <h1>Team</h1>;
+        return <TeamManagement />;
 
       case "Security":
         return (
