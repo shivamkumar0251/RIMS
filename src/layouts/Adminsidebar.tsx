@@ -50,7 +50,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) 
   const menuItems: MenuItem[] = [
     { icon: <FaHome />, name: "DashBoard", to: "/admin-dashboard" },
     { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
-    { icon: <FaProductHunt />, name: "Product Categorys", to: "/categorys" },
+    { icon: <FaProductHunt />, name: "Product categories", to: "/categories" },
     { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
     { icon: <SiHiveBlockchain  />, name: "Assets", to: "/assets" },
     { icon: <FaKitchenSet />, name: "Kitchen Stoke", to: "/admin/kitchenStoke" },

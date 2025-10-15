@@ -7,16 +7,34 @@ export interface FixedAsset {
   quantity: number;
   purchaseDate: string;
   price: number;
+
+  // Added for UI compatibility
+  taxableValue?: number;
+  gst?: number;
+  total?: number;
 }
 export interface CrockeryItem {
   id: number;
   productName: string;
-  category: 'Plates' | 'Glassware' | 'Cutlery' | 'Bowls' | 'Serveware' | 'Drinkware';
+  category:
+    | "Plates"
+    | "Glassware"
+    | "Cutlery"
+    | "Bowls"
+    | "Serveware"
+    | "Drinkware";
   material: string;
   brand: string;
   openingStock: number;
   closingStock: number;
   price: number;
+
+  // Added for UI compatibility
+  inUse?: number;
+  inStore?: number;
+  taxableValue?: number;
+  gst?: number;
+  total?: number;
 }
 
 // --- EXPANDED DUMMY DATA ---

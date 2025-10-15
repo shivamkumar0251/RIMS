@@ -73,7 +73,7 @@ const stockData: StockItem[] = Array.from({ length: 50 }, (_, i) => {
 
 // ✅ Component
 const StoreStock: React.FC = () => {
-  const [data, setData] = useState<StockItem[]>(stockData);
+  const [data] = useState<StockItem[]>(stockData);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

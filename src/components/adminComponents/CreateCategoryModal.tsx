@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
 } from "@mui/material";
-import {  useCreateCategoryMutation,  useUpdateCategoryMutation,} from "../products/store/apiServices";
+import React, { useEffect, useState } from "react";
+// import { useCreateCategoryMutation, useUpdateCategoryMutation, } from "../products/store/apiServices";
 
 interface CreateCategoryModalProps {
   open: boolean;
@@ -21,14 +21,14 @@ interface CreateCategoryModalProps {
 const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   open,
   onClose,
-  onRefresh,
+  // onRefresh,
   editMode,
   currentCategory,
 }) => {
   const [categoryName, setCategoryName] = useState("");
 
-  const [createCategory, { isLoading: creating }] = useCreateCategoryMutation();
-  const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
+  // const [createCategory, { isLoading: creating }] = useCreateCategoryMutation();
+  // const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
 
   // prefill when editing
   useEffect(() => {
@@ -39,33 +39,33 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
     }
   }, [editMode, currentCategory, open]);
 
-  const handleSubmit = async () => {
-    if (!categoryName.trim()) return;
+  // const handleSubmit = async () => {
+  //   if (!categoryName.trim()) return;
 
-    try {
-      let res: any;
-      if (editMode && currentCategory) {
-        // update
-        res = await updateCategory({
-          id: currentCategory._id,
-          category: categoryName,
-        }).unwrap();
-      } else {
-        // create
-        res = await createCategory({ category: categoryName }).unwrap();
-      }
+  //   try {
+  //     let res: any;
+  //     if (editMode && currentCategory) {
+  //       // update
+  //       res = await updateCategory({
+  //         id: currentCategory._id,
+  //         category: categoryName,
+  //       }).unwrap();
+  //     } else {
+  //       // create
+  //       res = await createCategory({ category: categoryName }).unwrap();
+  //     }
 
-      if (res?.success) {
-        await onRefresh(); // refresh table
-        onClose();
-        setCategoryName("");
-      } else {
-        console.error("Action failed:", res);
-      }
-    } catch (err) {
-      console.error("API Error:", err);
-    }
-  };
+  //     if (res?.success) {
+  //       await onRefresh(); // refresh table
+  //       onClose();
+  //       setCategoryName("");
+  //     } else {
+  //       console.error("Action failed:", res);
+  //     }
+  //   } catch (err) {
+  //     console.error("API Error:", err);
+  //   }
+  // };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
@@ -95,7 +95,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
         >
           Close
         </Button>
-        <Button
+        {/* <Button
           onClick={handleSubmit}
           variant="contained"
           color="success"
@@ -107,9 +107,9 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
               ? "Updating..."
               : "Update"
             : creating
-            ? "Creating..."
-            : "Create"}
-        </Button>
+              ? "Creating..."
+              : "Create"}
+        </Button> */}
       </DialogActions>
     </Dialog>
   );

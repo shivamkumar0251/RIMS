@@ -6,7 +6,7 @@ import ForgetPassword from './pages/auth/Forgetpassword';
 import ResetPassword from "./pages/auth/Resetpassword";
 
 // const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
-const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard2'));
+const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
 const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/auth/Login"));
@@ -31,7 +31,7 @@ import AssetManagementPage from "./pages/user/UserLayout";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import InventoryTabs from "./pages/admin/InventoryTabs";
-import ProductCategories from "./pages/admin/Categorys";
+import ProductCategories from "./pages/admin/Categories";
 import StoreStock from "./pages/admin/StoreStock";
 import KitchenStoke from "./pages/admin/KitchenStoke";
 import Consumables from "./pages/admin/Consumables";
@@ -57,7 +57,7 @@ function App() {
             <Route path="/addCategoryManagement" element={<CategoryManagement />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
             <Route path="/storeStock" element={<StoreStock />} />
-            <Route path="/categorys" element={<ProductCategories />} />
+            <Route path="/categories" element={<ProductCategories />} />
             <Route path="/admin/products" element={<ProductTable />} />
             <Route path="/assets" element={<InventoryTabs />} />
             <Route path="/admin/setting" element={<AccountSetting />} />

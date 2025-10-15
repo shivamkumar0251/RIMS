@@ -5,6 +5,7 @@ export interface Product {
     packSize: string;
     unit: string;
     openingStoke:number;
+    perUnitRate?:number;
 }
 
 export const DUMMY_PRODUCTS: Product[] = [

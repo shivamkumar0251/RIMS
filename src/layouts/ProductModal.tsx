@@ -30,6 +30,21 @@ interface ProductModalProps {
   brands: string[];
 }
 
+interface ProductOption {
+  product_name: string;
+  category: string;
+  brand: string;
+  packSize: string;
+  unit: string;
+  shape: string;
+  colour: string;
+  printStatus: string;
+  openingStock: number;
+  quantity: number;
+  perUnitRate: number;
+  gst: number;
+}
+
 interface FormData {
   product_name: string;
   category: string;
@@ -72,7 +87,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
   const handleChange = (
     e:
       | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | { name?: string; value: unknown }
+      | React.ChangeEvent<{ name?: string; value: unknown }>
   ) => {
     const { name, value } = e.target as HTMLInputElement;
     if (["openingStock", "quantity", "gst", "price"].includes(name)) {
@@ -103,8 +118,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
 
     setFormData((prev) => ({
       ...prev,
-      taxableValue: quantity === "" || price === "" ? "" : taxableValue,
-      total: quantity === "" || price === "" || gst === "" ? "" : total,
+      taxableValue: quantity && price ? taxableValue : "",
+      total: quantity && price && gst ? total : "",
     }));
   }, [formData.quantity, formData.price, formData.gst]);
 
@@ -130,7 +145,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form Submitted Data:", formData);
     alert("Product Added! Check console for data.");
@@ -169,10 +184,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
         </Box>
 
         <DialogContent>
-          <Grid container spacing={3} mt={0.5}>
+          <Grid container spacing={3} mt={0.5} >
             {/* Autocomplete Product */}
-            <Grid item xs={12} sm={6} md={4}>
-              <Autocomplete
+            <Grid component="div" >
+              <Autocomplete<ProductOption>
                 options={productData}
                 getOptionLabel={(option) => option.product_name}
                 onChange={(_, value) => {
@@ -230,7 +245,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* Product Name */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="product_name"
@@ -244,7 +259,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* Category */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid component="div">
               <FormControl fullWidth size="small" variant="outlined" required>
                 <InputLabel>Category</InputLabel>
                 <Select
@@ -263,7 +278,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* Brand */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid component="div">
               <FormControl fullWidth size="small" variant="outlined" required>
                 <InputLabel>Brand</InputLabel>
                 <Select
@@ -282,7 +297,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* PackSize, Unit, Shape, Colour */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="packSize"
@@ -293,7 +308,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="unit"
@@ -304,7 +319,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="shape"
@@ -315,7 +330,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="colour"
@@ -328,7 +343,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* Print Status, Opening Stock, Quantity */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <FormControl fullWidth size="small" variant="outlined">
                 <InputLabel>Print Status</InputLabel>
                 <Select
@@ -343,7 +358,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="openingStock"
@@ -356,7 +371,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="quantity"
@@ -371,7 +386,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </Grid>
 
             {/* Price, Taxable, GST, Total */}
-            <Grid item xs={12} sm={4}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="price"
@@ -383,11 +398,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 value={formData.price}
                 onChange={handleChange}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">₹</InputAdornment>
+                  ),
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="taxableValue"
@@ -395,14 +412,18 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 type="number"
                 fullWidth
                 size="small"
-                value={formData.taxableValue !== "" ? formData.taxableValue : "N.A"}
+                value={
+                  formData.taxableValue !== "" ? formData.taxableValue : "N.A"
+                }
                 InputProps={{
                   readOnly: true,
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">₹</InputAdornment>
+                  ),
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="gst"
@@ -415,7 +436,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid component="div">
               <TextField
                 variant="outlined"
                 name="total"
@@ -426,7 +447,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
                 value={formData.total !== "" ? formData.total : "N.A"}
                 InputProps={{
                   readOnly: true,
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">₹</InputAdornment>
+                  ),
                 }}
               />
             </Grid>

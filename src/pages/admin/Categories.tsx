@@ -1,25 +1,25 @@
-import React, { useState } from "react";
 import {
+  Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Pagination,
+  Paper,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Pagination,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  Box,
   Typography,
 } from "@mui/material";
-import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
+import { useState } from "react";
+import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 interface Category {

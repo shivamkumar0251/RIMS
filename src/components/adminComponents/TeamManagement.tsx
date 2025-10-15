@@ -1,20 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  FiPlus,
-  FiEdit,
-  FiTrash2,
   FiChevronLeft,
   FiChevronRight,
+  FiPlus
 } from "react-icons/fi";
-import CircularProgress from "@mui/material/CircularProgress";
 // import { useUserListsMutation } from "../store/apiServices";
 
 const TeamManagement = () => {
 
 
   // const [getUserList, { isLoading }] = useUserListsMutation();
-  
-  const [allMembers, setAllMembers] = useState([]);
+
+  const [allMembers] = useState([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,7 +38,7 @@ const TeamManagement = () => {
   // Pagination logic
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = allMembers.slice(indexOfFirstRow, indexOfLastRow);
+  // const currentRows = allMembers.slice(indexOfFirstRow, indexOfLastRow);
   const totalPages = Math.ceil(allMembers.length / rowsPerPage);
 
   const handleNextPage = () => {
@@ -59,10 +56,10 @@ const TeamManagement = () => {
 
   const handleAddUser = () =>
     alert("Add user functionality to be implemented!");
-  const handleEdit = (id: string) => alert(`Editing user with ID: ${id}`);
+  // const handleEdit = (id: string) => alert(`Editing user with ID: ${id}`);
   // const handleDelete = (id: string) =>
   //   setAllMembers(allMembers.filter((member) => member._id !== id));
-
+  const isLoading = true
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 w-full mx-auto flex flex-col h-full min-h-[400px]">
       {/* Header */}
@@ -94,7 +91,7 @@ const TeamManagement = () => {
               className="mt-4 space-y-4 overflow-y-auto"
               style={{ maxHeight: "calc(100vh - 300px)" }}
             >
-              {isLoading ? (
+              {/* {isLoading ? (
                 <div className="flex justify-center items-center py-16">
                   <CircularProgress />
                 </div>
@@ -115,11 +112,10 @@ const TeamManagement = () => {
                     </div>
                     <div className="col-span-2">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          member.role === "admin"
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${member.role === "admin"
                             ? "bg-blue-100 text-blue-800"
                             : "bg-gray-200 text-gray-800"
-                        }`}
+                          }`}
                       >
                         {member.role}
                       </span>
@@ -144,7 +140,7 @@ const TeamManagement = () => {
                 <p className="text-center py-6 text-gray-500">
                   No members found.
                 </p>
-              )}
+              )} */}
             </div>
           </div>
         </div>

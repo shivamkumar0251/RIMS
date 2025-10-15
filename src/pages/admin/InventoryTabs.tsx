@@ -140,7 +140,7 @@ const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
                   key={field.name}
                   freeSolo
                   options={categories}
-                  onChange={(event, value) =>
+                  onChange={(_, value) =>
                     handleAutocompleteChange(field.name, value)
                   }
                   renderInput={(params) => (
@@ -454,7 +454,7 @@ const InventoryDropdown: React.FC = () => {
             <Pagination
               count={Math.ceil(filteredData.length / rowsPerPage)}
               page={page}
-              onChange={(e, value) => setPage(value)}
+              onChange={(_, value) => setPage(value)}
               color="primary"
             />
           </Box>

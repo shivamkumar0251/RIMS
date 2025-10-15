@@ -20,7 +20,7 @@ const dashboardData = [
   { id: 2, name: 'Products', icon: FaChair, to: '/user/products' },
   { id: 3, name: 'Store Stock', icon: FaBoxes, to: '/user/storestock' },
   { id: 4, name: 'Orders', icon: FaBorderAll, to: '/user/orders' },
-  { id: 5, name: 'Consumables', icon: MdBlindsClosed , to: '/user/consumables' },
+  { id: 5, name: 'Consumables', icon: MdBlindsClosed, to: '/user/consumables' },
   { id: 6, name: 'Settings', icon: FaCog, to: '/user/setting' },
 ];
 
@@ -56,22 +56,19 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       {/* Overlay for mobile */}
       <div
         onClick={() => setIsOpen(false)}
-        className={`fixed inset-0 z-30 bg-black bg-opacity-50 transition-opacity md:hidden ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 z-30 bg-black bg-opacity-50 transition-opacity md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
       />
 
       {/* Sidebar */}
       <div
-        className={`fixed z-40 flex h-full flex-col border-r border-slate-200 bg-white text-slate-800 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
-          isExpanded ? 'w-64' : 'w-20'
-        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed z-40 flex h-full flex-col border-r border-slate-200 bg-white text-slate-800 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isExpanded ? 'w-64' : 'w-20'
+          } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Header */}
         <div
-          className={`flex h-16 shrink-0 items-center border-b ${
-            isExpanded ? 'px-4' : 'justify-center'
-          }`}
+          className={`flex h-16 shrink-0 items-center border-b ${isExpanded ? 'px-4' : 'justify-center'
+            }`}
         >
           <button
             onClick={() => setIsPinned(!isPinned)}
@@ -79,6 +76,12 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           >
             <FaBars className="h-5 w-5" />
           </button>
+
+          {isExpanded && (
+            <h1 className="text-lg font-semibold text-slate-700">User Dashboard</h1>
+          )}
+
+
         </div>
 
         {/* Menu */}
@@ -93,11 +96,10 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                   navigate(item.to);
                   setIsOpen(false);
                 }}
-                className={`flex w-full items-center rounded-lg p-3 text-left transition-colors duration-200 ${
-                  isActive
+                className={`flex w-full items-center rounded-lg p-3 text-left transition-colors duration-200 ${isActive
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {isExpanded && (

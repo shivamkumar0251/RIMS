@@ -36,10 +36,10 @@ import { AdminLayout } from "../../layouts/AdminLayout";
 import ProductModal from "../../layouts/ProductModal";
 
 // MUI Date Picker
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import dayjs, { Dayjs } from "dayjs";
-import { productData, categories, brands } from "../../data/ProductDummyData";
+import { brands, categories, productData } from "../../data/ProductDummyData";
 
 // ✅ Product Type
 export interface Product {
@@ -101,7 +101,7 @@ const ProductTable: React.FC = () => {
     const handleRefresh = () => console.log("Refresh data");
     const handleImportProducts = () => console.log("Import products");
     const handleAddProduct = () => setIsModalOpen(true);
-    const handleEdit = (id: number) => setIsModalOpen(true);
+    const handleEdit = () => setIsModalOpen(true);
     const handleDelete = (id: number) => setData(prev => prev.filter(p => p.id !== id));
 
     useEffect(() => {
@@ -143,7 +143,13 @@ const ProductTable: React.FC = () => {
                                 label="Filter by Created Date"
                                 value={selectedDate}
                                 onChange={(newValue) => setSelectedDate(newValue)}
-                                renderInput={(params) => <TextField {...params} sx={{ minWidth: 180 }} />}
+                                slotProps={{
+                                    textField: {
+                                        sx: { minWidth: 180 },
+                                        size: "small",
+                                        placeholder: "Select date",
+                                    },
+                                }}
                             />
                         </LocalizationProvider>
                     </Box>
@@ -216,7 +222,7 @@ const ProductTable: React.FC = () => {
                                         <TableCell>{safeValue(product.gst)}%</TableCell>
                                         <TableCell>₹{safeValue(total.toFixed(2))}</TableCell>
                                         <TableCell align="center">
-                                            <Tooltip title="Edit"><IconButton color="primary" onClick={() => handleEdit(product.id)}><FiEdit /></IconButton></Tooltip>
+                                            <Tooltip title="Edit"><IconButton color="primary" onClick={() => handleEdit()}><FiEdit /></IconButton></Tooltip>
                                             <Tooltip title="Delete"><IconButton color="error" onClick={() => handleDelete(product.id)}><FiTrash2 /></IconButton></Tooltip>
                                         </TableCell>
                                     </TableRow>

@@ -1,149 +1,97 @@
 
+import React from "react";
+import {
+    LineChart,
+    Line,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from "recharts";
+import UserLayout from "../../layouts/UserLayout";
 
-import React, { useEffect, useState } from 'react';
-import { FaPencilAlt } from 'react-icons/fa';
-import UserLayout from '../../layouts/UserLayout';
+interface StatCardProps {
+    title: string;
+    value: string | number;
+}
 
-
-type SubItem = {
-    id: number;
-    name: string;
-    imageUrl: string;
-    isSelected: boolean;
-    quantity: number | '';
-    price: number | '';
-    gst: number | '';
-};
-
-type ServiceCategory = {
-    id: number;
-    name: string;
-    subItems: SubItem[];
-};
-
-
-const dummyServiceData: ServiceCategory[] = [
-    {
-        id: 1,
-        name: 'Interior',
-        subItems: [
-            { id: 101, name: 'Design Consultation', imageUrl: 'https://api.iconify.design/ph:presentation-chart-duotone.svg', isSelected: true, quantity: 1, price: 5000, gst: 18 },
-            { id: 102, name: '3D Visualization', imageUrl: 'https://api.iconify.design/ph:cube-duotone.svg', isSelected: false, quantity: 1, price: 8000, gst: 18 },
-        ]
-    },
-    {
-        id: 2,
-        name: 'Kitchen',
-        subItems: [
-            { id: 201, name: 'Modular Kitchen', imageUrl: 'https://api.iconify.design/ph:cooking-pot-duotone.svg', isSelected: true, quantity: 1, price: 75000, gst: 18 },
-            { id: 202, name: 'Cabinetry', imageUrl: 'https://api.iconify.design/ph:archive-box-duotone.svg', isSelected: true, quantity: 1, price: 45000, gst: 18 },
-        ]
-    },
-];
-
-
-
-type SubItemRowProps = {
-    item: SubItem;
-    onUpdate: (field: keyof SubItem, value: string | number | boolean) => void;
-};
-
-const SubItemRow: React.FC<SubItemRowProps> = ({ item, onUpdate }) => {
-    return (
-        <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-gray-200 px-4 py-3 text-gray-800">
-            <div className="flex items-center space-x-4">
-                <input type="checkbox" checked={item.isSelected} onChange={(e) => onUpdate('isSelected', e.target.checked)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span className="font-medium">{item.name}</span>
-            </div>
-            <div className="flex justify-center">
-                <img src={item.imageUrl} alt={item.name} className="h-[50px] w-[50px] rounded-md bg-gray-100 object-contain p-1" />
-            </div>
-            <input type="number" value={item.quantity} onChange={(e) => onUpdate('quantity', e.target.valueAsNumber || '')} className="w-full rounded-md border border-gray-300 p-2 text-center focus:border-blue-500 focus:ring-blue-500" placeholder="-" />
-            <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
-                <input type="number" value={item.price} onChange={(e) => onUpdate('price', e.target.valueAsNumber || '')} className="w-full rounded-md border border-gray-300 p-2 pl-7 focus:border-blue-500 focus:ring-blue-500" placeholder="0" />
-            </div>
-            <div className="relative">
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
-                <input type="number" value={item.gst} onChange={(e) => onUpdate('gst', e.target.valueAsNumber || '')} className="w-full rounded-md border border-gray-300 p-2 pr-8 focus:border-blue-500 focus:ring-blue-500" placeholder="0" />
-            </div>
-            <button className="text-gray-500 hover:text-blue-600">
-                <FaPencilAlt className="h-5 w-5" /> {/* Icon updated */}
-            </button>
-        </div>
-    );
-};
-
+const StatCard: React.FC<StatCardProps> = ({ title, value }) => (
+    <div className="bg-white shadow-md rounded-2xl p-6 flex flex-col items-center justify-center">
+        <p className="text-gray-500 text-sm">{title}</p>
+        <h2 className="text-2xl font-bold mt-2">{value}</h2>
+    </div>
+);
 
 const UserDashboard: React.FC = () => {
-    useEffect(() => {
-        document.title = "User Dashboard | Inventory Management System"
-        window.scrollTo(0, 0);
-    }, []);
-    const [serviceData, setServiceData] = useState(dummyServiceData);
-    const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(serviceData[0]);
+    // Dummy chart data
+    const lineData = [
+        { name: "Jan", users: 400 },
+        { name: "Feb", users: 300 },
+        { name: "Mar", users: 600 },
+        { name: "Apr", users: 800 },
+        { name: "May", users: 700 },
+        { name: "Jun", users: 1000 },
+    ];
 
-    const handleSubItemUpdate = (subItemId: number, field: keyof SubItem, value: unknown) => {
-        if (!selectedCategory) return;
-
-        const updatedSubItems = selectedCategory.subItems.map(item =>
-            item.id === subItemId ? { ...item, [field]: value } : item
-        );
-        const updatedCategory = { ...selectedCategory, subItems: updatedSubItems };
-
-        const updatedServiceData = serviceData.map(cat =>
-            cat.id === updatedCategory.id ? updatedCategory : cat
-        );
-
-        setServiceData(updatedServiceData);
-        setSelectedCategory(updatedCategory);
-    };
+    const barData = [
+        { name: "Category A", products: 400 },
+        { name: "Category B", products: 300 },
+        { name: "Category C", products: 600 },
+        { name: "Category D", products: 200 },
+    ];
 
     return (
-        <UserLayout >
-            <div className="h-full rounded-2xl bg-white p-6 shadow-sm">
+        <UserLayout>
+            <div className="min-h-screen bg-gray-100 p-6">
+                <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-                {/* डेमो के लिए कैटेगरी बदलने वाले बटन */}
-                <div className="mb-4 flex gap-2">
-                    {serviceData.map(cat => (
-                        <button
-                            key={cat.id}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`rounded-lg px-4 py-2 font-semibold ${selectedCategory?.id === cat.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                        >
-                            {cat.name}
-                        </button>
-                    ))}
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+                    <StatCard title="Consume" value="1,240" />
+                    <StatCard title="Store Stock" value="560" />
+                    <StatCard title="Purchases" value="320" />
+                    <StatCard title="Orders" value="740" />
+                    <StatCard title="Total Categories" value="18" />
+                    <StatCard title="Total Subcategories" value="42" />
                 </div>
 
-                <h2 className="mb-6 text-3xl font-bold text-gray-800">
-                    {selectedCategory?.name || 'All Services'}
-                </h2>
-
-                <div className="sticky top-0 grid grid-cols-[3fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b-2 border-gray-200 bg-white px-4 py-2 text-left text-sm font-semibold text-gray-500">
-                    <span>Name</span>
-                    <span className="text-center">Image</span>
-                    <span className="text-center">Quantity</span>
-                    <span>Price</span>
-                    <span>GST</span>
-                    <span />
-                </div>
-
-                {selectedCategory ? (
-                    <div>
-                        {selectedCategory.subItems.map(item => (
-                            <SubItemRow
-                                key={item.id}
-                                item={item}
-                                onUpdate={(field, value) => handleSubItemUpdate(item.id, field, value)}
-                            />
-                        ))}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Line Chart */}
+                    <div className="bg-white shadow-md rounded-2xl p-6">
+                        <h2 className="text-lg font-semibold mb-4">User Growth</h2>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={lineData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Line
+                                    type="monotone"
+                                    dataKey="users"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
-                ) : (
-                    <p className="mt-4 text-center text-gray-500">
-                        Please select a category to see its items.
-                    </p>
-                )}
+
+                    {/* Bar Chart */}
+                    <div className="bg-white shadow-md rounded-2xl p-6">
+                        <h2 className="text-lg font-semibold mb-4">Products by Category</h2>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={barData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="products" fill="#10b981" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
         </UserLayout>
     );

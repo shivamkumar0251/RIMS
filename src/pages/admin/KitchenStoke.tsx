@@ -160,9 +160,13 @@ export default function KitchenStock() {
                                 label="Filter by Created Date"
                                 value={selectedDate}
                                 onChange={(newValue) => setSelectedDate(newValue)}
-                                renderInput={(params) => (
-                                    <TextField {...params} sx={{ minWidth: 180 }} />
-                                )}
+                                slotProps={{
+                                    textField: {
+                                        sx: { minWidth: 180 },
+                                        size: "small",
+                                        placeholder: "Select date",
+                                    },
+                                }}
                             />
                         </LocalizationProvider>
                     </Box>
@@ -287,16 +291,16 @@ export default function KitchenStock() {
                                                         item.closingStock === 0
                                                             ? "error"
                                                             : item.closingStock < 10
-                                                            ? "warning.main"
-                                                            : "success.main"
+                                                                ? "warning.main"
+                                                                : "success.main"
                                                     }
                                                     sx={{ ml: 1, fontWeight: 600 }}
                                                 >
                                                     {item.closingStock === 0
                                                         ? "Out of Stock"
                                                         : item.closingStock < 10
-                                                        ? "Low Stock"
-                                                        : "In Stock"}
+                                                            ? "Low Stock"
+                                                            : "In Stock"}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>{item.perUnitRate}</TableCell>

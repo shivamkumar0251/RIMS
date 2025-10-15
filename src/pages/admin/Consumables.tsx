@@ -1,4 +1,3 @@
-import React, { useMemo, useState } from "react";
 import {
     Box,
     Button,
@@ -22,6 +21,7 @@ import {
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { useMemo, useState } from "react";
 import {
     FiFileText,
     FiRefreshCw,
@@ -30,8 +30,8 @@ import {
     FiTrash2,
     FiUpload,
 } from "react-icons/fi";
+import { DUMMY_CONSUMABLE_ITEMS, } from "../../data/ConsumablesDummyData";
 import { AdminLayout } from "../../layouts/AdminLayout";
-import { DUMMY_CONSUMABLE_ITEMS,  } from "../../data/ConsumablesDummyData";
 
 export default function Consumables() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -106,9 +106,13 @@ export default function Consumables() {
                                 label="Filter by Created Date"
                                 value={selectedDate}
                                 onChange={(newValue) => setSelectedDate(newValue)}
-                                renderInput={(params) => (
-                                    <TextField {...params} sx={{ minWidth: 180 }} />
-                                )}
+                                slotProps={{
+                                    textField: {
+                                        sx: { minWidth: 180 },
+                                        size: "small",
+                                        placeholder: "Select date",
+                                    },
+                                }}
                             />
                         </LocalizationProvider>
                     </Box>
@@ -241,41 +245,41 @@ export default function Consumables() {
                             </Table>
                         </TableContainer>
 
-                            {/* Pagination */}
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    mt: 2,
-                                    alignItems: "center",
-                                }}
-                            >
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <Typography variant="body2" sx={{ color: "#666" }}>
-                                        Rows per page
-                                    </Typography>
-                                    <Select<number>
-                                        value={rowsPerPage}
-                                        onChange={(e) =>
-                                            setRowsPerPage(Number(e.target.value))
-                                        }
-                                        size="small"
-                                        sx={{ minWidth: 80 }}
-                                    >
-                                        <MenuItem value={5}>5</MenuItem>
-                                        <MenuItem value={10}>10</MenuItem>
-                                        <MenuItem value={25}>25</MenuItem>
-                                    </Select>
-                                </Box>
-                                <Pagination
-                                    count={totalPages}
-                                    page={page}
-                                    onChange={(_, value) => setPage(value)}
-                                    color="primary"
-                                    showFirstButton
-                                    showLastButton
-                                />
+                        {/* Pagination */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                mt: 2,
+                                alignItems: "center",
+                            }}
+                        >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Typography variant="body2" sx={{ color: "#666" }}>
+                                    Rows per page
+                                </Typography>
+                                <Select<number>
+                                    value={rowsPerPage}
+                                    onChange={(e) =>
+                                        setRowsPerPage(Number(e.target.value))
+                                    }
+                                    size="small"
+                                    sx={{ minWidth: 80 }}
+                                >
+                                    <MenuItem value={5}>5</MenuItem>
+                                    <MenuItem value={10}>10</MenuItem>
+                                    <MenuItem value={25}>25</MenuItem>
+                                </Select>
                             </Box>
+                            <Pagination
+                                count={totalPages}
+                                page={page}
+                                onChange={(_, value) => setPage(value)}
+                                color="primary"
+                                showFirstButton
+                                showLastButton
+                            />
+                        </Box>
                     </CardContent>
                 </Card>
             </Box>
