@@ -27,7 +27,7 @@ import UserRegistrationForm from "./pages/admin/UserRegistration";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
 import StoreStockPage from "./pages/user/StoreStockPage";
-import AssetManagementPage from "./pages/user/UserLayout";
+import UserProducts from "./pages/user/UserProducts";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import InventoryTabs from "./pages/admin/InventoryTabs";
@@ -71,7 +71,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />
             <Route path="/user/profile" element={<UserPage />} />
-            <Route path="/user/products" element={<AssetManagementPage />} />
+            <Route path="/user/products" element={<UserProducts />} />
             <Route path="/user/orders" element={<UserOrderManagementPage />} />
             <Route path="/user/storestock" element={<StoreStockPage />} />
             <Route path="/user/setting" element={<TabbedSettingsUI />} />
