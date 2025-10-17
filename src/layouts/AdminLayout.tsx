@@ -2,13 +2,13 @@ import { useState } from "react";
 import { AdminSidebar } from "./Adminsidebar";
 import { AdminHeader } from "./AdminHeader";
 
-
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // 👈 collapse state
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -16,12 +16,15 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar - Hidden on mobile by default, visible on desktop */}
+      {/* Sidebar */}
+      <AdminSidebar
+        isOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
-      {/* Mobile Sidebar */}
-      <AdminSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-
-      {/* Overlay for mobile when sidebar is open */}
+      {/* Overlay for mobile */}
       {isSidebarOpen && (
         <div
           onClick={toggleSidebar}
@@ -29,11 +32,14 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
         ></div>
       )}
 
-      <main className="flex-1 flex flex-col min-w-0 md:ml-64">
-        <AdminHeader toggleSidebar={toggleSidebar}/>
-        <div className="flex-1 bg-gray-200 overflow-y-auto p-0">
-          {children}
-        </div>
+      {/* Main Content */}
+      <main
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+          collapsed ? "md:ml-20" : "md:ml-64"
+        }`}
+      >
+        <AdminHeader toggleSidebar={toggleSidebar} />
+        <div className="flex-1 bg-gray-200 overflow-y-auto p-0">{children}</div>
       </main>
     </div>
   );

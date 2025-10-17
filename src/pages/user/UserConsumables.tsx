@@ -1,4 +1,5 @@
 import {
+    Autocomplete,
     Box,
     Button,
     Card,
@@ -19,10 +20,8 @@ import {
     TextField,
     Tooltip,
     Typography,
-    Autocomplete,
 } from "@mui/material";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import {
     FiFileText,
@@ -32,6 +31,7 @@ import {
     FiTable,
     FiUpload,
 } from "react-icons/fi";
+import DateRangeFilter, { type DateRangeValue } from "../../components/common/DateRangeFilter";
 import { USER_CONSUMABLES } from "../../data/UserConsumablesDummyData";
 import UserLayout from "../../layouts/UserLayout";
 
@@ -46,7 +46,7 @@ interface Product {
 
 export default function UserConsumables() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedDate, setSelectedDate] = useState<any>(null);
+    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(1);
     const [openDrawer, setOpenDrawer] = useState(false);
@@ -59,13 +59,16 @@ export default function UserConsumables() {
             const matchesSearch = item.productName
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase());
-            const matchesDate = selectedDate
-                ? new Date(item.createdDate).toDateString() ===
-                  new Date(selectedDate).toDateString()
-                : true;
+
+            const matchesDate =
+                dateRange[0] && dateRange[1]
+                    ? dayjs(item.createdDate, "M/D/YYYY").isAfter(dateRange[0].subtract(1, "day")) &&
+                      dayjs(item.createdDate, "M/D/YYYY").isBefore(dateRange[1].add(1, "day"))
+                    : true;
+
             return matchesSearch && matchesDate;
         });
-    }, [tableData, searchTerm, selectedDate]);
+    }, [tableData, searchTerm, dateRange]);
 
     // --- Pagination ---
     const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
@@ -134,16 +137,13 @@ export default function UserConsumables() {
                             size="small"
                         />
 
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DatePicker
-                                label="Filter by Created Date"
-                                value={selectedDate}
-                                onChange={(newValue) => setSelectedDate(newValue)}
-                                slotProps={{
-                                    textField: { size: "small", sx: { minWidth: 180 } },
-                                }}
-                            />
-                        </LocalizationProvider>
+                        {/* 🔁 Reusable Date Range Picker */}
+                        <DateRangeFilter
+                            value={dateRange}
+                            onChange={setDateRange}
+                            fullWidth={false}
+                            size="small"
+                        />
                     </Box>
 
                     {/* Action Buttons */}
@@ -320,7 +320,6 @@ export default function UserConsumables() {
                                 Quantity: {prod.quantity}
                             </Typography>
 
-                            {/* Independent Inputs */}
                             <TextField
                                 label="Consumables"
                                 type="number"

@@ -12,16 +12,21 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import React, { useCallback, useMemo, useState } from 'react';
 import { FaClipboardList, FaWarehouse } from 'react-icons/fa';
 import { FiFileText, FiSearch, FiTable, FiUpload } from 'react-icons/fi';
+// Assuming the path to your DateRangeFilter is correct
+import DateRangeFilter, { type DateRangeValue } from '../../components/common/DateRangeFilter'; 
 import UserLayout from '../../layouts/UserLayout';
 
-// --- 1. TYPESCRIPT INTERFACES (UNCHANGED) ---
+// Extend dayjs with necessary plugins for date comparison
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+// --- TYPESCRIPT INTERFACES ---
 interface FixedAsset {
     id: number;
     itemName: string;
@@ -31,7 +36,8 @@ interface FixedAsset {
     price: number;
     imageUrl: string;
     gst: number;
-    brand?: string; // Added brand for filtering example
+    brand?: string;
+    createdDate: string; // NEW FIELD
 }
 
 interface UsageAsset {
@@ -44,27 +50,25 @@ interface UsageAsset {
     price: number;
     imageUrl: string;
     gst: number;
-    brand?: string; // Added brand for filtering example
+    brand?: string;
+    createdDate: string; // NEW FIELD
 }
 
-// --- 2. MOCK DATA (UPDATED with 'brand' field) ---
+
+// --- MOCK DATA ---
 const initialAssets: FixedAsset[] = [
-    { id: 1, itemName: 'Conference Room Projector', category: 'Office Electronics', subcategory: 'Presentation', quantity: 2, price: 50000, gst: 18, imageUrl: 'https://placehold.co/100x100/D1FAE5/333?text=Projector', brand: 'Epson' },
-    { id: 2, itemName: 'Company Vehicle - Sedan', category: 'Transportation', subcategory: 'Cars', quantity: 1, price: 800000, gst: 28, imageUrl: 'https://placehold.co/100x100/D1FAE5/333?text=Car', brand: 'Toyota' },
-    { id: 3, itemName: 'Office Air Conditioner', category: 'Appliances', subcategory: 'Climate Control', quantity: 5, price: 45000, gst: 28, imageUrl: 'https://placehold.co/100x100/D1FAE5/333?text=AC', brand: 'LG' },
-    { id: 4, itemName: 'Dell XPS 15 Laptop', category: 'IT Hardware', subcategory: 'Laptops', quantity: 15, price: 150000, gst: 18, imageUrl: 'https://placehold.co/100x100/D1FAE5/333?text=Laptop', brand: 'Dell' },
-    { id: 5, itemName: 'Ergonomic Office Chair', category: 'Furniture', subcategory: 'Seating', quantity: 25, price: 12000, gst: 18, imageUrl: 'https://placehold.co/100x100/D1FAE5/333?text=Chair', brand: 'Herman Miller' },
+    { id: 1, itemName: 'Projector', category: 'Office Electronics', subcategory: 'Presentation', quantity: 2, price: 50000, gst: 18, imageUrl: 'https://via.placeholder.com/150/0000FF/FFFFFF?text=Projector', brand: 'Epson', createdDate: '2025-10-01' },
+    { id: 2, itemName: 'Company Car', category: 'Transportation', subcategory: 'Cars', quantity: 1, price: 800000, gst: 28, imageUrl: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Car', brand: 'Toyota', createdDate: '2025-09-25' },
+    { id: 3, itemName: 'AC', category: 'Appliances', subcategory: 'Climate Control', quantity: 5, price: 45000, gst: 28, imageUrl: 'https://via.placeholder.com/150/00FF00/FFFFFF?text=AC', brand: 'LG', createdDate: '2025-10-10' },
 ];
 
 const initialUsageAssets: UsageAsset[] = [
-    { id: 101, itemName: 'A4 Paper Ream', category: 'Stationery', subcategory: 'Paper Goods', quantity: 50, price: 300, packSize: "500 sheets", gst: 12, imageUrl: 'https://placehold.co/100x100/E0E7FF/333?text=Paper', brand: 'JK Paper' },
-    { id: 102, itemName: 'Printer Ink Cartridge', category: 'IT Consumables', subcategory: 'Printing', quantity: 20, price: 1500, packSize: "XL Black", gst: 28, imageUrl: 'https://placehold.co/100x100/E0E7FF/333?text=Ink', brand: 'HP' },
-    { id: 103, itemName: 'Ballpoint Pens', category: 'Stationery', subcategory: 'Writing Tools', quantity: 10, price: 100, packSize: "Box of 10", gst: 12, imageUrl: 'https://placehold.co/100x100/E0E7FF/333?text=Pens', brand: 'Cello' },
-    { id: 104, itemName: 'Hand Sanitizer', category: 'Hygiene', subcategory: 'Cleaning', quantity: 15, price: 250, packSize: "500ml Bottle", gst: 18, imageUrl: 'https://placehold.co/100x100/E0E7FF/333?text=Sanitizer', brand: 'Dettol' },
-    { id: 105, itemName: 'Coffee Beans', category: 'Pantry', subcategory: 'Beverages', quantity: 5, price: 800, packSize: "1kg Bag", gst: 5, imageUrl: 'https://placehold.co/100x100/E0E7FF/333?text=Beans', brand: 'Starbucks' },
+    { id: 101, itemName: 'A4 Paper', category: 'Stationery', subcategory: 'Paper Goods', quantity: 50, price: 300, packSize: "500 sheets", gst: 12, imageUrl: 'https://via.placeholder.com/150/FFA500/FFFFFF?text=Paper', brand: 'JK Paper', createdDate: '2025-10-05' },
+    { id: 102, itemName: 'Ink Cartridge', category: 'IT Consumables', subcategory: 'Printing', quantity: 20, price: 1500, packSize: "XL Black", gst: 28, imageUrl: 'https://via.placeholder.com/150/800080/FFFFFF?text=Ink', brand: 'HP', createdDate: '2025-10-12' },
 ];
 
-// --- 3. HELPER COMPONENT (UNCHANGED) ---
+
+// --- HELPER COMPONENT (QuantitiyInput) ---
 const QuantityInput: React.FC<{ value: number; onChange: (newQuantity: number) => void }> = ({ value, onChange }) => (
     <input
         type="number"
@@ -75,37 +79,27 @@ const QuantityInput: React.FC<{ value: number; onChange: (newQuantity: number) =
     />
 );
 
-// --- 4. MAIN PAGE COMPONENT ---
+// --- MAIN PAGE COMPONENT ---
 const UserProducts: React.FC = () => {
     const [activeView, setActiveView] = useState<'assets' | 'usage'>('assets');
     const [fixedAssets, setFixedAssets] = useState<FixedAsset[]>(initialAssets);
     const [usageAssets, setUsageAssets] = useState<UsageAsset[]>(initialUsageAssets);
-    const [selectedFixedAssets, setSelectedFixedAssets] = useState<number[]>([]);
-    const [selectedUsageAssets, setSelectedUsageAssets] = useState<number[]>([]);
 
-    // --- NEW: Filter & Pagination State ---
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const [selectedBrand, setSelectedBrand] = useState('All Brands');
-    const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+    // dateRange is correctly initialized with the DateRangeValue type
+    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]); 
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
-    // --- END NEW STATE ---
 
-    // --- Helper Functions (Memoized for Filters) ---
     const allItems = activeView === 'assets' ? fixedAssets : usageAssets;
     const itemType = activeView === 'assets' ? 'assets' : 'usage';
 
-    const categories = useMemo(() => {
-        const cats = new Set(allItems.map(item => item.category));
-        return Array.from(cats);
-    }, [allItems]);
+    const categories = useMemo(() => Array.from(new Set(allItems.map(item => item.category))), [allItems]);
+    const brands = useMemo(() => Array.from(new Set(allItems.map(item => item.brand).filter((b): b is string => !!b))), [allItems]);
 
-    const brands = useMemo(() => {
-        const brs = new Set(allItems.map(item => item.brand).filter((b): b is string => !!b));
-        return Array.from(brs);
-    }, [allItems]);
-
+    // --- FILTERING LOGIC (INCLUDING DATE RANGE) ---
     const filteredItems = useMemo(() => {
         let filtered = allItems;
 
@@ -114,132 +108,84 @@ const UserProducts: React.FC = () => {
                 item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
+
         if (selectedCategory !== 'All Categories') {
             filtered = filtered.filter(item => item.category === selectedCategory);
         }
+
         if (selectedBrand !== 'All Brands') {
             filtered = filtered.filter(item => item.brand === selectedBrand);
         }
-        // Note: Date filtering requires actual dates in your mock data, so this is skipped for now.
+
+        // --- DATE RANGE FILTERING ---
+        if (dateRange[0] && dateRange[1]) {
+            filtered = filtered.filter(item => {
+                const itemDate = dayjs(item.createdDate);
+                // dayjs(dateRange[0]) and dayjs(dateRange[1]) convert the Date or string/null to dayjs objects
+                return itemDate.isSameOrAfter(dayjs(dateRange[0]), 'day') &&
+                    itemDate.isSameOrBefore(dayjs(dateRange[1]), 'day');
+            });
+        }
 
         return filtered;
-    }, [allItems, searchTerm, selectedCategory, selectedBrand]);
+    }, [allItems, searchTerm, selectedCategory, selectedBrand, dateRange]);
 
     const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
     const paginatedItems = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        return filteredItems.slice(start, end);
+        return filteredItems.slice(start, start + rowsPerPage);
     }, [filteredItems, page, rowsPerPage]);
-    // --- End Helper Functions ---
 
-
-    // --- CRUD/Action Handler Placeholders ---
-    const handleExportPDF = useCallback(() => console.log('Export PDF clicked'), []);
-    const handleExportExcel = useCallback(() => console.log('Export Excel clicked'), []);
     const handleRefresh = useCallback(() => {
         setSearchTerm('');
         setSelectedCategory('All Categories');
         setSelectedBrand('All Brands');
-        setSelectedDate(null);
+        setDateRange([null, null]); // Resets the date range
         setPage(1);
-        console.log('Refresh clicked');
     }, []);
-    const handleImportProducts = useCallback(() => console.log('Import Products clicked'), []);
-    // --- End Action Handlers ---
 
-
-    // --- Existing Asset State Handlers ---
     const handleQuantityChange = (id: number, newQuantity: number, type: 'assets' | 'usage') => {
         if (type === 'assets') {
-            setFixedAssets(assets => assets.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
+            setFixedAssets(prev => prev.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
         } else {
-            setUsageAssets(assets => assets.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
+            setUsageAssets(prev => prev.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
         }
     };
 
-    const handleSelectOne = (id: number, type: 'assets' | 'usage') => {
-        if (type === 'assets') {
-            setSelectedFixedAssets(prev =>
-                prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-            );
-        } else {
-            setSelectedUsageAssets(prev =>
-                prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-            );
-        }
-    };
-
-    const handleSelectAll = (type: 'assets' | 'usage') => {
-        const currentData = type === 'assets' ? fixedAssets : usageAssets;
-        const currentSelected = type === 'assets' ? selectedFixedAssets : selectedUsageAssets;
-
-        if (type === 'assets') {
-            if (currentSelected.length === currentData.length) {
-                setSelectedFixedAssets([]);
-            } else {
-                setSelectedFixedAssets(currentData.map(a => a.id));
-            }
-        } else {
-            if (currentSelected.length === currentData.length) {
-                setSelectedUsageAssets([]);
-            } else {
-                setSelectedUsageAssets(currentData.map(a => a.id));
-            }
-        }
-    };
-    // --- End Existing Handlers ---
-
-
+    // --- RENDER CONTENT (TABLE) ---
     const renderContent = () => {
         const assetsToDisplay = paginatedItems as (FixedAsset | UsageAsset)[];
-        const selectedIds = itemType === 'assets' ? selectedFixedAssets : selectedUsageAssets;
-        const allItemsList = itemType === 'assets' ? fixedAssets : usageAssets;
-        const headers = itemType === 'assets' ? 
-            ['Item Details', 'Quantity (Editable)', 'Price (Unit)', 'GST Amount', 'Total Value'] :
-            ['Item Details', 'Pack Size', 'Quantity (Editable)', 'Price (Unit)', 'GST Amount', 'Total Value'];
+        
+        // Safely determine the view type based on activeView state
+        const isUsageView = activeView === 'usage';
+        // The colspan needs to be 7 for Fixed Assets, and 8 for Usage Assets (due to 'Pack Size')
+        const colSpanCount = isUsageView ? 8 : 7;
 
         return (
             <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fade-in">
                 <table className="w-full text-left min-w-[900px] divide-y divide-gray-200">
                     <thead className="bg-gray-100 sticky top-0">
                         <tr>
-                            <th className="px-4 py-3">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        onChange={() => handleSelectAll(itemType)}
-                                        checked={allItemsList.length > 0 && selectedIds.length === allItemsList.length}
-                                    />
-                                    <span className="text-sm font-bold text-gray-600">All</span>
-                                </label>
-                            </th>
-                            {headers.map(header => (
-                                <th key={header} className="px-6 py-3 text-sm font-bold text-gray-600 uppercase tracking-wider">
-                                    {header}
-                                </th>
-                            ))}
+                            <th className="px-4 py-3">#</th>
+                            <th className="px-6 py-3">Item Details</th>
+                            {/* Correctly conditional header based on view type */}
+                            {isUsageView && <th className="px-6 py-3">Pack Size</th>} 
+                            <th className="px-6 py-3">Quantity</th>
+                            <th className="px-6 py-3">Price (Unit)</th>
+                            <th className="px-6 py-3">GST Amount</th>
+                            <th className="px-6 py-3">Total Value</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                         {assetsToDisplay.length > 0 ? (
-                            assetsToDisplay.map((asset) => {
-                                const isSelected = selectedIds.includes(asset.id);
+                            assetsToDisplay.map((asset, idx) => {
                                 const baseValue = asset.price * asset.quantity;
                                 const gstAmount = baseValue * (asset.gst / 100);
                                 const totalValue = baseValue + gstAmount;
 
                                 return (
-                                    <tr key={asset.id} className={`${isSelected ? 'bg-blue-50' : ''} hover:bg-gray-50 transition-colors`}>
-                                        <td className="px-4 py-4">
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                checked={isSelected}
-                                                onChange={() => handleSelectOne(asset.id, itemType)}
-                                            />
-                                        </td>
+                                    <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-4">{(page - 1) * rowsPerPage + idx + 1}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-12 w-12">
@@ -251,7 +197,8 @@ const UserProducts: React.FC = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        {'packSize' in asset && <td className="px-6 py-4 text-gray-600">{asset.packSize}</td>}
+                                        {/* Correctly conditional cell based on view type, safe type assertion */}
+                                        {isUsageView && <td className="px-6 py-4">{(asset as UsageAsset).packSize}</td>}
                                         <td className="px-6 py-4">
                                             <QuantityInput value={asset.quantity} onChange={(q) => handleQuantityChange(asset.id, q, itemType)} />
                                         </td>
@@ -263,7 +210,8 @@ const UserProducts: React.FC = () => {
                             })
                         ) : (
                             <tr>
-                                <td colSpan={7} className="text-center py-10 text-gray-500 text-lg">No assets found matching the current filters.</td>
+                                {/* Use colSpanCount for the correct number of columns */}
+                                <td colSpan={colSpanCount} className="text-center py-10 text-gray-500 text-lg">No items found for current filters.</td>
                             </tr>
                         )}
                     </tbody>
@@ -289,9 +237,8 @@ const UserProducts: React.FC = () => {
                     </nav>
                 </div>
 
-                {/* --- Filters & Actions (MUI Integrated) --- */}
+                {/* --- Filters & Actions --- */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4, p: 3, bgcolor: 'white', borderRadius: '12px', boxShadow: 3 }}>
-                    {/* Filters Row */}
                     <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
                         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
                             <TextField
@@ -325,37 +272,34 @@ const UserProducts: React.FC = () => {
                                 </Select>
                             </FormControl>
 
-                            {/* Created Date Filter */}
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DatePicker
-                                    label="Filter by Date"
-                                    value={selectedDate}
-                                    onChange={(newValue) => { setSelectedDate(newValue); setPage(1); }}
-                                    slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
-                                />
-                            </LocalizationProvider>
+                            {/* --- DateRangeFilter Integration --- */}
+                            <DateRangeFilter
+                                value={dateRange}
+                                onChange={(newRange) => { setDateRange(newRange); setPage(1); }}
+                                fullWidth={false}
+                                size="small"
+                            />
+
                             <Button variant="outlined" onClick={handleRefresh} size="small" sx={{ height: '40px' }}>
                                 Reset Filters
                             </Button>
                         </Box>
 
-                        {/* Action Buttons */}
                         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                             <Tooltip title="Export PDF">
-                                <IconButton onClick={handleExportPDF} sx={{ backgroundColor: "#f44336", color: "white" }} size="small"><FiFileText /></IconButton>
+                                <IconButton sx={{ backgroundColor: "#f44336", color: "white" }} size="small"><FiFileText /></IconButton>
                             </Tooltip>
                             <Tooltip title="Export Excel">
-                                <IconButton onClick={handleExportExcel} sx={{ backgroundColor: "#4caf50", color: "white" }} size="small"><FiTable /></IconButton>
+                                <IconButton sx={{ backgroundColor: "#4caf50", color: "white" }} size="small"><FiTable /></IconButton>
                             </Tooltip>
-                            <Button variant="contained" startIcon={<FiUpload />} onClick={handleImportProducts} size="small">Import</Button>
+                            <Button variant="contained" startIcon={<FiUpload />} size="small">Import</Button>
                         </Box>
                     </Box>
                 </Box>
-                {/* --- End Filters & Actions --- */}
 
                 {renderContent()}
 
-                {/* --- Pagination (MUI Integrated) --- */}
+                {/* --- Pagination --- */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: 'center', mt: 3, p: 2, bgcolor: 'white', borderRadius: '12px', boxShadow: 1 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Typography variant="body2" sx={{ color: "#666" }}>Items per page</Typography>
@@ -384,8 +328,6 @@ const UserProducts: React.FC = () => {
                         size="medium"
                     />
                 </Box>
-                {/* --- End Pagination --- */}
-
 
                 <div className="mt-8 flex justify-end">
                     <button className="px-10 py-4 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-xl transform hover:scale-105 transition-transform">

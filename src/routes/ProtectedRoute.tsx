@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../redux/store/store";
 import { checkToken } from "../redux/slices/checkTokenSlice";
 import { getCookie } from "../utils/cookieUtils";
 import MainSpinner from "../components/common/MainSpinner";
+import { clearToken } from "../redux/slices/authSlice";
 
 interface ProtectedRouteProps {
   allowedRoles: string[]; // ["admin"] or ["user"]
@@ -12,21 +13,32 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectTo = "/login", }) => {
-  const dispatch = useDispatch<AppDispatch>();
+ const dispatch = useDispatch<AppDispatch>();
   const { data, loading } = useSelector((state: RootState) => state.checkToken);
+  const location = useLocation();
 
   useEffect(() => {
-    const token = getCookie('token');
-    if (token) {
+    const token = getCookie("token");
+
+    // if no token, clear Redux data to force logout
+    if (!token) {
+      dispatch(clearToken());
+      return;
+    }
+
+    // if token exists but user data missing (like on refresh)
+    if (token && !data) {
       dispatch(checkToken(token));
     }
-  }, [dispatch]);
-  if (loading) return <MainSpinner />;
-  if (!data) return <Navigate to={redirectTo} replace />;
-  if (!allowedRoles.includes(data.role)) {
-    return <Navigate to={redirectTo} replace />;
-  }
+  }, [dispatch, data]);
 
+  if (loading) return <MainSpinner />;
+
+  // ✅ If no valid token or role not allowed, redirect
+  if (!data || !allowedRoles.includes(data.role)) {
+    return <Navigate to={redirectTo} replace state={{ from: location }} />;
+  }
+ 
   return <Outlet />;
 };
 interface PublicRouteProps {

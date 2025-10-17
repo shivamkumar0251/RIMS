@@ -15,27 +15,27 @@ const LazyAboutPage = lazy(() => import("./pages/About"));
 import FranchisePage from "./pages/Franchise";
 import NotFound from "./pages/NotFound";
 import OurOutlets from "./pages/Outlet";
-
 import AccountSetting from "./pages/admin/AccountSettings";
 import AddProductAdvanced from "./pages/admin/AddProduct";
 import ProfilePage from "./pages/admin/AdminProfile";
+import AdminVendor from "./pages/admin/AdminVendor";
+import ProductCategories from "./pages/admin/Categories";
 import CategoryManagement from "./pages/admin/CategoryManagement";
+import Consumables from "./pages/admin/Consumables";
+import InventoryTabs from "./pages/admin/InventoryTabs";
+import KitchenStock from "./pages/admin/KitchenStock";
 import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import ProductTable from "./pages/admin/ProductTable";
+import StoreStock from "./pages/admin/StoreStock";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
 import StoreStockPage from "./pages/user/StoreStockPage";
+import UserConsumables from "./pages/user/UserConsumables";
 import UserProducts from "./pages/user/UserProducts";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
-import InventoryTabs from "./pages/admin/InventoryTabs";
-import ProductCategories from "./pages/admin/Categories";
-import StoreStock from "./pages/admin/StoreStock";
-import KitchenStock from "./pages/admin/KitchenStock";
-import Consumables from "./pages/admin/Consumables";
-import UserConsumables from "./pages/user/UserConsumables";
 function App() {
   return (
     <>
@@ -63,6 +63,7 @@ function App() {
             <Route path="/admin/setting" element={<AccountSetting />} />
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/consumables" element={<Consumables />} />
+            <Route path="/admin/vendor" element={<AdminVendor />} />
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
 

@@ -19,8 +19,7 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import {
     FiFileText,
@@ -30,12 +29,13 @@ import {
     FiTrash2,
     FiUpload,
 } from "react-icons/fi";
-import { DUMMY_CONSUMABLE_ITEMS, } from "../../data/ConsumablesDummyData";
+import DateRangeFilter, { type DateRangeValue } from "../../components/common/DateRangeFilter";
+import { DUMMY_CONSUMABLE_ITEMS } from "../../data/ConsumablesDummyData";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 export default function Consumables() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedDate, setSelectedDate] = useState<any>(null);
+    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(1);
 
@@ -47,14 +47,15 @@ export default function Consumables() {
                 item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.brand.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesDate = selectedDate
-                ? new Date(item.createdDate).toDateString() ===
-                new Date(selectedDate).toDateString()
-                : true;
+            const matchesDate =
+                dateRange[0] && dateRange[1]
+                    ? dayjs(item.createdDate, "M/D/YYYY").isAfter(dateRange[0].subtract(1, "day")) &&
+                    dayjs(item.createdDate, "M/D/YYYY").isBefore(dateRange[1].add(1, "day"))
+                    : true;
 
             return matchesSearch && matchesDate;
         });
-    }, [searchTerm, selectedDate]);
+    }, [searchTerm, dateRange]);
 
     // ---- Pagination ----
     const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
@@ -101,20 +102,12 @@ export default function Consumables() {
                             }}
                             sx={{ minWidth: 250 }}
                         />
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DatePicker
-                                label="Filter by Created Date"
-                                value={selectedDate}
-                                onChange={(newValue) => setSelectedDate(newValue)}
-                                slotProps={{
-                                    textField: {
-                                        sx: { minWidth: 180 },
-                                        size: "small",
-                                        placeholder: "Select date",
-                                    },
-                                }}
-                            />
-                        </LocalizationProvider>
+                        <DateRangeFilter
+                            value={dateRange}
+                            onChange={setDateRange}
+                            fullWidth={false}
+                            size="small"
+                        />
                     </Box>
 
                     {/* Right Controls */}

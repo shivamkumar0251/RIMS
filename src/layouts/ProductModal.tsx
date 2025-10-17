@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FiX } from "react-icons/fi";
+import { FiX, FiCalendar, FiPlus } from "react-icons/fi";
 import { brands, categories, productData } from "../data/ProductDummyData";
+import VendorModal, { type VendorFormData } from "./VendorModal";
 
 interface ProductOption {
   product_name: string;
@@ -18,6 +19,7 @@ interface ProductOption {
 }
 
 interface FormData {
+  vendor?: string;
   product_name: string;
   category: string;
   brand: string;
@@ -43,6 +45,7 @@ interface ProductModalProps {
 
 const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
   const [formData, setFormData] = useState<FormData>({
+    vendor: "",
     product_name: "",
     category: "",
     brand: "",
@@ -53,7 +56,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
     printStatus: "N.A",
     openingStock: "",
     quantity: "",
-    createdAt: new Date().toLocaleDateString(),
+    createdAt: new Date().toISOString().split("T")[0],
     price: "",
     taxableValue: "",
     gst: "",
@@ -64,9 +67,16 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  // 🔹 Vendor modal & list
+  const [vendorModalOpen, setVendorModalOpen] = useState(false);
+  const [vendors, setVendors] = useState<string[]>(["FreshFoods Supplier", "Dairy Delight", "GreenLeaf Farms"]);
+
+  const handleAddVendor = (vendor: VendorFormData) => {
+    setVendors((prev) => [...prev, vendor.name]);
+    setFormData((prev) => ({ ...prev, vendor: vendor.name }));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -78,7 +88,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
     }));
   };
 
-  // Calculate total + GST automatically
   useEffect(() => {
     const quantity = Number(formData.quantity || 0);
     const price = Number(formData.price || 0);
@@ -95,6 +104,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
 
   const handleSelectProduct = (product: ProductOption) => {
     setFormData({
+      vendor: formData.vendor,
       product_name: product.product_name,
       category: product.category,
       brand: product.brand,
@@ -105,14 +115,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
       printStatus: product.printStatus,
       openingStock: product.openingStock,
       quantity: product.quantity,
-      createdAt: new Date().toLocaleDateString(),
+      createdAt: new Date().toISOString().split("T")[0],
       price: product.perUnitRate,
       taxableValue: product.quantity * product.perUnitRate,
       gst: product.gst,
-      total:
-        product.quantity * product.perUnitRate +
-        (product.quantity * product.perUnitRate * product.gst) / 100,
-      stockAlert: 5,
+      total: product.quantity * product.perUnitRate + (product.quantity * product.perUnitRate * product.gst) / 100, stockAlert: 5,
     });
     setSearchTerm(product.product_name);
     setShowDropdown(false);
@@ -143,36 +150,85 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
           onSubmit={handleSubmit}
           className="flex-1 overflow-y-auto px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          {/* Autocomplete Product Search */}
-          <div className="relative">
-            <label className="block text-sm font-medium mb-1">Search Product</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setShowDropdown(true);
-              }}
-              placeholder="Type to search..."
-              className="border rounded-md w-full p-2 focus:ring-2 focus:ring-blue-400"
-            />
-            {showDropdown && (
-              <ul className="absolute z-10 bg-white border mt-1 w-full max-h-40 overflow-y-auto rounded-md shadow-lg">
-                {productData
-                  .filter((p) =>
-                    p.product_name.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((p, idx) => (
-                    <li
-                      key={idx}
-                      onClick={() => handleSelectProduct(p)}
-                      className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                    >
-                      {p.product_name}
-                    </li>
-                  ))}
-              </ul>
-            )}
+          {/* Row: Search + Date */}
+          <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
+            {/* Product Search */}
+            <div className="relative flex-1">
+              <label className="block text-sm font-medium mb-1">Search Product</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowDropdown(true);
+                }}
+                placeholder="Type to search..."
+                className="border rounded-md w-full p-2 focus:ring-2 focus:ring-blue-400"
+              />
+              {showDropdown && (
+                <ul className="absolute z-10 bg-white border mt-1 w-full max-h-40 overflow-y-auto rounded-md shadow-lg">
+                  {productData
+                    .filter((p) =>
+                      p.product_name.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((p, idx) => (
+                      <li
+                        key={idx}
+                        onClick={() => handleSelectProduct(p)}
+                        className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                      >
+                        {p.product_name}
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Date Picker */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Date</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  name="createdAt"
+                  value={formData.createdAt}
+                  onChange={handleChange}
+                  className="border rounded-md w-full p-2 pl-9 focus:ring-2 focus:ring-blue-400"
+                />
+                <FiCalendar
+                  size={18}
+                  className="absolute left-2 top-3 text-gray-500 pointer-events-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 🔹 Vendor Selection */}
+          <div className="relative flex items-end gap-2">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Vendor</label>
+              <select
+                name="vendor"
+                value={formData.vendor}
+                onChange={handleChange}
+                className="border rounded-md w-full p-2"
+              >
+                <option value="">Select Vendor</option>
+                {vendors.map((v, i) => (
+                  <option key={i} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVendorModalOpen(true)}
+              className="mb-1 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              title="Add New Vendor"
+            >
+              <FiPlus size={20} />
+            </button>
           </div>
 
           {/* Product Name */}
@@ -223,107 +279,157 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
             </select>
           </div>
 
-          {/* PackSize, Unit, Shape, Colour */}
-          <input
-            name="packSize"
-            value={formData.packSize}
-            onChange={handleChange}
-            placeholder="Pack Size"
-            className="border rounded-md w-full p-2"
-          />
-          <input
-            name="unit"
-            value={formData.unit}
-            onChange={handleChange}
-            placeholder="Unit"
-            className="border rounded-md w-full p-2"
-          />
-          <input
-            name="shape"
-            value={formData.shape}
-            onChange={handleChange}
-            placeholder="Shape"
-            className="border rounded-md w-full p-2"
-          />
-          <input
-            name="colour"
-            value={formData.colour}
-            onChange={handleChange}
-            placeholder="Colour"
-            className="border rounded-md w-full p-2"
-          />
+          {/* Pack Size */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Pack Size</label>
+            <input
+              name="packSize"
+              value={formData.packSize}
+              onChange={handleChange}
+              placeholder="Pack Size"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
 
-          {/* Print Status, Opening Stock */}
-          <select
-            name="printStatus"
-            value={formData.printStatus}
-            onChange={handleChange}
-            className="border rounded-md w-full p-2"
-          >
-            <option value="N.A">N.A</option>
-            <option value="Printed">Printed</option>
-            <option value="Not Printed">Not Printed</option>
-          </select>
-          <input
-            name="openingStock"
-            type="number"
-            value={formData.openingStock}
-            onChange={handleChange}
-            placeholder="Opening Stock"
-            className="border rounded-md w-full p-2"
-          />
+          {/* Unit */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Unit</label>
+            <input
+              name="unit"
+              value={formData.unit}
+              onChange={handleChange}
+              placeholder="Unit"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
 
-          {/* Quantity, Price */}
-          <input
-            name="quantity"
-            type="number"
-            value={formData.quantity}
-            onChange={handleChange}
-            placeholder="Quantity"
-            className="border rounded-md w-full p-2"
-          />
-          <input
-            name="price"
-            type="number"
-            value={formData.price}
-            onChange={handleChange}
-            placeholder="Per Unit Rate"
-            className="border rounded-md w-full p-2"
-          />
+          {/* Shape */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Shape</label>
+            <input
+              name="shape"
+              value={formData.shape}
+              onChange={handleChange}
+              placeholder="Shape"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
 
-          {/* Taxable, GST, Total */}
-          <input
-            readOnly
-            name="taxableValue"
-            value={formData.taxableValue}
-            placeholder="Taxable Value"
-            className="border rounded-md w-full p-2 bg-gray-100"
-          />
-          <input
-            name="gst"
-            type="number"
-            value={formData.gst}
-            onChange={handleChange}
-            placeholder="GST (%)"
-            className="border rounded-md w-full p-2"
-          />
-          <input
-            readOnly
-            name="total"
-            value={formData.total}
-            placeholder="Total"
-            className="border rounded-md w-full p-2 bg-gray-100"
-          />
+          {/* Colour */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Colour</label>
+            <input
+              name="colour"
+              value={formData.colour}
+              onChange={handleChange}
+              placeholder="Colour"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
+
+          {/* Print Status */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Print Status</label>
+            <select
+              name="printStatus"
+              value={formData.printStatus}
+              onChange={handleChange}
+              className="border rounded-md w-full p-2"
+            >
+              <option value="N.A">N.A</option>
+              <option value="Printed">Printed</option>
+              <option value="Not Printed">Not Printed</option>
+            </select>
+          </div>
+
+          {/* Opening Stock */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Opening Stock</label>
+            <input
+              name="openingStock"
+              type="number"
+              value={formData.openingStock}
+              onChange={handleChange}
+              placeholder="Opening Stock"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Quantity</label>
+            <input
+              name="quantity"
+              type="number"
+              value={formData.quantity}
+              onChange={handleChange}
+              placeholder="Quantity"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
+
+          {/* Price */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Per Unit Rate</label>
+            <input
+              name="price"
+              type="number"
+              value={formData.price}
+              onChange={handleChange}
+              placeholder="Per Unit Rate"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
+
+          {/* Taxable Value */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Taxable Value</label>
+            <input
+              readOnly
+              name="taxableValue"
+              value={formData.taxableValue}
+              placeholder="Taxable Value"
+              className="border rounded-md w-full p-2 bg-gray-100"
+            />
+          </div>
+
+          {/* GST */}
+          <div>
+            <label className="block text-sm font-medium mb-1">GST (%)</label>
+            <input
+              name="gst"
+              type="number"
+              value={formData.gst}
+              onChange={handleChange}
+              placeholder="GST (%)"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
+
+          {/* Total */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Total</label>
+            <input
+              readOnly
+              name="total"
+              value={formData.total}
+              placeholder="Total"
+              className="border rounded-md w-full p-2 bg-gray-100"
+            />
+          </div>
 
           {/* Stock Alert */}
-          <input
-            name="stockAlert"
-            type="number"
-            value={formData.stockAlert}
-            onChange={handleChange}
-            placeholder="Stock Alert"
-            className="border rounded-md w-full p-2"
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">Stock Alert</label>
+            <input
+              name="stockAlert"
+              type="number"
+              value={formData.stockAlert}
+              onChange={handleChange}
+              placeholder="Stock Alert"
+              className="border rounded-md w-full p-2"
+            />
+          </div>
         </form>
 
         {/* Footer */}
@@ -344,8 +450,18 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Vendor Modal */}
+      <VendorModal
+        open={vendorModalOpen}
+        onClose={() => setVendorModalOpen(false)}
+        onAddVendor={handleAddVendor}
+      />
     </div>
   );
 };
 
 export default ProductModal;
+
+
+// add 
