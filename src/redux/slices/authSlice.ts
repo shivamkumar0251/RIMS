@@ -73,7 +73,7 @@ export const login = createAsyncThunk<
   async ({ email, password }, thunkAPI) => {
     try {
       const response = await apiCaller({
-        url: API_ENDPOINTS.login,
+        url: API_ENDPOINTS.LOGIN_API,
         method: 'POST',
         data: { email, password },
       });

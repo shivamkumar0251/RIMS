@@ -1,8 +1,8 @@
-export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
-// export const API_BASE_URL = 'http://localhost:5000/v1';
+// export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
+export const API_BASE_URL = 'http://localhost:5000/v1';
 
 export const API_ENDPOINTS = {
-  login: `${API_BASE_URL}/users/login`,
+  LOGIN_API: `${API_BASE_URL}/users/login`,
   GET_USER_BY_ID: `${API_BASE_URL}/users/login`,
   CHECK_TOKEN: `${API_BASE_URL}/users/checkToken`,
   GET_USERS_LIST: `${API_BASE_URL}/admin/getusers`,
@@ -25,9 +25,17 @@ export const API_ENDPOINTS = {
   deleteProducts: (productId: string) => `${API_BASE_URL}/products/deleteProducts/${productId}`,
   productRequirements: (id?: string) => id ? `${API_BASE_URL}/product-requirements/${id}` : `${API_BASE_URL}/product-requirements/`,
 
-  GET_CATEGORIES: `${API_BASE_URL}/categories/getCategories`,
-  ADD_CATEGORIES: `${API_BASE_URL}/categories/addCategory`,
-  UPDATE_CATEGORIES: (id: string) => `${API_BASE_URL}/categories/updateCategories/${id}`,
-  DELETE_CATEGORIES: (id: string) => `${API_BASE_URL}/categories/deleteCategories/${id}`,
+
+  // ===== Categories =====
+  GET_CATEGORIES: `${API_BASE_URL}/categories/getCategories`, // with ?search=&page=&limit=&fromDate=&toDate=
+  ADD_CATEGORY: `${API_BASE_URL}/categories/addCategory`,
+  UPDATE_CATEGORY: (categoryId: string) => `${API_BASE_URL}/categories/updateCategories/${categoryId}`,
+  DELETE_CATEGORY: (categoryId: string) => `${API_BASE_URL}/categories/deleteCategories/${categoryId}`,
+  // ===== Sub-Categories =====
+  ADD_SUBCATEGORY: (categoryId: string) => `${API_BASE_URL}/categories/${categoryId}/subcategories`,
+  UPDATE_SUBCATEGORY: (categoryId: string, subCategoryId: string) => `${API_BASE_URL}/categories/${categoryId}/subcategories/${subCategoryId}`,
+  DELETE_SUBCATEGORY: (categoryId: string, subCategoryId: string) => `${API_BASE_URL}/categories/${categoryId}/subcategories/${subCategoryId}`,
+
+
 
 };

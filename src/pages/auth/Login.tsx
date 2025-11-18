@@ -110,7 +110,7 @@ const LoginPage: React.FC = () => {
           </form>
         </div>
       </div>
-    </Layout>
+    </Layout> 
   );
 };
 

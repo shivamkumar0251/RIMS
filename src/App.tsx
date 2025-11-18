@@ -66,7 +66,6 @@ function App() {
             <Route path="/admin/vendor" element={<AdminVendor />} />
             <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
-
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />

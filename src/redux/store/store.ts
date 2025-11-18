@@ -6,6 +6,7 @@ import persistConfig from './persistConfig';
 import authReducer from '../slices/authSlice';
 import checkTokenReducer from '../slices/checkTokenSlice';
 import userDetailsReducer from '../slices/userDetailsSlice'; // adjust path
+import categoryReducer from '../slices/categorySlice';
 
 const persistedUserDetailsReducer = persistReducer(
   persistConfig,
@@ -17,6 +18,7 @@ export const store = configureStore({
     auth: authReducer,
     userDetails: persistedUserDetailsReducer,
     checkToken: checkTokenReducer,
+    category: categoryReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

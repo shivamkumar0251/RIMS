@@ -92,9 +92,10 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
           isOpen ? "translate-x-0" : "-translate-x-full"
         } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50`}
     >
-      {/* HEADER */}
-      <div>
-        <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10">
+      {/* FULL HEIGHT CONTAINER */}
+      <div className="flex flex-col h-full">
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <FaTh className="text-2xl text-blue-400 mr-2" />
             {!collapsed && <h1 className="text-lg font-bold">Admin Dashboard</h1>}
@@ -104,138 +105,139 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* NAVIGATION */}
-        <nav>
-          <ul>
-            {menuItems.map((item, index) => {
-              const isActive =
-                location.pathname === item.to ||
-                ("children" in item && location.pathname.startsWith(item.to));
+        {/* SCROLLABLE MENU */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1">
+          <nav>
+            <ul>
+              {menuItems.map((item, index) => {
+                const isActive =
+                  location.pathname === item.to ||
+                  ("children" in item && location.pathname.startsWith(item.to));
 
-              return (
-                <li key={index} className="mb-3">
-                  {"children" in item ? (
-                    <div>
-                      <button
-                        onClick={() => toggleExpand(item.name)}
-                        className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200 ${
+                return (
+                  <li key={index} className="mb-3">
+                    {"children" in item ? (
+                      <div>
+                        <button
+                          onClick={() => toggleExpand(item.name)}
+                          className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200 ${
+                            isActive ? "bg-gray-700" : "hover:bg-gray-700"
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <span className="text-xl">{item.icon}</span>
+                            {!collapsed && <span className="ml-3">{item.name}</span>}
+                          </div>
+                          {!collapsed &&
+                            (expanded === item.name ? (
+                              <FaChevronDown className="text-gray-400" />
+                            ) : (
+                              <FaChevronRight className="text-gray-400" />
+                            ))}
+                        </button>
+
+                        {!collapsed && expanded === item.name && (
+                          <ul className="ml-10 mt-1 space-y-1">
+                            {item.children.map((sub, subIndex) => {
+                              const subPath = `${item.to}/${sub.toLowerCase()}`;
+                              const isSubActive = location.pathname === subPath;
+                              return (
+                                <li key={subIndex}>
+                                  <Link
+                                    to={subPath}
+                                    className={`block p-2 rounded-lg text-sm transition-colors duration-200 
+                                    ${
+                                      isSubActive
+                                        ? "bg-blue-600/40 text-white"
+                                        : "text-gray-300 hover:bg-gray-600"
+                                    }`}
+                                  >
+                                    {sub}
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    ) : (
+                      <Link
+                        to={item.to}
+                        className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${
                           isActive ? "bg-gray-700" : "hover:bg-gray-700"
                         }`}
                       >
-                        <div className="flex items-center">
-                          <span className="text-xl">{item.icon}</span>
-                          {!collapsed && <span className="ml-3">{item.name}</span>}
-                        </div>
-                        {!collapsed &&
-                          (expanded === item.name ? (
-                            <FaChevronDown className="text-gray-400" />
-                          ) : (
-                            <FaChevronRight className="text-gray-400" />
-                          ))}
-                      </button>
-
-                      {!collapsed && expanded === item.name && (
-                        <ul className="ml-10 mt-1 space-y-1">
-                          {item.children.map((sub, subIndex) => {
-                            const subPath = `${item.to}/${sub.toLowerCase()}`;
-                            const isSubActive = location.pathname === subPath;
-                            return (
-                              <li key={subIndex}>
-                                <Link
-                                  to={subPath}
-                                  className={`block p-2 rounded-lg text-sm transition-colors duration-200 
-                                  ${
-                                    isSubActive
-                                      ? "bg-blue-600/40 text-white"
-                                      : "text-gray-300 hover:bg-gray-600"
-                                  }`}
-                                >
-                                  {sub}
-                                </Link>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  ) : (
-                    <Link
-                      to={item.to}
-                      className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${
-                        isActive ? "bg-gray-700" : "hover:bg-gray-700"
-                      }`}
-                    >
-                      <span className="text-xl">{item.icon}</span>
-                      {!collapsed && <span className="ml-3">{item.name}</span>}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      </div>
-
-      {/* FOOTER */}
-      <div>
-        <Link
-          to="/admin/setting"
-          className={`flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 transition-colors duration-200 mb-2 ${
-            location.pathname === "/admin/setting" ? "bg-gray-700" : ""
-          }`}
-        >
-          <FaCog className="text-lg" />
-          {!collapsed && <span className="font-semibold text-sm ml-3">Settings</span>}
-        </Link>
-
-        <div className="relative border-t border-gray-700 pt-3 mt-2">
-          {!collapsed && isProfileOpen && (
-            <div className="absolute bottom-full left-0 w-full mb-2 bg-gray-700 rounded-lg p-2 shadow-lg">
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full p-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
-              >
-                <FaSignOutAlt className="mr-3 text-lg" />
-                Logout
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={() => (collapsed ? null : setIsProfileOpen(!isProfileOpen))}
-            className={`group flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 border transition-all duration-300 ${
-              isProfileOpen ? "border-blue-500" : "border-transparent"
-            }`}
-          >
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold mr-3 ring-2 ring-gray-600 group-hover:ring-blue-400 transition-all duration-300">
-              {getInitials("Admin")}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="flex-1">
-                  <p className="font-semibold text-sm text-gray-200 group-hover:text-white transition-colors">
-                    {"Admin Email"}
-                  </p>
-                  <p className="text-xs text-gray-400 capitalize">Admin</p>
-                </div>
-                <FaChevronUp
-                  className={`text-gray-400 group-hover:text-white transition-all duration-300 ${
-                    isProfileOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </>
-            )}
-          </button>
+                        <span className="text-xl">{item.icon}</span>
+                        {!collapsed && <span className="ml-3">{item.name}</span>}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
 
-        {/* Collapse toggle button */}
-        <button
-          onClick={toggleCollapse}
-          className="mt-4 w-full flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg transition-all duration-300"
-        >
-          {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
-          {!collapsed && <span className="ml-2 text-sm">Collapse Sidebar</span>}
-        </button>
+        {/* FOOTER */}
+        <div className="pt-2 border-t border-gray-700 mt-2">
+          <Link
+            to="/admin/setting"
+            className={`flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 transition-colors duration-200 mb-2 ${
+              location.pathname === "/admin/setting" ? "bg-gray-700" : ""
+            }`}
+          >
+            <FaCog className="text-lg" />
+            {!collapsed && <span className="font-semibold text-sm ml-3">Settings</span>}
+          </Link>
+
+          <div className="relative pt-3">
+            {!collapsed && isProfileOpen && (
+              <div className="absolute bottom-full left-0 w-full mb-2 bg-gray-700 rounded-lg p-2 shadow-lg">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+                >
+                  <FaSignOutAlt className="mr-3 text-lg" />
+                  Logout
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={() => (collapsed ? null : setIsProfileOpen(!isProfileOpen))}
+              className={`group flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 border transition-all duration-300 ${
+                isProfileOpen ? "border-blue-500" : "border-transparent"
+              }`}
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold mr-3 ring-2 ring-gray-600 group-hover:ring-blue-400 transition-all duration-300">
+                {getInitials("Admin")}
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-gray-200 group-hover:text-white transition-colors">
+                      {"Admin Email"}
+                    </p>
+                    <p className="text-xs text-gray-400 capitalize">Admin</p>
+                  </div>
+                  <FaChevronUp
+                    className={`text-gray-400 group-hover:text-white transition-all duration-300 ${
+                      isProfileOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </>
+              )}
+            </button>
+          </div>
+
+          <button
+            onClick={toggleCollapse}
+            className="mt-4 w-full flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg transition-all duration-300"
+          >
+            {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
+            {!collapsed && <span className="ml-2 text-sm">Collapse Sidebar</span>}
+          </button>
+        </div>
       </div>
     </div>
   );

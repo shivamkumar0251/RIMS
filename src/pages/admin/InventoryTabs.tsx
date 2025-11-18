@@ -9,29 +9,10 @@ import {
 
 // MUI Components
 import {
-  Autocomplete,
-  Box,
-  Button,
-  Chip,
-  Container,
-  Drawer,
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
+  Autocomplete, Box, Button, Chip, Container, Drawer, FormControl,
+  IconButton, InputAdornment, InputLabel, MenuItem, Pagination, Paper,
+  Select, Table, TableBody, TableCell, TableContainer, TableHead,
+  TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
 
 // MUI Icons
@@ -254,9 +235,20 @@ const InventoryDropdown: React.FC = () => {
               mb: 3,
               flexWrap: "wrap",
               gap: 2,
+              flexDirection: { xs: "column", md: "row" }, // stack on mobile
+              alignContent: "stretch",
             }}
           >
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            {/* Left Side – Search + Filters */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 2,
+                alignItems: "center",
+                width: { xs: "100%", md: "auto" },
+              }}
+            >
               <TextField
                 placeholder="Search by Name"
                 value={searchTerm}
@@ -268,9 +260,10 @@ const InventoryDropdown: React.FC = () => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ minWidth: 300 }}
+                sx={{ minWidth: { xs: "100%", sm: 250, md: 300 } }}
               />
-              <FormControl sx={{ minWidth: 180 }}>
+
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 180 }, flex: 1 }}>
                 <InputLabel>Category</InputLabel>
                 <Select
                   value={selectedCategory}
@@ -285,8 +278,7 @@ const InventoryDropdown: React.FC = () => {
                 </Select>
               </FormControl>
 
-              {/* Asset Type Dropdown */}
-              <FormControl sx={{ minWidth: 200 }}>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 200 }, flex: 1 }}>
                 <InputLabel>Assets Type</InputLabel>
                 <Select
                   value={assetType}
@@ -301,8 +293,16 @@ const InventoryDropdown: React.FC = () => {
               </FormControl>
             </Box>
 
-            {/* Export Buttons */}
-            <Box sx={{ display: "flex", gap: 1 }}>
+            {/* Right Side – Action Buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                flexWrap: "wrap",
+                justifyContent: { xs: "center", md: "flex-end" },
+                width: { xs: "100%", md: "auto" },
+              }}
+            >
               <Tooltip title="Refresh">
                 <IconButton color="primary">
                   <RefreshIcon />
@@ -318,13 +318,18 @@ const InventoryDropdown: React.FC = () => {
                   <AssessmentIcon />
                 </IconButton>
               </Tooltip>
-              <Button variant="contained" startIcon={<FileUploadIcon />}>
+              <Button
+                variant="contained"
+                startIcon={<FileUploadIcon />}
+                sx={{ flex: { xs: 1, sm: "none" } }}
+              >
                 Import
               </Button>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => setDrawerOpen(true)}
+                sx={{ flex: { xs: 1, sm: "none" } }}
               >
                 Add New
               </Button>

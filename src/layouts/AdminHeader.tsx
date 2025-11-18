@@ -19,6 +19,8 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     '/admin/kitchenStock': 'Kitchen Stock',
     '/admin/consumables': 'Consumables',
     '/admin/orders': 'Orders Management',
+    '/admin/order-details': 'Orders Management',
+    '/admin/vendor': 'Vendors',
     '/admin/setting': 'Setting',
   };
 

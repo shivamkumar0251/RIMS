@@ -24,58 +24,102 @@ import {
   Typography,
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs"; // Import Dayjs and Dayjs type
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
 import DateRangeFilter from "../../components/common/DateRangeFilter";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import {
+  getCategories,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  addSubCategory,
+  updateSubCategory,
+  deleteSubCategory,
+  selectCategoryState,
+  type Category,
+} from "../../redux/slices/categorySlice";
+// import type Category from "../../redux/slices/categorySlice";
 
-// --- INTERFACES (No Change) ---
-interface SubCategory {
-  id: number;
-  name: string;
-  createdAt: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  createdAt: string;
-  subCategories: SubCategory[];
-}
-
-const initialData: Category[] = [
-  {
-    id: 1,
-    name: "dairy",
-    createdAt: "October 7, 2025",
-    subCategories: [
-      { id: 1, name: "Milk", createdAt: "October 7, 2025" },
-      { id: 2, name: "Cheese", createdAt: "October 7, 2025" },
-    ],
-  },
-  {
-    id: 2,
-    name: "food service",
-    createdAt: "October 6, 2025",
-    subCategories: [{ id: 1, name: "Main Course", createdAt: "October 6, 2025" }],
-  },
-  {
-    id: 3,
-    name: "supplies",
-    createdAt: "October 6, 2025",
-    subCategories: [],
-  },
-];
+// const initialData: Category[] = [
+//   {
+//     id: 1,
+//     name: "dairy",
+//     createdAt: "October 7, 2025",
+//     subCategories: [
+//       { id: 1, name: "Milk", createdAt: "October 7, 2025" },
+//       { id: 2, name: "Cheese", createdAt: "October 7, 2025" },
+//     ],
+//   },
+//   {
+//     id: 2,
+//     name: "food service",
+//     createdAt: "October 6, 2025",
+//     subCategories: [{ id: 1, name: "Main Course", createdAt: "October 6, 2025" }],
+//   },
+//   {
+//     id: 3,
+//     name: "supplies",
+//     createdAt: "October 6, 2025",
+//     subCategories: [],
+//   },
+// ];
 
 // Type for the date range value: [start, end]
 type DateRangeValue = [Dayjs | null, Dayjs | null];
 
+
 export default function ProductCategories() {
-  const [categories, setCategories] = useState<Category[]>(initialData);
+
+  const { loading, error, categories: apiCategories, allCategoriesData } = useAppSelector(selectCategoryState);
+  console.log('loading', loading);
+  console.log('error', error);
+  console.log('categories', apiCategories as Category[]);
+  console.log('allCategoriesData', allCategoriesData);
+  const dispatch = useAppDispatch();
+
+  // useEffect(async () => {
+  //   const response = await dispatch(getCategories())
+  //   console.log('response', response);
+  // }, [])
+
+  useEffect(() => {
+
+    const getCategoriesFunction = async () => {
+      try {
+        const response = await dispatch(getCategories({ search: '', page: 1, limit: 10, fromDate: '', toDate: '' }))
+        console.log('response', response);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    getCategoriesFunction();
+
+  }, [dispatch])
+
+
+  // local UI state removed; derive UI-friendly categories from the store
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // Map API categories to a UI-friendly shape (preserve api ids for CRUD)
+  const uiCategories = useMemo(() => {
+    return (apiCategories || []).map((cat, idx) => ({
+      id: idx + 1,
+      apiId: cat._id,
+      name: cat.categoryName,
+      createdAt: cat.createdAt ? dayjs(cat.createdAt).format('MMMM D, YYYY') : '',
+      subCategories: (cat.subCategories || []).map((sub, sidx) => ({
+        id: sidx + 1,
+        apiId: (sub as any)._id || '',
+        name: (sub as any).subCategoryName || (sub as any).subCategory || '',
+        createdAt: (sub as any).createdAt ? dayjs((sub as any).createdAt).format('MMMM D, YYYY') : '',
+      })),
+    }));
+  }, [apiCategories]);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [isSubCatModalOpen, setIsSubCatModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
   const [currentName, setCurrentName] = useState("");
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [categoryError, setCategoryError] = useState("");
@@ -87,7 +131,7 @@ export default function ProductCategories() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const filteredCategories = useMemo(() => {
-    let filtered = categories;
+    let filtered = uiCategories;
 
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
@@ -131,7 +175,7 @@ export default function ProductCategories() {
     }
 
     return filtered;
-  }, [categories, searchTerm, dateRange]); // Use dateRange in dependency array
+  }, [uiCategories, searchTerm, dateRange]); // Use dateRange in dependency array
 
   const totalPages = Math.ceil(filteredCategories.length / rowsPerPage);
   const paginatedCategories = filteredCategories.slice(
@@ -146,18 +190,18 @@ export default function ProductCategories() {
     setIsCatModalOpen(true);
   };
 
-  const handleEditCategory = (cat: Category) => {
+  const handleEditCategory = (cat: any) => {
     setEditingItemId(cat.id);
     setCurrentName(cat.name);
     setCategoryError("");
     setIsCatModalOpen(true);
   };
 
-  const handleSaveCategory = () => {
+  const handleSaveCategory = async () => {
     const trimmedName = currentName.trim();
     if (!trimmedName) return;
 
-    const nameExists = categories.some(cat =>
+    const nameExists = uiCategories.some((cat) =>
       cat.name.toLowerCase() === trimmedName.toLowerCase() &&
       cat.id !== editingItemId
     );
@@ -169,81 +213,65 @@ export default function ProductCategories() {
 
     setCategoryError("");
 
-    const formattedDate = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
     if (editingItemId) {
-      // Edit
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === editingItemId ? { ...cat, name: trimmedName } : cat
-        )
-      );
+      const cat = uiCategories.find((c) => c.id === editingItemId);
+      if (cat) {
+        await dispatch(updateCategory({ categoryId: cat.apiId, categoryName: trimmedName }));
+      }
     } else {
-      // Add
-      const newCat: Category = {
-        id: categories.length ? Math.max(...categories.map((c) => c.id)) + 1 : 1,
-        name: trimmedName,
-        createdAt: formattedDate,
-        subCategories: [],
-      };
-      setCategories((prev) => [newCat, ...prev]);
+      await dispatch(addCategory({ categoryName: trimmedName }));
     }
 
     setIsCatModalOpen(false);
     setCurrentName("");
     setPage(1); // Reset page after adding/editing
+    // Refresh list
+    dispatch(getCategories({ search: '', page: 1, limit: rowsPerPage, fromDate: '', toDate: '' }));
   };
 
 
-  const handleAddSubCategory = (cat: Category) => {
+  const handleAddSubCategory = (cat: any) => {
     setSelectedCategory(cat);
     setEditingItemId(null);
     setCurrentName("");
     setIsSubCatModalOpen(true);
   };
 
-  const handleEditSubCategory = (catId: number, sub: SubCategory) => {
-    setSelectedCategory(categories.find((c) => c.id === catId) || null);
+  const handleEditSubCategory = (catId: number, sub: any) => {
+    setSelectedCategory(uiCategories.find((c) => c.id === catId) || null);
     setEditingItemId(sub.id);
     setCurrentName(sub.name);
     setIsSubCatModalOpen(true);
   };
 
-  const handleDeleteCategory = (id: number) => {
+  const handleDeleteCategory = async (id: number) => {
     if (window.confirm("WARNING: Deleting this category will also delete all its sub-categories. Proceed?")) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      // Re-calculate page after deletion
-      const newTotalPages = Math.ceil((categories.length - 1) / rowsPerPage);
-      if (page > newTotalPages && page > 1) {
-        setPage(newTotalPages);
-      } else if (categories.length === 1 && newTotalPages === 0) {
-        setPage(1); // Keep page at 1 if only one item was left and is now deleted
+      const cat = uiCategories.find((c) => c.id === id);
+      if (cat) {
+        await dispatch(deleteCategory(cat.apiId));
+        // Refresh list
+        dispatch(getCategories({ search: '', page: 1, limit: rowsPerPage, fromDate: '', toDate: '' }));
       }
     }
   };
 
 
-  const handleDeleteSubCategory = (catId: number, subId: number) => {
+  const handleDeleteSubCategory = async (catId: number, subId: number) => {
     if (window.confirm("Delete this sub-category?")) {
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === catId
-            ? { ...cat, subCategories: cat.subCategories.filter((s) => s.id !== subId) }
-            : cat
-        )
-      );
+      const cat = uiCategories.find((c) => c.id === catId);
+      const sub = cat?.subCategories.find((s: any) => s.id === subId);
+      if (cat && sub) {
+        await dispatch(deleteSubCategory({ categoryId: cat.apiId, subCategoryId: sub.apiId }));
+        dispatch(getCategories({ search: '', page: page, limit: rowsPerPage, fromDate: '', toDate: '' }));
+      }
     }
   };
 
-  const handleSaveSubCategory = () => {
+  const handleSaveSubCategory = async () => {
     const trimmedName = currentName.trim();
     if (!trimmedName || !selectedCategory) return;
 
-    const subNameExists = selectedCategory.subCategories.some(sub =>
+    const subNameExists = selectedCategory.subCategories.some((sub: any) =>
       sub.name.toLowerCase() === trimmedName.toLowerCase() &&
       sub.id !== editingItemId
     );
@@ -253,51 +281,18 @@ export default function ProductCategories() {
       return;
     }
 
-    const formattedDate = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
     if (editingItemId) {
-      // Edit
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === selectedCategory.id
-            ? {
-              ...cat,
-              subCategories: cat.subCategories.map((s) =>
-                s.id === editingItemId ? { ...s, name: trimmedName } : s
-              ),
-            }
-            : cat
-        )
-      );
+      const sub = selectedCategory.subCategories.find((s: any) => s.id === editingItemId);
+      if (sub) {
+        await dispatch(updateSubCategory({ categoryId: selectedCategory.apiId, subCategoryId: sub.apiId, subCategoryName: trimmedName }));
+      }
     } else {
-      // Add
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === selectedCategory.id
-            ? {
-              ...cat,
-              subCategories: [
-                ...cat.subCategories,
-                {
-                  id: cat.subCategories.length
-                    ? Math.max(...cat.subCategories.map((s) => s.id)) + 1
-                    : 1,
-                  name: trimmedName,
-                  createdAt: formattedDate,
-                },
-              ],
-            }
-            : cat
-        )
-      );
+      await dispatch(addSubCategory({ categoryId: selectedCategory.apiId, subCategoryName: trimmedName }));
     }
 
     setIsSubCatModalOpen(false);
     setCurrentName("");
+    dispatch(getCategories({ search: '', page: page, limit: rowsPerPage, fromDate: '', toDate: '' }));
   };
 
 

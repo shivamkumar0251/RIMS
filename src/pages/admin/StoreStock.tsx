@@ -54,7 +54,7 @@ const stockData: StockItem[] = Array.from({ length: 50 }, (_, i) => {
 
   if (closingStock === 0) status = "Out of Stock";
   else if (closingStock <= 10) status = "Low Stock";
-  else status =  "In Stock";
+  else status = "In Stock";
 
   return {
     id: i + 1,
@@ -110,7 +110,16 @@ const StoreStock: React.FC = () => {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3, bgcolor: "#f9f9f9", minHeight: "100vh" }}>
+      <Box
+        sx={{
+          p: 3,
+          bgcolor: "#f9f9f9",
+          minHeight: "100vh",
+          "@media (max-width:600px)": {
+            p: 1.5,
+          },
+        }}
+      >
         {/* Header Section */}
         <Box
           display="flex"
@@ -118,9 +127,29 @@ const StoreStock: React.FC = () => {
           alignItems="center"
           flexWrap="wrap"
           mb={2}
+          sx={{
+            gap: 2,
+            "@media (max-width:600px)": {
+              flexDirection: "column",
+              alignItems: "stretch",
+            },
+          }}
         >
           {/* Filters */}
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+              mb: 2,
+              flexWrap: "wrap",
+              "@media (max-width:600px)": {
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: 1.5,
+              },
+            }}
+          >
             <TextField
               placeholder="Search Product..."
               value={searchTerm}
@@ -132,10 +161,20 @@ const StoreStock: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ minWidth: 250 }}
+              sx={{
+                minWidth: 250,
+                "@media (max-width:600px)": {
+                  width: "100%",
+                },
+              }}
             />
 
-            <FormControl sx={{ minWidth: 150 }}>
+            <FormControl
+              sx={{
+                minWidth: 150,
+                "@media (max-width:600px)": { width: "100%" },
+              }}
+            >
               <InputLabel>Category</InputLabel>
               <Select
                 value={selectedCategory}
@@ -151,7 +190,12 @@ const StoreStock: React.FC = () => {
               </Select>
             </FormControl>
 
-            <FormControl sx={{ minWidth: 150 }}>
+            <FormControl
+              sx={{
+                minWidth: 150,
+                "@media (max-width:600px)": { width: "100%" },
+              }}
+            >
               <InputLabel>Brand</InputLabel>
               <Select
                 value={selectedBrand}
@@ -168,7 +212,12 @@ const StoreStock: React.FC = () => {
             </FormControl>
 
             {/* ✅ Status Filter */}
-            <FormControl sx={{ minWidth: 150 }}>
+            <FormControl
+              sx={{
+                minWidth: 150,
+                "@media (max-width:600px)": { width: "100%" },
+              }}
+            >
               <InputLabel>Status</InputLabel>
               <Select
                 value={selectedStatus}
@@ -184,7 +233,16 @@ const StoreStock: React.FC = () => {
           </Box>
 
           {/* Actions */}
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              "@media (max-width:600px)": {
+                justifyContent: "center",
+                width: "100%",
+              },
+            }}
+          >
             <Tooltip title="Export PDF">
               <IconButton sx={{ backgroundColor: "#f44336", color: "white" }}>
                 <FiFileText />
@@ -211,7 +269,10 @@ const StoreStock: React.FC = () => {
         {/* Table */}
         <TableContainer
           component={Paper}
-          sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+          sx={{
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            overflowX: "auto", // ✅ Mobile horizontal scroll
+          }}
         >
           <Table>
             <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
@@ -250,8 +311,8 @@ const StoreStock: React.FC = () => {
                         item.status === "In Stock"
                           ? "success"
                           : item.status === "Low Stock"
-                            ? "warning"
-                            : "error"
+                          ? "warning"
+                          : "error"
                       }
                       size="small"
                     />
@@ -263,7 +324,19 @@ const StoreStock: React.FC = () => {
         </TableContainer>
 
         {/* Pagination */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mt: 2,
+            flexWrap: "wrap",
+            "@media (max-width:600px)": {
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1.5,
+            },
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="body2" sx={{ color: "#666" }}>
               Rows per page

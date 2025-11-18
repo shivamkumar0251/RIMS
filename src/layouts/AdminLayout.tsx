@@ -8,7 +8,7 @@ interface LayoutProps {
 
 export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false); // 👈 collapse state
+  const [collapsed, setCollapsed] = useState(false); 
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
