@@ -260,18 +260,15 @@ export default function KitchenStock() {
                   <TableRow>
                     <TableCell>S.No</TableCell>
                     <TableCell>Product Name</TableCell>
-                    <TableCell>Category</TableCell>
+                    {/* <TableCell>Category</TableCell>
                     <TableCell>Brand</TableCell>
                     <TableCell>Pack Size</TableCell>
-                    <TableCell>Unit</TableCell>
+                    <TableCell>Unit</TableCell> */}
                     <TableCell>Opening Stock</TableCell>
-                    <TableCell>Quantity</TableCell>
+                    <TableCell>Stock</TableCell>
                     <TableCell>Consumed Stock</TableCell>
                     <TableCell>Closing Stock</TableCell>
-                    <TableCell>Per Unit Rate</TableCell>
-                    <TableCell>Taxable Value</TableCell>
-                    <TableCell>GST (%)</TableCell>
-                    <TableCell>Total</TableCell>
+                    
                     <TableCell>Created Date</TableCell>
                     <TableCell align="center">Action</TableCell>
                   </TableRow>
@@ -281,10 +278,10 @@ export default function KitchenStock() {
                     <TableRow key={idx}>
                       <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
                       <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.category}</TableCell>
+                      {/* <TableCell>{item.category}</TableCell>
                       <TableCell>{item.brand}</TableCell>
                       <TableCell>{item.packSize}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.unit}</TableCell> */}
                       <TableCell>{item.openingStock}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.consumedStock}</TableCell>
@@ -308,10 +305,7 @@ export default function KitchenStock() {
                             : "In Stock"}
                         </Typography>
                       </TableCell>
-                      <TableCell>{item.perUnitRate}</TableCell>
-                      <TableCell>{item.taxableValue.toFixed(2)}</TableCell>
-                      <TableCell>{item.gst}%</TableCell>
-                      <TableCell>{item.total.toFixed(2)}</TableCell>
+                      
                       <TableCell>{item.createdDate}</TableCell>
                       <TableCell align="center">
                         <Box

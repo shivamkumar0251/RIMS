@@ -61,14 +61,14 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
   const menuItems: MenuItem[] = [
     { icon: <FaHome />, name: "DashBoard", to: "/admin-dashboard" },
-    { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
     { icon: <FaProductHunt />, name: "Product categories", to: "/categories" },
     { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
-    { icon: <SiHiveBlockchain />, name: "Assets", to: "/assets" },
+    { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
+    { icon: <FaShop />, name: "Vendor", to: "/admin/vendor" },
+    { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
     { icon: <FaKitchenSet />, name: "Kitchen Stock", to: "/admin/kitchenStock" },
     { icon: <SiMaterialdesignicons />, name: "Consumables", to: "/admin/consumables" },
-    { icon: <FaShop />, name: "Vendor", to: "/admin/vendor" },
-    { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
+    { icon: <SiHiveBlockchain />, name: "Assets", to: "/assets" },
   ];
 
   const handleLogout = () => {

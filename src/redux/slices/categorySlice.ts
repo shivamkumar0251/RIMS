@@ -49,7 +49,7 @@ export const getCategories = createAsyncThunk<
   { rejectValue: { message: string } }
 >(
   'category/getCategories',
-  async ({ search = '', page = 1, limit = 10, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_CATEGORIES}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
