@@ -3,6 +3,7 @@ import {
     Button,
     Card,
     CardContent,
+    CircularProgress,
     IconButton,
     InputAdornment,
     MenuItem,
@@ -20,7 +21,8 @@ import {
     Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
     FiFileText,
     FiRefreshCw,
@@ -30,44 +32,54 @@ import {
     FiUpload,
 } from "react-icons/fi";
 import DateRangeFilter, { type DateRangeValue } from "../../components/common/DateRangeFilter";
-import { DUMMY_CONSUMABLE_ITEMS } from "../../data/ConsumablesDummyData";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { getConsumableStocks, deleteConsumableStock, selectConsumableStocks, selectConsumableStockLoading, selectAllConsumableStocksData } from "../../redux/slices/consumableStockSlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { ConsumableStock } from "../../redux/slices/consumableStockSlice";
 
 export default function Consumables() {
+    const dispatch = useDispatch<AppDispatch>();
+    const consumableStocks = useSelector(selectConsumableStocks);
+    const loading = useSelector(selectConsumableStockLoading);
+    const allConsumableStocksData = useSelector(selectAllConsumableStocksData);
+
     const [searchTerm, setSearchTerm] = useState("");
     const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [page, setPage] = useState(1);
 
-    // ---- Filter ----
-    const filteredItems = useMemo(() => {
-        return DUMMY_CONSUMABLE_ITEMS.filter((item) => {
-            const matchesSearch =
-                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.brand.toLowerCase().includes(searchTerm.toLowerCase());
-
-            const matchesDate =
-                dateRange[0] && dateRange[1]
-                    ? dayjs(item.createdDate, "M/D/YYYY").isAfter(dateRange[0].subtract(1, "day")) &&
-                    dayjs(item.createdDate, "M/D/YYYY").isBefore(dateRange[1].add(1, "day"))
-                    : true;
-
-            return matchesSearch && matchesDate;
-        });
-    }, [searchTerm, dateRange]);
+    // Fetch consumable stocks when filters change
+    useEffect(() => {
+        const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+        const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+        dispatch(getConsumableStocks({ 
+            search: searchTerm, 
+            page, 
+            limit: rowsPerPage,
+            fromDate,
+            toDate,
+        }));
+    }, [dispatch, searchTerm, page, rowsPerPage, dateRange]);
 
     // ---- Pagination ----
-    const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
-    const paginatedItems = filteredItems.slice(
-        (page - 1) * rowsPerPage,
-        page * rowsPerPage
-    );
+    const totalPages = allConsumableStocksData?.totalPages || 1;
 
     // ---- Delete ----
-    const handleDelete = (id: number) => {
-        alert(`Delete item with ID: ${id}`);
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this consumable stock?')) {
+            await dispatch(deleteConsumableStock(id));
+        }
     };
+
+    const handleRefresh = () => {
+        setSearchTerm("");
+        setDateRange([null, null]);
+        setPage(1);
+        dispatch(getConsumableStocks({ search: '', page: 1, limit: rowsPerPage }));
+    };
+
+    const safeValue = (val: unknown) =>
+        val === null || val === undefined || val === "" ? "N.A" : String(val);
 
     return (
         <AdminLayout>
@@ -144,6 +156,7 @@ export default function Consumables() {
                         </Tooltip>
                         <Tooltip title="Refresh">
                             <IconButton
+                                onClick={handleRefresh}
                                 sx={{
                                     backgroundColor: "#2196f3",
                                     color: "white",
@@ -198,42 +211,75 @@ export default function Consumables() {
                                 </TableHead>
 
                                 <TableBody>
-                                    {paginatedItems.map((item, idx) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell>
-                                                {(page - 1) * rowsPerPage + idx + 1}
-                                            </TableCell>
-                                            <TableCell>{item.name}</TableCell>
-                                            <TableCell>{item.category}</TableCell>
-                                            <TableCell>{item.brand}</TableCell>
-                                            <TableCell>{item.packSize}</TableCell>
-                                            <TableCell>{item.unit}</TableCell>
-                                            <TableCell>{item.consumables}</TableCell>
-                                            <TableCell>{item.perUnitRate.toFixed(2)}</TableCell>
-                                            <TableCell>{item.taxableValue.toFixed(2)}</TableCell>
-                                            <TableCell>{item.gst}%</TableCell>
-                                            <TableCell>{item.total.toFixed(2)}</TableCell>
-                                            <TableCell>{item.createdDate}</TableCell>
-                                            <TableCell align="center">
-                                                <Tooltip title="Delete">
-                                                    <IconButton
-                                                        sx={{
-                                                            color: "white",
-                                                            backgroundColor: "#f44336",
-                                                            "&:hover": {
-                                                                backgroundColor: "#d32f2f",
-                                                                transform: "scale(1.1)",
-                                                            },
-                                                            transition: "0.3s",
-                                                        }}
-                                                        onClick={() => handleDelete(item.id)}
-                                                    >
-                                                        <FiTrash2 />
-                                                    </IconButton>
-                                                </Tooltip>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={13} align="center">
+                                                <CircularProgress size={24} sx={{ my: 2 }} />
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : consumableStocks.length > 0 ? (
+                                        consumableStocks.map((item: ConsumableStock, idx) => {
+                                            const itemData = item as Record<string, unknown>;
+                                            const productName = String(itemData.productName || itemData.name || 'N.A');
+                                            const category = String(itemData.category || itemData.categoryName || 'N.A');
+                                            const brand = String(itemData.brand || itemData.brandName || itemData.companyName || 'N.A');
+                                            const packSize = String(itemData.packSize || 'N.A');
+                                            const unit = String(itemData.unit || 'N.A');
+                                            const consumables = Number(itemData.consumables || itemData.consumedStock || 0);
+                                            const perUnitRate = Number(itemData.perUnitRate || itemData.price || 0);
+                                            const taxableValue = Number(itemData.taxableValue || consumables * perUnitRate);
+                                            const gst = Number(itemData.gst || 0);
+                                            const total = Number(itemData.total || taxableValue + (taxableValue * gst / 100));
+                                            const createdDate = itemData.createdAt 
+                                                ? dayjs(String(itemData.createdAt)).format('M/D/YYYY')
+                                                : itemData.createdDate 
+                                                ? String(itemData.createdDate)
+                                                : 'N.A';
+
+                                            return (
+                                                <TableRow key={item._id}>
+                                                    <TableCell>
+                                                        {(page - 1) * rowsPerPage + idx + 1}
+                                                    </TableCell>
+                                                    <TableCell>{safeValue(productName)}</TableCell>
+                                                    <TableCell>{safeValue(category)}</TableCell>
+                                                    <TableCell>{safeValue(brand)}</TableCell>
+                                                    <TableCell>{safeValue(packSize)}</TableCell>
+                                                    <TableCell>{safeValue(unit)}</TableCell>
+                                                    <TableCell>{consumables}</TableCell>
+                                                    <TableCell>₹{perUnitRate.toFixed(2)}</TableCell>
+                                                    <TableCell>₹{taxableValue.toFixed(2)}</TableCell>
+                                                    <TableCell>{gst}%</TableCell>
+                                                    <TableCell>₹{total.toFixed(2)}</TableCell>
+                                                    <TableCell>{createdDate}</TableCell>
+                                                    <TableCell align="center">
+                                                        <Tooltip title="Delete">
+                                                            <IconButton
+                                                                sx={{
+                                                                    color: "white",
+                                                                    backgroundColor: "#f44336",
+                                                                    "&:hover": {
+                                                                        backgroundColor: "#d32f2f",
+                                                                        transform: "scale(1.1)",
+                                                                    },
+                                                                    transition: "0.3s",
+                                                                }}
+                                                                onClick={() => handleDelete(item._id)}
+                                                            >
+                                                                <FiTrash2 />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={13} align="center">
+                                                No consumable stocks found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </TableContainer>

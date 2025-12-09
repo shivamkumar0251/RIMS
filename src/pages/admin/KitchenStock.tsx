@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Drawer,
   IconButton,
   InputAdornment,
@@ -21,7 +22,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   FiEdit,
   FiFileText,
@@ -32,79 +34,94 @@ import {
   FiTrash2,
   FiUpload,
 } from "react-icons/fi";
-import { DUMMY_PRODUCTS, type Product } from "../../data/kitchenProducts";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import DateRangeFilter, { type
   DateRangeValue,
 } from "../../components/common/DateRangeFilter";
 import dayjs from "dayjs";
-
-interface KitchenStockItem extends Product {
-  openingStock: number;
-  quantity: number;
-  consumedStock: number;
-  closingStock: number;
-  perUnitRate: number;
-  taxableValue: number;
-  gst: number;
-  total: number;
-  createdDate: string;
-}
+import { getKitchenStocks, addKitchenStock, updateKitchenStock, deleteKitchenStock, selectKitchenStocks, selectKitchenStockLoading, selectAllKitchenStocksData } from "../../redux/slices/kitchenStockSlice";
+import { getProducts, selectProducts } from "../../redux/slices/productSlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { KitchenStock } from "../../redux/slices/kitchenStockSlice";
+import type { Product } from "../../redux/slices/productSlice";
 
 export default function KitchenStock() {
+  const dispatch = useDispatch<AppDispatch>();
+  const kitchenStocks = useSelector(selectKitchenStocks);
+  const loading = useSelector(selectKitchenStockLoading);
+  const allKitchenStocksData = useSelector(selectAllKitchenStocksData);
+  const products = useSelector(selectProducts);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
   const [openingStock, setOpeningStock] = useState<number>(0);
   const [perUnitRate, setPerUnitRate] = useState<number>(0);
   const [gst, setGst] = useState<number>(5);
-  const [items, setItems] = useState<KitchenStockItem[]>([]);
 
-  const totalPages = Math.ceil(items.length / rowsPerPage);
+  // Fetch initial data
+  useEffect(() => {
+    dispatch(getProducts({ page: 1, limit: 1000 }));
+  }, [dispatch]);
 
-  // ✅ Filter logic (by search + date range)
-  const filteredItems = useMemo(() => {
-    let data = items.filter((i) =>
-      i.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Fetch kitchen stocks when filters change
+  useEffect(() => {
+    const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+    const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+    dispatch(getKitchenStocks({ 
+      search: searchTerm, 
+      page, 
+      limit: rowsPerPage,
+      fromDate,
+      toDate,
+    }));
+  }, [dispatch, searchTerm, page, rowsPerPage, dateRange]);
 
-    if (dateRange[0] && dateRange[1]) {
-      const [start, end] = dateRange;
-      data = data.filter((i) => {
-        const itemDate = dayjs(i.createdDate, "M/D/YYYY");
-        return (
-          itemDate.isAfter(start.subtract(1, "day")) &&
-          itemDate.isBefore(end.add(1, "day"))
-        );
-      });
-    }
+  const totalPages = allKitchenStocksData?.totalPages || 1;
 
-    return data;
-  }, [items, searchTerm, dateRange]);
-
-  const paginatedItems = filteredItems.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
+  // Convert products for Autocomplete
+  const productOptions = useMemo(() => {
+    return products.map((p: Product) => {
+      const pData = p as Record<string, unknown>;
+      return {
+        _id: p._id,
+        name: String(pData.productName || pData.product_name || pData.name || ''),
+        category: String(pData.category || pData.categoryName || ''),
+        brand: String(pData.brand || pData.brandName || pData.companyName || ''),
+        packSize: String(pData.packSize || ''),
+        unit: String(pData.unit || ''),
+        openingStock: Number(pData.openingStock || pData.stock || 0),
+        perUnitRate: Number(pData.perUnitRate || pData.price || 0),
+      };
+    });
+  }, [products]);
 
   const handleAddProduct = () => {
+    setEditingId(null);
+    setSelectedProduct(null);
+    setOpeningStock(0);
+    setQuantity(0);
+    setPerUnitRate(0);
+    setGst(5);
     setDrawerOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedProduct) return;
 
     const consumedStock = Math.min(quantity, openingStock);
     const closingStock = Math.max(openingStock - consumedStock, 0);
     const taxableValue = consumedStock * perUnitRate;
-    const total = (taxableValue * gst) / 100;
+    const total = taxableValue + (taxableValue * gst) / 100;
 
-    const newItem: KitchenStockItem = {
-      ...selectedProduct,
+    const stockData = {
+      productId: selectedProduct._id,
+      productName: (selectedProduct as Record<string, unknown>).productName || (selectedProduct as Record<string, unknown>).name,
       openingStock,
       quantity,
       consumedStock,
@@ -113,30 +130,48 @@ export default function KitchenStock() {
       taxableValue,
       gst,
       total,
-      createdDate: new Date().toLocaleDateString(),
     };
 
-    setItems((prev) => [...prev, newItem]);
+    if (editingId) {
+      await dispatch(updateKitchenStock({ kitchenStockId: editingId, kitchenStockData: stockData }));
+    } else {
+      await dispatch(addKitchenStock(stockData));
+    }
+
     setDrawerOpen(false);
     setSelectedProduct(null);
     setOpeningStock(0);
     setQuantity(0);
     setPerUnitRate(0);
     setGst(5);
+    setEditingId(null);
   };
 
-  const handleDelete = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this kitchen stock?')) {
+      await dispatch(deleteKitchenStock(id));
+    }
   };
 
-  const handleEdit = (index: number) => {
-    const item = items[index];
-    setSelectedProduct(item);
-    setOpeningStock(item.openingStock);
-    setQuantity(item.quantity);
-    setPerUnitRate(item.perUnitRate);
-    setGst(item.gst);
+  const handleEdit = (item: KitchenStock) => {
+    const itemData = item as Record<string, unknown>;
+    setEditingId(item._id);
+    const product = productOptions.find(p => p._id === itemData.productId);
+    if (product) {
+      setSelectedProduct(product as unknown as Product);
+    }
+    setOpeningStock(Number(itemData.openingStock || 0));
+    setQuantity(Number(itemData.quantity || 0));
+    setPerUnitRate(Number(itemData.perUnitRate || 0));
+    setGst(Number(itemData.gst || 5));
     setDrawerOpen(true);
+  };
+
+  const handleRefresh = () => {
+    setSearchTerm("");
+    setDateRange([null, null]);
+    setPage(1);
+    dispatch(getKitchenStocks({ search: '', page: 1, limit: rowsPerPage }));
   };
 
   return (
@@ -221,6 +256,7 @@ export default function KitchenStock() {
             </Tooltip>
             <Tooltip title="Refresh">
               <IconButton
+                onClick={handleRefresh}
                 sx={{
                   backgroundColor: "#2196f3",
                   color: "white",
@@ -274,79 +310,102 @@ export default function KitchenStock() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedItems.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      {/* <TableCell>{item.category}</TableCell>
-                      <TableCell>{item.brand}</TableCell>
-                      <TableCell>{item.packSize}</TableCell>
-                      <TableCell>{item.unit}</TableCell> */}
-                      <TableCell>{item.openingStock}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>{item.consumedStock}</TableCell>
-                      <TableCell>
-                        {item.closingStock}{" "}
-                        <Typography
-                          component="span"
-                          color={
-                            item.closingStock === 0
-                              ? "error"
-                              : item.closingStock < 10
-                              ? "warning.main"
-                              : "success.main"
-                          }
-                          sx={{ ml: 1, fontWeight: 600 }}
-                        >
-                          {item.closingStock === 0
-                            ? "Out of Stock"
-                            : item.closingStock < 10
-                            ? "Low Stock"
-                            : "In Stock"}
-                        </Typography>
-                      </TableCell>
-                      
-                      <TableCell>{item.createdDate}</TableCell>
-                      <TableCell align="center">
-                        <Box
-                          sx={{ display: "flex", gap: 1, justifyContent: "center" }}
-                        >
-                          <Tooltip title="Edit">
-                            <IconButton
-                              sx={{
-                                color: "white",
-                                backgroundColor: "#1976d2",
-                                "&:hover": {
-                                  backgroundColor: "#0d47a1",
-                                  transform: "scale(1.1)",
-                                },
-                                transition: "0.3s",
-                              }}
-                              onClick={() => handleEdit(idx)}
-                            >
-                              <FiEdit />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              sx={{
-                                color: "white",
-                                backgroundColor: "#f44336",
-                                "&:hover": {
-                                  backgroundColor: "#d32f2f",
-                                  transform: "scale(1.1)",
-                                },
-                                transition: "0.3s",
-                              }}
-                              onClick={() => handleDelete(idx)}
-                            >
-                              <FiTrash2 />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        <CircularProgress size={24} sx={{ my: 2 }} />
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : kitchenStocks.length > 0 ? (
+                    kitchenStocks.map((item: KitchenStock, idx) => {
+                      const itemData = item as Record<string, unknown>;
+                      const productName = String(itemData.productName || itemData.name || 'N.A');
+                      const openingStock = Number(itemData.openingStock || 0);
+                      const quantity = Number(itemData.quantity || 0);
+                      const consumedStock = Number(itemData.consumedStock || 0);
+                      const closingStock = Number(itemData.closingStock || 0);
+                      const createdDate = itemData.createdAt 
+                        ? dayjs(String(itemData.createdAt)).format('M/D/YYYY')
+                        : itemData.createdDate 
+                        ? String(itemData.createdDate)
+                        : 'N.A';
+
+                      return (
+                        <TableRow key={item._id}>
+                          <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
+                          <TableCell>{productName}</TableCell>
+                          <TableCell>{openingStock}</TableCell>
+                          <TableCell>{quantity}</TableCell>
+                          <TableCell>{consumedStock}</TableCell>
+                          <TableCell>
+                            {closingStock}{" "}
+                            <Typography
+                              component="span"
+                              color={
+                                closingStock === 0
+                                  ? "error"
+                                  : closingStock < 10
+                                  ? "warning.main"
+                                  : "success.main"
+                              }
+                              sx={{ ml: 1, fontWeight: 600 }}
+                            >
+                              {closingStock === 0
+                                ? "Out of Stock"
+                                : closingStock < 10
+                                ? "Low Stock"
+                                : "In Stock"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{createdDate}</TableCell>
+                          <TableCell align="center">
+                            <Box
+                              sx={{ display: "flex", gap: 1, justifyContent: "center" }}
+                            >
+                              <Tooltip title="Edit">
+                                <IconButton
+                                  sx={{
+                                    color: "white",
+                                    backgroundColor: "#1976d2",
+                                    "&:hover": {
+                                      backgroundColor: "#0d47a1",
+                                      transform: "scale(1.1)",
+                                    },
+                                    transition: "0.3s",
+                                  }}
+                                  onClick={() => handleEdit(item)}
+                                >
+                                  <FiEdit />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton
+                                  sx={{
+                                    color: "white",
+                                    backgroundColor: "#f44336",
+                                    "&:hover": {
+                                      backgroundColor: "#d32f2f",
+                                      transform: "scale(1.1)",
+                                    },
+                                    transition: "0.3s",
+                                  }}
+                                  onClick={() => handleDelete(item._id)}
+                                >
+                                  <FiTrash2 />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        No kitchen stocks found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -395,13 +454,19 @@ export default function KitchenStock() {
             </Typography>
 
             <Autocomplete
-              options={DUMMY_PRODUCTS}
-              getOptionLabel={(option) => option.name}
-              value={selectedProduct}
+              options={productOptions}
+              getOptionLabel={(option) => option.name || ''}
+              value={selectedProduct ? productOptions.find(p => p._id === (selectedProduct as Record<string, unknown>)._id) || null : null}
               onChange={(_, newValue) => {
-                setSelectedProduct(newValue);
-                setOpeningStock(newValue?.openingStock || 0);
-                setPerUnitRate(newValue?.perUnitRate || 0);
+                if (newValue) {
+                  setSelectedProduct(newValue as unknown as Product);
+                  setOpeningStock(newValue.openingStock || 0);
+                  setPerUnitRate(newValue.perUnitRate || 0);
+                } else {
+                  setSelectedProduct(null);
+                  setOpeningStock(0);
+                  setPerUnitRate(0);
+                }
               }}
               renderInput={(params) => (
                 <TextField {...params} label="Select Product" fullWidth />
@@ -413,40 +478,40 @@ export default function KitchenStock() {
               <>
                 <TextField
                   label="Category"
-                  value={selectedProduct.category}
+                  value={(selectedProduct as Record<string, unknown>).category || ''}
                   fullWidth
                   margin="normal"
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="Brand"
-                  value={selectedProduct.brand}
+                  value={(selectedProduct as Record<string, unknown>).brand || ''}
                   fullWidth
                   margin="normal"
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="Pack Size"
-                  value={selectedProduct.packSize}
+                  value={(selectedProduct as Record<string, unknown>).packSize || ''}
                   fullWidth
                   margin="normal"
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="Unit"
-                  value={selectedProduct.unit}
+                  value={(selectedProduct as Record<string, unknown>).unit || ''}
                   fullWidth
                   margin="normal"
                   InputProps={{ readOnly: true }}
                 />
 
                 <TextField
-                  label="Store Stock"
+                  label="Opening Stock"
                   value={openingStock}
                   type="number"
                   fullWidth
                   margin="normal"
-                  InputProps={{ readOnly: true }}
+                  onChange={(e) => setOpeningStock(Number(e.target.value) || 0)}
                 />
                 <TextField
                   label="Quantity"
@@ -456,8 +521,24 @@ export default function KitchenStock() {
                   value={quantity}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    setQuantity(val > openingStock ? openingStock : val);
+                    setQuantity(val >= 0 ? val : 0);
                   }}
+                />
+                <TextField
+                  label="Per Unit Rate"
+                  type="number"
+                  fullWidth
+                  margin="normal"
+                  value={perUnitRate}
+                  onChange={(e) => setPerUnitRate(Number(e.target.value) || 0)}
+                />
+                <TextField
+                  label="GST (%)"
+                  type="number"
+                  fullWidth
+                  margin="normal"
+                  value={gst}
+                  onChange={(e) => setGst(Number(e.target.value) || 0)}
                 />
               </>
             )}

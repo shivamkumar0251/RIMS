@@ -1,6 +1,7 @@
 import {
   Box,
   Chip,
+  CircularProgress,
   FormControl,
   IconButton,
   InputAdornment,
@@ -19,7 +20,8 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   FiFileText,
   FiRefreshCw,
@@ -27,78 +29,98 @@ import {
   FiTable
 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { getStoreStocks, selectStoreStocks, selectStoreStockLoading, selectAllStoreStocksData } from "../../redux/slices/storeStockSlice";
+import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
+import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { StoreStock } from "../../redux/slices/storeStockSlice";
 
-// ✅ Type Definition
-export interface StockItem {
-  id: number;
-  product_name: string;
-  category: string;
-  brand: string;
-  unit: string;
-  closingStock: number;
-  taxableValue: number;
-  perUnitRate: number;
-  gst: number;
-  totalAmount: number;
-  status: string;
-}
-
-// ✅ Dummy Data
-const categories = ["Dairy", "Bakery", "Beverages", "Snacks", "Personal Care"];
-const brands = ["Amul", "Nestle", "Britannia", "Parle", "Colgate"];
-
-// ✅ Updated Logic for Status
-const stockData: StockItem[] = Array.from({ length: 50 }, (_, i) => {
-  const closingStock = Math.floor(Math.random() * 200);
-  let status = "";
-
-  if (closingStock === 0) status = "Out of Stock";
-  else if (closingStock <= 10) status = "Low Stock";
-  else status = "In Stock";
-
-  return {
-    id: i + 1,
-    product_name: `Product ${i + 1}`,
-    category: categories[i % categories.length],
-    brand: brands[i % brands.length],
-    unit: ["Kg", "Liter", "Pack", "Piece"][i % 4],
-    closingStock,
-    taxableValue: Math.floor(Math.random() * 5000) + 500,
-    perUnitRate: Math.floor(Math.random() * 300) + 50,
-    gst: [5, 12, 18, 28][i % 4],
-    totalAmount: Math.floor(Math.random() * 7000) + 1000,
-    status,
-  };
-});
+// ✅ Helper function to calculate status based on quantity
+const getStockStatus = (quantity: number): string => {
+  if (quantity === 0) return "Out of Stock";
+  if (quantity <= 10) return "Low Stock";
+  return "In Stock";
+};
 
 // ✅ Component
 const StoreStock: React.FC = () => {
-  const [data] = useState<StockItem[]>(stockData);
+  const dispatch = useDispatch<AppDispatch>();
+  const storeStocks = useSelector(selectStoreStocks);
+  const loading = useSelector(selectStoreStockLoading);
+  const allStoreStocksData = useSelector(selectAllStoreStocksData);
+  const categories = useSelector(selectCategories);
+  const companies = useSelector(selectCompanies);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All"); // ✅ Status filter state
+  const [selectedStatus, setSelectedStatus] = useState("All");
 
-  // ✅ Filtering
-  const filteredData = data.filter((item) => {
-    const matchesSearch = item.product_name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || item.category === selectedCategory;
-    const matchesBrand = selectedBrand === "All" || item.brand === selectedBrand;
-    const matchesStatus =
-      selectedStatus === "All" || item.status === selectedStatus;
+  // Fetch initial data
+  useEffect(() => {
+    dispatch(getCategories({ page: 1, limit: 1000 }));
+    dispatch(getCompanies({ page: 1, limit: 1000 }));
+  }, [dispatch]);
 
-    return matchesSearch && matchesCategory && matchesBrand && matchesStatus;
-  });
+  // Fetch store stocks when filters change
+  useEffect(() => {
+    dispatch(getStoreStocks({ 
+      search: searchTerm, 
+      page, 
+      limit: rowsPerPage,
+    }));
+  }, [dispatch, searchTerm, page, rowsPerPage]);
+
+  // ✅ Extract unique categories and brands from API data
+  const categoryList = useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    categories.forEach(cat => {
+      if (cat.categoryName) uniqueCategories.add(cat.categoryName);
+    });
+    return Array.from(uniqueCategories).sort();
+  }, [categories]);
+
+  const brandList = useMemo(() => {
+    const uniqueBrands = new Set<string>();
+    companies.forEach(comp => {
+      const compData = comp as Record<string, unknown>;
+      if (compData.companyName && typeof compData.companyName === 'string') {
+        uniqueBrands.add(compData.companyName);
+      }
+      if (compData.brandName && typeof compData.brandName === 'string') {
+        uniqueBrands.add(compData.brandName);
+      }
+    });
+    return Array.from(uniqueBrands).filter(Boolean).sort();
+  }, [companies]);
+
+  // ✅ Client-side filtering for category, brand, and status
+  const filteredData = useMemo(() => {
+    if (!storeStocks || storeStocks.length === 0) return [];
+    
+    return storeStocks.filter((item: StoreStock) => {
+      const itemData = item as Record<string, unknown>;
+      const productName = String(itemData.productName || itemData.product_name || itemData.name || '');
+      const category = String(itemData.category || itemData.categoryName || '');
+      const brand = String(itemData.brand || itemData.brandName || itemData.companyName || '');
+      const quantity = Number(itemData.quantity || itemData.closingStock || 0);
+      const status = getStockStatus(quantity);
+
+      const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "All" || category === selectedCategory;
+      const matchesBrand = selectedBrand === "All" || brand === selectedBrand;
+      const matchesStatus = selectedStatus === "All" || status === selectedStatus;
+
+      return matchesSearch && matchesCategory && matchesBrand && matchesStatus;
+    });
+  }, [storeStocks, searchTerm, selectedCategory, selectedBrand, selectedStatus]);
 
   // ✅ Pagination
   const start = (page - 1) * rowsPerPage;
   const paginatedData = filteredData.slice(start, start + rowsPerPage);
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = allStoreStocksData?.totalPages || Math.ceil((filteredData.length || 0) / rowsPerPage);
 
   // ✅ Handlers
   const handleRefresh = () => {
@@ -106,7 +128,13 @@ const StoreStock: React.FC = () => {
     setSelectedCategory("All");
     setSelectedBrand("All");
     setSelectedStatus("All");
+    setPage(1);
+    // Refetch data
+    dispatch(getStoreStocks({ search: '', page: 1, limit: rowsPerPage }));
   };
+
+  const safeValue = (val: unknown) =>
+    val === null || val === undefined || val === "" ? "N.A" : String(val);
 
   return (
     <AdminLayout>
@@ -179,10 +207,13 @@ const StoreStock: React.FC = () => {
               <Select
                 value={selectedCategory}
                 label="Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="All">All</MenuItem>
-                {categories.map((c) => (
+                {categoryList.map((c) => (
                   <MenuItem key={c} value={c}>
                     {c}
                   </MenuItem>
@@ -200,10 +231,13 @@ const StoreStock: React.FC = () => {
               <Select
                 value={selectedBrand}
                 label="Brand"
-                onChange={(e) => setSelectedBrand(e.target.value)}
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="All">All</MenuItem>
-                {brands.map((b) => (
+                {brandList.map((b) => (
                   <MenuItem key={b} value={b}>
                     {b}
                   </MenuItem>
@@ -222,7 +256,10 @@ const StoreStock: React.FC = () => {
               <Select
                 value={selectedStatus}
                 label="Status"
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="All">All</MenuItem>
                 <MenuItem value="In Stock">In Stock</MenuItem>
@@ -292,33 +329,61 @@ const StoreStock: React.FC = () => {
             </TableHead>
 
             <TableBody>
-              {paginatedData.map((item, index) => (
-                <TableRow key={item.id} hover>
-                  <TableCell>{start + index + 1}</TableCell>
-                  <TableCell>{item.product_name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.brand}</TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell align="center">{item.closingStock}</TableCell>
-                  <TableCell>₹{item.perUnitRate}</TableCell>
-                  <TableCell>₹{item.taxableValue.toLocaleString()}</TableCell>
-                  <TableCell>{item.gst}%</TableCell>
-                  <TableCell>₹{item.totalAmount.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={item.status}
-                      color={
-                        item.status === "In Stock"
-                          ? "success"
-                          : item.status === "Low Stock"
-                          ? "warning"
-                          : "error"
-                      }
-                      size="small"
-                    />
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={11} align="center">
+                    <CircularProgress size={24} sx={{ my: 2 }} />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : paginatedData.length > 0 ? (
+                paginatedData.map((item: StoreStock, index) => {
+                  const itemData = item as Record<string, unknown>;
+                  const productName = String(itemData.productName || itemData.product_name || itemData.name || 'N.A');
+                  const category = String(itemData.category || itemData.categoryName || 'N.A');
+                  const brand = String(itemData.brand || itemData.brandName || itemData.companyName || 'N.A');
+                  const unit = String(itemData.unit || 'N.A');
+                  const quantity = Number(itemData.quantity || itemData.closingStock || 0);
+                  const perUnitRate = Number(itemData.perUnitRate || itemData.price || 0);
+                  const gst = Number(itemData.gst || 0);
+                  const taxableValue = quantity * perUnitRate;
+                  const totalAmount = taxableValue + (taxableValue * gst / 100);
+                  const status = getStockStatus(quantity);
+
+                  return (
+                    <TableRow key={item._id || item.id} hover>
+                      <TableCell>{start + index + 1}</TableCell>
+                      <TableCell>{safeValue(productName)}</TableCell>
+                      <TableCell>{safeValue(category)}</TableCell>
+                      <TableCell>{safeValue(brand)}</TableCell>
+                      <TableCell>{safeValue(unit)}</TableCell>
+                      <TableCell align="center">{quantity}</TableCell>
+                      <TableCell>₹{safeValue(perUnitRate)}</TableCell>
+                      <TableCell>₹{safeValue(taxableValue.toFixed(2))}</TableCell>
+                      <TableCell>{safeValue(gst)}%</TableCell>
+                      <TableCell>₹{safeValue(totalAmount.toFixed(2))}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={status}
+                          color={
+                            status === "In Stock"
+                              ? "success"
+                              : status === "Low Stock"
+                              ? "warning"
+                              : "error"
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={11} align="center">
+                    No store stocks found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -343,7 +408,10 @@ const StoreStock: React.FC = () => {
             </Typography>
             <Select<number>
               value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(1);
+              }}
               size="small"
               sx={{ minWidth: 80 }}
             >

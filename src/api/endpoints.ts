@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
-export const API_BASE_URL = 'http://localhost:5050/v1';
+export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
+// export const API_BASE_URL = 'http://localhost:5050/v1';
 
 export const API_ENDPOINTS = {
   LOGIN_API: `${API_BASE_URL}/users/login`,
@@ -45,16 +45,25 @@ export const API_ENDPOINTS = {
   ADD_PRODUCTS: `${API_BASE_URL}/products`,
   ADD_BULK_EXCEL_PRODUCTS: `${API_BASE_URL}/products/bulk-excel`,
   UPDATE_PRODUCTS: (id: string) => `${API_BASE_URL}/products/${id}`,
+  BULK_UPDATE_PRODUCTS: `${API_BASE_URL}/products`, // PUT method
   DELETE_PRODUCTS: (id: string) => `${API_BASE_URL}/products/${id}`,
-  // ===== Order =====
-  GET_ORDERS: `${API_BASE_URL}/order/products`,
-  ADD_ORDERS: `${API_BASE_URL}/order`,
-  UPDATE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`,
-  DELETE_WHOLE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`,
-  DELETE_ORDERS_ITEMS: (id: string) => `${API_BASE_URL}/order/${id}items`,
-  // ===== vendor =====
-  GET_VENDOR_ORDERS: `${API_BASE_URL}/order`,
-  UPDATE_VENDOR_TO_PURCHASE: (id: string) => `${API_BASE_URL}/order/${id}/send-to-purchase`,
+  BULK_DELETE_PRODUCTS: `${API_BASE_URL}/products`, // DELETE method
+  // ===== Order (Section 9) =====
+  GET_ORDERS: `${API_BASE_URL}/order/products`, // GET products for order (Section 9.1)
+  ADD_ORDERS: `${API_BASE_URL}/order`, // POST - Create Bulk Orders (Section 9.2)
+  GET_ORDERS_LIST: `${API_BASE_URL}/order`, // GET - Get Orders list (Section 9.3)
+  UPDATE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`, // PUT - Update Order Products (Section 9.5)
+  DELETE_WHOLE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`, // DELETE - Delete Order (Section 9.7)
+  DELETE_ORDERS_ITEMS: (id: string) => `${API_BASE_URL}/order/${id}/items`, // DELETE - Delete Order Items (Section 9.6)
+  UPDATE_VENDOR_TO_PURCHASE: (id: string) => `${API_BASE_URL}/order/${id}/send-to-purchase`, // PUT - Send to Purchase (Section 9.4)
+  // ===== Vendor Orders (Section 8) - Different from regular orders =====
+  CREATE_VENDOR_ORDER: `${API_BASE_URL}/vendor`, // POST - Create Vendor Order (Section 8.1)
+  GET_VENDOR_ORDERS_LIST: `${API_BASE_URL}/vendor`, // GET - Get Vendor Orders (Section 8.2)
+  UPDATE_VENDOR_ORDER_PRODUCT: `${API_BASE_URL}/vendor/order-product`, // PUT - Update Order Product (Section 8.3)
+  UPDATE_VENDOR_ORDER: (id: string) => `${API_BASE_URL}/vendor/${id}`, // PUT - Update Vendor Order (Section 8.4)
+  DELETE_VENDOR_ORDER: (id: string) => `${API_BASE_URL}/vendor/${id}`, // DELETE - Delete Vendor Order (Section 8.5)
+  // Legacy - keeping for backward compatibility (points to /order for existing code)
+  GET_VENDOR_ORDERS: `${API_BASE_URL}/order`, // Legacy endpoint - use GET_ORDERS_LIST or GET_VENDOR_ORDERS_LIST instead
   // ===== purchase =====
   GET_PURCHASE: `${API_BASE_URL}/purchase`,
   ADD_PURCHASE: `${API_BASE_URL}/purchase`,
@@ -75,5 +84,10 @@ export const API_ENDPOINTS = {
   ADD_CONSUMABLE: `${API_BASE_URL}/consumableStock`,
   UPDATE_CONSUMABLE: (id: string) => `${API_BASE_URL}/consumableStock/${id}`,
   DELETE_CONSUMABLE: (id: string) => `${API_BASE_URL}/consumableStock/${id}`,
+  // ===== Product Requirements =====
+  ADD_PRODUCT_REQUIREMENT: `${API_BASE_URL}/product-requirements`,
+  GET_PRODUCT_REQUIREMENTS: `${API_BASE_URL}/product-requirements`,
+  UPDATE_PRODUCT_REQUIREMENT: (id: string) => `${API_BASE_URL}/product-requirements/${id}`,
+  DELETE_PRODUCT_REQUIREMENT: (id: string) => `${API_BASE_URL}/product-requirements/${id}`,
 
 };

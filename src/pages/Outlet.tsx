@@ -1,106 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import Layout from '../layouts/Layout';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaSearch, FaBeer } from 'react-icons/fa';
+import { getOutlets } from '../redux/slices/outletSlice';
+import { selectOutlets, selectOutletLoading } from '../redux/slices/outletSlice';
+import type { AppDispatch } from '../redux/store/store';
+import type { Outlet as OutletType } from '../redux/slices/outletSlice';
 
 // --- TypeScript Interface for Outlet Data ---
 interface Outlet {
-  id: number;
+  id: string;
   name: string;
-  address: string;
-  phone: string;
-  hours: string;
-  imageUrl: string;
-  googleMapsUrl: string;
-  features: string[];
+  address?: string;
+  phone?: string;
+  hours?: string;
+  imageUrl?: string;
+  googleMapsUrl?: string;
+  features?: string[];
 }
 
-// --- Sample Data (Aap ise baad mein API se la sakte hain) ---
-const outletsData: Outlet[] = [
-  {
-    id: 1,
-    name: 'Hops N Chops - Koramangala',
-    address: '123, 5th Block, Koramangala, Bengaluru',
-    phone: '+91 98765 43210',
-    hours: '11:00 AM - 11:00 PM',
-    imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop',
-    googleMapsUrl: 'https://maps.app.goo.gl/m3T9y4gYv1eX5Z6z7',
-    features: ['Craft Beer', 'Live Music'],
-  },
-  {
-    id: 2,
-    name: 'Hops N Chops - Bandra',
-    address: '456, Linking Road, Bandra West, Mumbai',
-    phone: '+91 98765 11223',
-    hours: '12:00 PM - 1:00 AM',
-    imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop',
-    googleMapsUrl: 'https://maps.app.goo.gl/m3T9y4gYv1eX5Z6z7',
-    features: ['Rooftop Seating'],
-  },
-  {
-    id: 3,
-    name: 'Hops N Chops - Connaught Place',
-    address: '789, Inner Circle, Connaught Place, New Delhi',
-    phone: '+91 98765 55667',
-    hours: '11:30 AM - 12:30 AM',
-    imageUrl: 'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?q=80&w=1950&auto=format&fit=crop',
-    googleMapsUrl: 'https://maps.app.goo.gl/m3T9y4gYv1eX5Z6z7',
-    features: ['Craft Beer', 'Family Friendly'],
-  },
-   {
-    id: 4,
-    name: 'Hops N Chops - Cyber Hub',
-    address: '101, DLF Cyber Hub, Gurugram',
-    phone: '+91 98765 88990',
-    hours: '12:00 PM - 12:00 AM',
-    imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2047&auto=format&fit=crop',
-    googleMapsUrl: 'https://maps.app.goo.gl/m3T9y4gYv1eX5Z6z7',
-    features: ['Rooftop Seating', 'Live Music'],
-  },
-];
-
 // --- Reusable Outlet Card Component ---
-const OutletCard: React.FC<{ outlet: Outlet }> = ({ outlet }) => (
-  <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform duration-300 transform hover:-translate-y-2">
-    <img src={outlet.imageUrl} alt={outlet.name} className="w-full h-56 object-cover" />
-    <div className="p-6">
-      <h3 className="text-2xl font-bold text-gray-800 mb-2">{outlet.name}</h3>
-      <div className="space-y-3 text-gray-600">
-        <p className="flex items-start"><FaMapMarkerAlt className="mr-3 mt-1 text-yellow-500 flex-shrink-0" /> {outlet.address}</p>
-        <p className="flex items-center"><FaPhone className="mr-3 text-yellow-500" /> {outlet.phone}</p>
-        <p className="flex items-center"><FaClock className="mr-3 text-yellow-500" /> {outlet.hours}</p>
+const OutletCard: React.FC<{ outlet: OutletType }> = ({ outlet }) => {
+  const defaultImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop';
+  
+  return (
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform duration-300 transform hover:-translate-y-2">
+      <img 
+        src={(outlet as any).imageUrl || defaultImage} 
+        alt={outlet.name} 
+        className="w-full h-56 object-cover" 
+      />
+      <div className="p-6">
+        <h3 className="text-2xl font-bold text-gray-800 mb-2">{outlet.name}</h3>
+        <div className="space-y-3 text-gray-600">
+          {outlet.address && (
+            <p className="flex items-start">
+              <FaMapMarkerAlt className="mr-3 mt-1 text-yellow-500 flex-shrink-0" /> 
+              {outlet.address}
+            </p>
+          )}
+          {(outlet as any).phone && (
+            <p className="flex items-center">
+              <FaPhone className="mr-3 text-yellow-500" /> 
+              {(outlet as any).phone}
+            </p>
+          )}
+          {(outlet as any).hours && (
+            <p className="flex items-center">
+              <FaClock className="mr-3 text-yellow-500" /> 
+              {(outlet as any).hours}
+            </p>
+          )}
+        </div>
+        {(outlet as any).features && Array.isArray((outlet as any).features) && (outlet as any).features.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(outlet as any).features.map((feature: string, index: number) => (
+              <span key={index} className="bg-yellow-100 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
+                {feature}
+              </span>
+            ))}
+          </div>
+        )}
+        <a
+          href={(outlet as any).googleMapsUrl || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 w-full inline-block text-center bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors duration-300"
+        >
+          Get Directions
+        </a>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {outlet.features.map(feature => (
-          <span key={feature} className="bg-yellow-100 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
-            {feature}
-          </span>
-        ))}
-      </div>
-      <a
-        // href={outlet.googleMapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-6 w-full inline-block text-center bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors duration-300"
-      >
-        Get Directions
-      </a>
     </div>
-  </div>
-);
+  );
+};
 
 
 // --- Main Outlets Page Component ---
 const OurOutlets: React.FC = () => {
-  useEffect(() => {
-     document.title = "OurOutlets | Inventory Management System"
-     window.scrollTo(0, 0);
-   }, []);
+  const dispatch = useDispatch<AppDispatch>();
+  const outlets = useSelector(selectOutlets);
+  const loading = useSelector(selectOutletLoading);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredOutlets = outletsData.filter(outlet =>
+  useEffect(() => {
+    document.title = "OurOutlets | Inventory Management System";
+    window.scrollTo(0, 0);
+    dispatch(getOutlets());
+  }, [dispatch]);
+
+  const filteredOutlets = outlets.filter(outlet =>
     outlet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    outlet.address.toLowerCase().includes(searchTerm.toLowerCase())
+    (outlet.address && outlet.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -136,7 +127,12 @@ const OurOutlets: React.FC = () => {
             </div>
 
             {/* Outlets Grid */}
-            {filteredOutlets.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+                <p className="mt-4 text-gray-600">Loading outlets...</p>
+              </div>
+            ) : filteredOutlets.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                     {filteredOutlets.map(outlet => (
                         <OutletCard key={outlet.id} outlet={outlet} />
@@ -145,7 +141,9 @@ const OurOutlets: React.FC = () => {
             ) : (
                 <div className="text-center text-gray-600">
                     <h3 className="text-2xl font-bold">No Outlets Found</h3>
-                    <p className="mt-2">Try a different search term. We are expanding soon!</p>
+                    <p className="mt-2">
+                      {searchTerm ? 'Try a different search term.' : 'We are expanding soon!'}
+                    </p>
                 </div>
             )}
           </div>

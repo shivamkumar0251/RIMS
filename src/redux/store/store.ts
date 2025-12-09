@@ -7,6 +7,19 @@ import authReducer from '../slices/authSlice';
 import checkTokenReducer from '../slices/checkTokenSlice';
 import userDetailsReducer from '../slices/userDetailsSlice'; // adjust path
 import categoryReducer from '../slices/categorySlice';
+import companyReducer from '../slices/companySlice';
+import vendorReducer from '../slices/vendorSlice';
+import productReducer from '../slices/productSlice';
+import orderReducer from '../slices/orderSlice';
+import purchaseReducer from '../slices/purchaseSlice';
+import storeStockReducer from '../slices/storeStockSlice';
+import kitchenStockReducer from '../slices/kitchenStockSlice';
+import consumableStockReducer from '../slices/consumableStockSlice';
+import productRequirementReducer from '../slices/productRequirementSlice';
+import franchiseReducer from '../slices/franchiseSlice';
+import outletReducer from '../slices/outletSlice';
+import vendorOrderReducer from '../slices/vendorOrderSlice';
+import franchiseInquiryReducer from '../slices/franchiseInquirySlice';
 
 const persistedUserDetailsReducer = persistReducer(
   persistConfig,
@@ -19,6 +32,19 @@ export const store = configureStore({
     userDetails: persistedUserDetailsReducer,
     checkToken: checkTokenReducer,
     category: categoryReducer,
+    company: companyReducer,
+    vendor: vendorReducer,
+    product: productReducer,
+    order: orderReducer,
+    purchase: purchaseReducer,
+    storeStock: storeStockReducer,
+    kitchenStock: kitchenStockReducer,
+    consumableStock: consumableStockReducer,
+    productRequirement: productRequirementReducer,
+    franchise: franchiseReducer,
+    outlet: outletReducer,
+    vendorOrder: vendorOrderReducer,
+    franchiseInquiry: franchiseInquiryReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

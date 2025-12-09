@@ -1,33 +1,51 @@
 import { useEffect, useState } from "react";
 import { FiArrowLeft, FiCheckCircle, FiClock, FiPackage, FiTrash2, FiXCircle } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-import { mockOrders, type Order } from "../../data/ordersWithDetails";
+import { useDispatch, useSelector } from "react-redux";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { getOrders, updateOrder, deleteWholeOrder, selectOrders, selectOrderLoading } from "../../redux/slices/orderSlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { Order } from "../../redux/slices/orderSlice";
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const orders = useSelector(selectOrders);
+  const loading = useSelector(selectOrderLoading);
 
   // State to hold the order details. We can edit this state.
   const [order, setOrder] = useState<Order | null>(null);
 
-  // Find the correct order from our mock data when the page loads
+  // Fetch orders if not already loaded
   useEffect(() => {
-    const foundOrder = mockOrders.find(o => o.id === orderId);
-    if (foundOrder) {
-      // Create a deep copy so we can edit it without changing the original mock data
-      setOrder(JSON.parse(JSON.stringify(foundOrder)));
+    if (orders.length === 0) {
+      dispatch(getOrders({ page: 1, limit: 1000 }));
     }
-  }, [orderId]);
+  }, [dispatch, orders.length]);
+
+  // Find the correct order when orders are loaded or orderId changes
+  useEffect(() => {
+    if (orders.length > 0 && orderId) {
+      const foundOrder = orders.find((o: Order) => o._id === orderId);
+      if (foundOrder) {
+        // Create a deep copy so we can edit it without changing the original data
+        setOrder(JSON.parse(JSON.stringify(foundOrder)));
+      }
+    }
+  }, [orders, orderId]);
 
   // --- HANDLER FUNCTIONS ---
 
   // This function is called whenever you change an editable value in the table
-  const handleItemChange = (itemId: string, field: string, value: any) => {
+  const handleItemChange = (itemId: string, field: string, value: unknown) => {
     if (!order) return;
 
-    const updatedItems = order.items.map(item => {
-      if (item.id === itemId) {
+    const orderData = order as Record<string, unknown>;
+    const items = (orderData.items || []) as Array<Record<string, unknown>>;
+    
+    const updatedItems = items.map(item => {
+      if (String(item._id || item.id) === itemId) {
         let newValue = value;
         // Ensure numeric fields are not negative
         if (field === 'price' || field === 'quantity' || field === 'gst' || field === 'cgst' || field === 'sgst') {
@@ -41,17 +59,20 @@ export default function OrderDetailPage() {
     recalculateTotals(updatedItems);
   };
 
-  const recalculateTotals = (items: any[]) => {
+  const recalculateTotals = (items: Array<Record<string, unknown>>) => {
     let subtotal = 0;
     let gstAmount = 0;
     let cgstAmount = 0;
     let sgstAmount = 0;
 
     items.forEach(item => {
-      const itemTotal = item.price * item.quantity;
+      const price = Number(item.price || 0);
+      const quantity = Number(item.quantity || 0);
+      const gst = Number(item.gst || 0);
+      const itemTotal = price * quantity;
       subtotal += itemTotal;
-      cgstAmount += itemTotal * ((item.gst / 2) / 100); // Assuming CGST is half of GST
-      sgstAmount += itemTotal * ((item.gst / 2) / 100); // Assuming SGST is half of GST
+      cgstAmount += itemTotal * ((gst / 2) / 100); // Assuming CGST is half of GST
+      sgstAmount += itemTotal * ((gst / 2) / 100); // Assuming SGST is half of GST
     });
     
     gstAmount = cgstAmount + sgstAmount;
@@ -60,47 +81,57 @@ export default function OrderDetailPage() {
       if (!prevOrder) return null;
       return {
         ...prevOrder,
-        items,
+        items: items,
         subtotal,
         gstAmount,
         totalAmount: subtotal + gstAmount
-      };
+      } as Order;
     });
   };
 
-  const handleActionClick = (itemId: string, action: 'out-of-stock' | 'send-later' | 'delete') => {
+  const handleActionClick = async (itemId: string, action: 'out-of-stock' | 'send-later' | 'delete') => {
     if (!order) return;
 
-    let updatedItems = [...order.items];
+    const orderData = order as Record<string, unknown>;
+    let updatedItems = [...(orderData.items || [])] as Array<Record<string, unknown>>;
 
     if (action === 'delete') {
       if (window.confirm("Are you sure you want to delete this item from the order?")) {
-        updatedItems = order.items.filter(item => item.id !== itemId);
+        updatedItems = updatedItems.filter(item => String(item._id || item.id) !== itemId);
+        recalculateTotals(updatedItems);
+        // Update order via API
+        await dispatch(updateOrder({ orderId: order._id, orderData: { items: updatedItems } }));
       }
     } else {
-        alert(`Item ${itemId} marked as '${action}'. This is a simulation.`);
+        alert(`Item ${itemId} marked as '${action}'.`);
         // In a real app, you might update the item's status property here
     }
-    
-    recalculateTotals(updatedItems);
   };
   
   // Function for the "Process" button
-  const handleProcessOrder = () => {
-    alert(`Order ${order?.id} has been PROCESSED.\nThis is a simulation.`);
-    navigate('/admin/orders'); // Go back to the main order list
+  const handleProcessOrder = async () => {
+    if (!order) return;
+    
+    if (window.confirm(`Are you sure you want to process order ${order._id}?`)) {
+      await dispatch(updateOrder({ orderId: order._id, orderData: { status: 'Processing' } }));
+      alert(`Order ${order._id} has been PROCESSED.`);
+      navigate('/admin/orders'); // Go back to the main order list
+    }
   };
 
   // Function for the "Cancel Order" button
-  const handleCancelOrder = () => {
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    
     if (window.confirm("Are you sure you want to cancel this order?")) {
-      alert(`Order ${order?.id} has been CANCELED.\nThis is a simulation.`);
+      await dispatch(deleteWholeOrder(order._id));
+      alert(`Order ${order._id} has been CANCELED.`);
       navigate('/admin/orders'); // Go back to the main order list
     }
   };
 
   // If the order is still loading or not found, show a message
-  if (!order) {
+  if (loading || !order) {
     return (
       <AdminLayout>
         <div className="p-8 text-center text-slate-600">Loading order details...</div>
@@ -121,7 +152,7 @@ export default function OrderDetailPage() {
             <div>
               <h1 className="text-3xl font-bold text-slate-800">View Orders</h1>
               <div className="text-slate-500">
-                <span>Order ID: {order.id}</span> | <span>Customer ID: {order.userId}</span>
+                <span>Order ID: {(order as Record<string, unknown>)._id || (order as Record<string, unknown>).id}</span> | <span>Customer ID: {(order as Record<string, unknown>).userId || (order as Record<string, unknown>).user || 'N.A'}</span>
               </div>
             </div>
           </div>
@@ -147,49 +178,59 @@ export default function OrderDetailPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {order.items.map(item => (
-                            <tr key={item.id} className="border-b">
-                                <td className="p-3 font-medium flex items-center">
-                                    <img src={item.img} alt={item.name} className="w-12 h-12 rounded-md object-cover mr-4"/>
-                                    {item.name}
-                                </td>
-                                <td className="p-3">
-                                  <input 
-                                    type="number"
-                                    value={item.price}
-                                    onChange={(e) => handleItemChange(item.id, 'price', e.target.value)}
-                                    className="w-24 px-2 py-1 border border-slate-300 rounded-md"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                    <input 
-                                      type="number" 
-                                      value={item.quantity} 
-                                      onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} 
-                                      className="w-20 px-2 py-1 border border-slate-300 rounded-md"
-                                    />
-                                </td>
-                                <td className="p-3">{order.orderDate}</td>
-                                <td className="p-3">
-                                  <input 
-                                    type="number"
-                                    value={item.gst}
-                                    onChange={(e) => handleItemChange(item.id, 'gst', e.target.value)}
-                                    className="w-20 px-2 py-1 border border-slate-300 rounded-md"
-                                  />%
-                                </td>
-                                <td className="p-3">{(item.gst / 2).toFixed(2)}%</td>
-                                <td className="p-3">{(item.gst / 2).toFixed(2)}%</td>
-                                <td className="p-3 font-semibold">₹{(item.price * item.quantity).toLocaleString('en-IN')}</td>
-                                <td className="p-3">
-                                  <div className="flex items-center gap-2">
-                                      <button onClick={() => handleActionClick(item.id, 'out-of-stock')} className="p-2 text-orange-500 hover:bg-orange-100 rounded-full" title="Out of Stock"><FiPackage /></button>
-                                      <button onClick={() => handleActionClick(item.id, 'send-later')} className="p-2 text-blue-500 hover:bg-blue-100 rounded-full" title="Send Later"><FiClock /></button>
-                                      <button onClick={() => handleActionClick(item.id, 'delete')} className="p-2 text-red-500 hover:bg-red-100 rounded-full" title="Delete"><FiTrash2 /></button>
-                                  </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {((order as Record<string, unknown>).items || []).map((item: Record<string, unknown>) => {
+                            const itemId = String(item._id || item.id || '');
+                            const itemName = String(item.name || item.productName || 'N.A');
+                            const itemImg = String(item.img || item.image || '');
+                            const price = Number(item.price || 0);
+                            const quantity = Number(item.quantity || 0);
+                            const gst = Number(item.gst || 0);
+                            const orderDate = (order as Record<string, unknown>).orderDate || (order as Record<string, unknown>).createdAt || '';
+
+                            return (
+                                <tr key={itemId} className="border-b">
+                                    <td className="p-3 font-medium flex items-center">
+                                        {itemImg && <img src={itemImg} alt={itemName} className="w-12 h-12 rounded-md object-cover mr-4"/>}
+                                        {itemName}
+                                    </td>
+                                    <td className="p-3">
+                                      <input 
+                                        type="number"
+                                        value={price}
+                                        onChange={(e) => handleItemChange(itemId, 'price', e.target.value)}
+                                        className="w-24 px-2 py-1 border border-slate-300 rounded-md"
+                                      />
+                                    </td>
+                                    <td className="p-3">
+                                        <input 
+                                          type="number" 
+                                          value={quantity} 
+                                          onChange={(e) => handleItemChange(itemId, 'quantity', e.target.value)} 
+                                          className="w-20 px-2 py-1 border border-slate-300 rounded-md"
+                                        />
+                                    </td>
+                                    <td className="p-3">{String(orderDate)}</td>
+                                    <td className="p-3">
+                                      <input 
+                                        type="number"
+                                        value={gst}
+                                        onChange={(e) => handleItemChange(itemId, 'gst', e.target.value)}
+                                        className="w-20 px-2 py-1 border border-slate-300 rounded-md"
+                                      />%
+                                    </td>
+                                    <td className="p-3">{(gst / 2).toFixed(2)}%</td>
+                                    <td className="p-3">{(gst / 2).toFixed(2)}%</td>
+                                    <td className="p-3 font-semibold">₹{(price * quantity).toLocaleString('en-IN')}</td>
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-2">
+                                          <button onClick={() => handleActionClick(itemId, 'out-of-stock')} className="p-2 text-orange-500 hover:bg-orange-100 rounded-full" title="Out of Stock"><FiPackage /></button>
+                                          <button onClick={() => handleActionClick(itemId, 'send-later')} className="p-2 text-blue-500 hover:bg-blue-100 rounded-full" title="Send Later"><FiClock /></button>
+                                          <button onClick={() => handleActionClick(itemId, 'delete')} className="p-2 text-red-500 hover:bg-red-100 rounded-full" title="Delete"><FiTrash2 /></button>
+                                      </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -197,10 +238,10 @@ export default function OrderDetailPage() {
             {/* Totals Section */}
             <div className="flex justify-end mt-6">
                 <div className="w-full sm:w-1/3 space-y-2 text-slate-700">
-                    <div className="flex justify-between"><span>Subtotal:</span> <span>₹{order.subtotal.toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span>CGST:</span> <span>+ ₹{(order.gstAmount / 2).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span>SGST:</span> <span>+ ₹{(order.gstAmount / 2).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between font-bold text-xl border-t pt-2 mt-2"><span>Grand Total:</span> <span>₹{order.totalAmount.toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between"><span>Subtotal:</span> <span>₹{Number((order as Record<string, unknown>).subtotal || 0).toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between"><span>CGST:</span> <span>+ ₹{(Number((order as Record<string, unknown>).gstAmount || 0) / 2).toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between"><span>SGST:</span> <span>+ ₹{(Number((order as Record<string, unknown>).gstAmount || 0) / 2).toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between font-bold text-xl border-t pt-2 mt-2"><span>Grand Total:</span> <span>₹{Number((order as Record<string, unknown>).totalAmount || 0).toLocaleString('en-IN')}</span></div>
                 </div>
             </div>
 

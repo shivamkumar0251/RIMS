@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   FormControl,
   IconButton,
   InputAdornment,
@@ -21,7 +22,8 @@ import {
   Typography,
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   FiEdit,
   FiFileText,
@@ -33,9 +35,13 @@ import {
   FiUpload,
 } from "react-icons/fi";
 import { useLocation } from "react-router-dom";
-import { brands, categories, productData } from "../../data/ProductDummyData";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import ProductModal from "../../layouts/ProductModal";
+import { getProducts, deleteProduct, selectProducts, selectProductLoading, selectAllProductsData } from "../../redux/slices/productSlice";
+import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
+import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { Product as ProductType } from "../../redux/slices/productSlice";
 
 // ✅ MUI PRO Date Picker (Range)
 import { AdapterDayjs } from "@mui/x-date-pickers-pro/AdapterDayjs";
@@ -45,26 +51,14 @@ import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 
 type DateRangeValue = [Dayjs | null, Dayjs | null];
 
-export interface Product {
-  id: number;
-  product_name: string;
-  category: string;
-  brand: string;
-  packSize: string;
-  unit: string;
-  shape: string;
-  colour: string;
-  printStatus: string;
-  openingStock: number;
-  quantity: number;
-  perUnitRate: number;
-  gst: number;
-  image: string;
-  createdAt: string;
-}
-
 const ProductTable: React.FC = () => {
-  const [data, setData] = useState<Product[]>(productData);
+  const dispatch = useDispatch<AppDispatch>();
+  const products = useSelector(selectProducts);
+  const loading = useSelector(selectProductLoading);
+  const allProductsData = useSelector(selectAllProductsData);
+  const categories = useSelector(selectCategories);
+  const companies = useSelector(selectCompanies);
+  
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All Categories");
   const [selectedBrand, setSelectedBrand] = useState<string>("All Brands");
@@ -74,34 +68,76 @@ const ProductTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const location = useLocation();
 
-  // ✅ Filtered Data
-  const filteredData = data.filter((item) => {
-    const matchesSearch = item.product_name
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All Categories" ||
-      item.category === selectedCategory;
-    const matchesBrand =
-      selectedBrand === "All Brands" || item.brand === selectedBrand;
+  // Fetch initial data
+  useEffect(() => {
+    dispatch(getCategories({ page: 1, limit: 1000 }));
+    dispatch(getCompanies({ page: 1, limit: 1000 }));
+  }, [dispatch]);
 
-    const [start, end] = dateRange;
-    const matchesDate =
-      start && end
-        ? dayjs(item.createdAt).isAfter(start.subtract(1, "day")) &&
-        dayjs(item.createdAt).isBefore(end.add(1, "day"))
-        : true;
+  // Fetch products when filters change
+  useEffect(() => {
+    const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+    const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+    // Combine search term with category if selected
+    const searchQuery = selectedCategory !== "All Categories" 
+      ? `${searchTerm} ${selectedCategory}`.trim()
+      : searchTerm;
+    
+    dispatch(getProducts({ 
+      search: searchQuery, 
+      page, 
+      limit: rowsPerPage,
+      fromDate,
+      toDate,
+    }));
+  }, [dispatch, searchTerm, page, rowsPerPage, dateRange, selectedCategory]);
 
-    return matchesSearch && matchesCategory && matchesBrand && matchesDate;
-  });
+  // ✅ Extract unique categories and brands from API data
+  const categoryList = useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    categories.forEach(cat => {
+      if (cat.categoryName) uniqueCategories.add(cat.categoryName);
+    });
+    return Array.from(uniqueCategories).sort();
+  }, [categories]);
+
+  const brandList = useMemo(() => {
+    const uniqueBrands = new Set<string>();
+    companies.forEach(comp => {
+      const compData = comp as Record<string, unknown>;
+      if (compData.companyName && typeof compData.companyName === 'string') {
+        uniqueBrands.add(compData.companyName);
+      }
+      if (compData.brandName && typeof compData.brandName === 'string') {
+        uniqueBrands.add(compData.brandName);
+      }
+    });
+    return Array.from(uniqueBrands).filter(Boolean).sort();
+  }, [companies]);
+
+  // ✅ Client-side filtering for brand (since API might not support brand filter)
+  const filteredData = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
+    return products.filter((item: ProductType) => {
+      if (selectedBrand === "All Brands") return true;
+      
+      const itemData = item as Record<string, unknown>;
+      return (
+        itemData.brand === selectedBrand ||
+        itemData.companyName === selectedBrand ||
+        itemData.brandName === selectedBrand
+      );
+    });
+  }, [products, selectedBrand]);
 
   // ✅ Pagination
   const startIndex = (page - 1) * rowsPerPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = allProductsData?.totalPages || Math.ceil((filteredData.length || 0) / rowsPerPage);
 
-  const safeValue = (val: any) =>
-    val === null || val === undefined || val === "" ? "N.A" : val;
+  const safeValue = (val: unknown) =>
+    val === null || val === undefined || val === "" ? "N.A" : String(val);
 
   // ✅ Handlers
   const handleExportPDF = () => console.log("Export to PDF");
@@ -111,12 +147,36 @@ const ProductTable: React.FC = () => {
     setSelectedCategory("All Categories");
     setSelectedBrand("All Brands");
     setDateRange([null, null]);
-    console.log("Filters reset");
+    setPage(1);
+    // Refetch data
+    const fromDate = '';
+    const toDate = '';
+    dispatch(getProducts({ search: '', page: 1, limit: rowsPerPage, fromDate, toDate }));
   };
   const handleImportProducts = () => console.log("Import products");
   const handleAddProduct = () => setIsModalOpen(true);
-  const handleEdit = () => setIsModalOpen(true);
-  const handleDelete = (id: number) => setData((prev) => prev.filter((p) => p.id !== id));
+  const handleEdit = () => {
+    setIsModalOpen(true);
+    // You can pass product data to modal if needed
+  };
+  const handleDelete = async (productId: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      await dispatch(deleteProduct(productId));
+      // Refetch products
+      const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+      const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+      const searchQuery = selectedCategory !== "All Categories" 
+        ? `${searchTerm} ${selectedCategory}`.trim()
+        : searchTerm;
+      dispatch(getProducts({ 
+        search: searchQuery, 
+        page, 
+        limit: rowsPerPage,
+        fromDate,
+        toDate,
+      }));
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -161,10 +221,13 @@ const ProductTable: React.FC = () => {
               <Select
                 value={selectedCategory}
                 label="Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="All Categories">All Categories</MenuItem>
-                {categories.map((cat) => (
+                {categoryList.map((cat) => (
                   <MenuItem key={cat} value={cat}>
                     {cat}
                   </MenuItem>
@@ -177,10 +240,13 @@ const ProductTable: React.FC = () => {
               <Select
                 value={selectedBrand}
                 label="Brand"
-                onChange={(e) => setSelectedBrand(e.target.value)}
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  setPage(1);
+                }}
               >
                 <MenuItem value="All Brands">All Brands</MenuItem>
-                {brands.map((brand) => (
+                {brandList.map((brand) => (
                   <MenuItem key={brand} value={brand}>
                     {brand}
                   </MenuItem>
@@ -280,59 +346,78 @@ const ProductTable: React.FC = () => {
             </TableHead>
 
             <TableBody>
-              {paginatedData.map((product, index) => {
-                const closingStock = product.openingStock + product.quantity;
-                const taxableValue = product.quantity * product.perUnitRate;
-                const total = taxableValue + taxableValue * (product.gst / 100);
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={18} align="center">
+                    <CircularProgress size={24} sx={{ my: 2 }} />
+                  </TableCell>
+                </TableRow>
+              ) : paginatedData.length > 0 ? (
+                paginatedData.map((product: ProductType, index) => {
+                  const p = product as Record<string, unknown>;
+                  const openingStock = Number(p.openingStock) || Number(p.stock) || 0;
+                  const quantity = Number(p.quantity) || 0;
+                  const perUnitRate = Number(p.perUnitRate) || Number(p.price) || 0;
+                  const gst = Number(p.gst) || 0;
+                  const closingStock = openingStock + quantity;
+                  const taxableValue = quantity * perUnitRate;
+                  const total = taxableValue + taxableValue * (gst / 100);
 
-                return (
-                  <TableRow key={product.id} hover>
-                    <TableCell>{startIndex + index + 1}</TableCell>
-                    <TableCell>{safeValue(product.product_name)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={safeValue(product.category)}
-                        color="primary"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{safeValue(product.brand)}</TableCell>
-                    <TableCell>{safeValue(product.packSize)}</TableCell>
-                    <TableCell>{safeValue(product.unit)}</TableCell>
-                    <TableCell>{safeValue(product.shape)}</TableCell>
-                    <TableCell>{safeValue(product.colour)}</TableCell>
-                    <TableCell>{safeValue(product.printStatus)}</TableCell>
-                    <TableCell>{safeValue(product.openingStock)}</TableCell>
-                    <TableCell>{safeValue(product.quantity)}</TableCell>
-                    <TableCell>{safeValue(closingStock)}</TableCell>
-                    <TableCell>
-                      {dayjs(product.createdAt).format("DD-MM-YYYY")}
-                    </TableCell>
-                    <TableCell>₹{safeValue(product.perUnitRate)}</TableCell>
-                    <TableCell>₹{safeValue(taxableValue.toFixed(2))}</TableCell>
-                    <TableCell>{safeValue(product.gst)}%</TableCell>
-                    <TableCell>₹{safeValue(total.toFixed(2))}</TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Edit">
-                        <IconButton
+                  return (
+                    <TableRow key={product._id || product.id} hover>
+                      <TableCell>{startIndex + index + 1}</TableCell>
+                      <TableCell>{safeValue(p.productName || p.product_name || p.name)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={safeValue(p.category || p.categoryName)}
                           color="primary"
-                          onClick={() => handleEdit()}
-                        >
-                          <FiEdit />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          <FiTrash2 />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{safeValue(p.brand || p.brandName || p.companyName)}</TableCell>
+                      <TableCell>{safeValue(p.packSize || p.pack_size)}</TableCell>
+                      <TableCell>{safeValue(p.unit)}</TableCell>
+                      <TableCell>{safeValue(p.shape)}</TableCell>
+                      <TableCell>{safeValue(p.colour || p.color)}</TableCell>
+                      <TableCell>{safeValue(p.printStatus || p.print_status)}</TableCell>
+                      <TableCell>{safeValue(openingStock)}</TableCell>
+                      <TableCell>{safeValue(quantity)}</TableCell>
+                      <TableCell>{safeValue(closingStock)}</TableCell>
+                      <TableCell>
+                        {p.createdAt ? dayjs(p.createdAt).format("DD-MM-YYYY") : 'N.A'}
+                      </TableCell>
+                      <TableCell>₹{safeValue(perUnitRate)}</TableCell>
+                      <TableCell>₹{safeValue(taxableValue.toFixed(2))}</TableCell>
+                      <TableCell>{safeValue(gst)}%</TableCell>
+                      <TableCell>₹{safeValue(total.toFixed(2))}</TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Edit">
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleEdit()}
+                          >
+                            <FiEdit />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            color="error"
+                            onClick={() => handleDelete(product._id || product.id)}
+                          >
+                            <FiTrash2 />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={18} align="center">
+                    No products found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -345,7 +430,10 @@ const ProductTable: React.FC = () => {
             </Typography>
             <Select<number>
               value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(1);
+              }}
               size="small"
               sx={{ minWidth: 80 }}
             >

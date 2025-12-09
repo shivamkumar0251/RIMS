@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { FaStore, FaChartLine, FaHandsHelping, FaUtensils, FaPlus, FaMinus } from 'react-icons/fa';
 import Layout from '../layouts/Layout';
+import { submitFranchiseInquiry, clearInquiry } from '../redux/slices/franchiseInquirySlice';
+import { selectFranchiseInquiryLoading, selectFranchiseInquiryMessage, selectFranchiseInquiry } from '../redux/slices/franchiseInquirySlice';
+import type { AppDispatch } from '../redux/store/store';
 
 
 
@@ -50,23 +54,30 @@ const faqData = [
 // --- Main Franchise Page Component ---
 
 const FranchisePage: React.FC = () => {
-   useEffect(() => {
-        document.title = "Franchise Inquiry | Inventory Management System"
-        window.scrollTo(0, 0);
-      }, []);
+  const dispatch = useDispatch<AppDispatch>();
+  const loading = useSelector(selectFranchiseInquiryLoading);
+  const message = useSelector(selectFranchiseInquiryMessage);
+  const inquiry = useSelector(selectFranchiseInquiry);
+
+  useEffect(() => {
+    document.title = "Franchise Inquiry | Inventory Management System";
+    window.scrollTo(0, 0);
+    // Clear previous inquiry when component mounts
+    dispatch(clearInquiry());
+  }, [dispatch]);
 
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
-    city: '',
-    // 'investment' field removed from state
-    message: ''
+    address: '',
+    pincode: ''
   });
   
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  
+  const isSubmitted = !!message && !!inquiry;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -75,20 +86,42 @@ const FranchisePage: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: Partial<typeof formData> = {};
-    if (!formData.name) newErrors.name = 'Full Name is required.';
-    if (!formData.email) newErrors.email = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid.';
-    if (!formData.phone) newErrors.phone = 'Phone Number is required.';
-    if (!formData.city) newErrors.city = 'Proposed City is required.';
-    // 'investment' validation removed
+    if (!formData.fullName || formData.fullName.length < 2) {
+      newErrors.fullName = 'Full Name must be at least 2 characters.';
+    }
+    if (!formData.email) {
+      newErrors.email = 'Email is required.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid.';
+    }
+    if (!formData.phone) {
+      newErrors.phone = 'Phone Number is required.';
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      newErrors.phone = 'Phone must be exactly 10 digits.';
+    }
+    if (!formData.address) {
+      newErrors.address = 'Address is required.';
+    }
+    if (!formData.pincode) {
+      newErrors.pincode = 'Pincode is required.';
+    } else if (!/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Pincode must be exactly 6 digits.';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsSubmitted(true);
+      const phoneDigits = formData.phone.replace(/\D/g, '');
+      await dispatch(submitFranchiseInquiry({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: phoneDigits,
+        address: formData.address,
+        pincode: formData.pincode,
+      }));
     }
   };
   
@@ -146,35 +179,76 @@ const FranchisePage: React.FC = () => {
                         <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6" noValidate>
                             {/* Form Fields */}
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input type="text" id="name" name="name" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
-                                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                                <input 
+                                  type="text" 
+                                  id="fullName" 
+                                  name="fullName" 
+                                  value={formData.fullName}
+                                  onChange={handleInputChange} 
+                                  className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" 
+                                />
+                                {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                <input type="email" id="email" name="email" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                                <input 
+                                  type="email" 
+                                  id="email" 
+                                  name="email" 
+                                  value={formData.email}
+                                  onChange={handleInputChange} 
+                                  className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" 
+                                />
                                 {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                             </div>
                             <div>
-                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                                <input 
+                                  type="tel" 
+                                  id="phone" 
+                                  name="phone" 
+                                  value={formData.phone}
+                                  onChange={handleInputChange} 
+                                  className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" 
+                                  placeholder="9876543210"
+                                />
                                 {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                             </div>
-                             <div>
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">Proposed City / Location</label>
-                                <input type="text" id="city" name="city" onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
-                                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                            <div>
+                                <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
+                                <input 
+                                  type="text" 
+                                  id="pincode" 
+                                  name="pincode" 
+                                  value={formData.pincode}
+                                  onChange={handleInputChange} 
+                                  className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500" 
+                                  placeholder="123456"
+                                  maxLength={6}
+                                />
+                                {errors.pincode && <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>}
                             </div>
-                            
-                            {/* Investment Capacity Field has been removed */}
-
                             <div className="md:col-span-2">
-                                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Your Message (Optional)</label>
-                                <textarea id="message" name="message" rows={4} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500"></textarea>
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+                                <textarea 
+                                  id="address" 
+                                  name="address" 
+                                  rows={3} 
+                                  value={formData.address}
+                                  onChange={handleInputChange} 
+                                  className="w-full px-4 py-2 border rounded-md focus:ring-yellow-500 focus:border-yellow-500"
+                                  placeholder="Enter your full address"
+                                ></textarea>
+                                {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
                             </div>
                             <div className="md:col-span-2 text-center">
-                                <button type="submit" className="bg-yellow-500 text-black px-10 py-3 rounded-full font-semibold text-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105">
-                                    Submit Inquiry
+                                <button 
+                                  type="submit" 
+                                  disabled={loading}
+                                  className="bg-yellow-500 text-black px-10 py-3 rounded-full font-semibold text-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {loading ? 'Submitting...' : 'Submit Inquiry'}
                                 </button>
                             </div>
                         </form>

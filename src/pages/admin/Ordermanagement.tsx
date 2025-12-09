@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockOrders as allOrdersData, type Order } from "../../data/ordersWithDetails";
+import { useDispatch, useSelector } from "react-redux";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { getOrders, selectOrders, selectOrderLoading } from "../../redux/slices/orderSlice";
+import type { AppDispatch } from "../../redux/store/store";
+import type { Order } from "../../redux/slices/orderSlice";
 
 // Define the tabs with their display names and corresponding status values
 const TABS = [
@@ -12,19 +15,32 @@ const TABS = [
 ];
 
 export default function OrderManagementPage() {
-  // Set the initial active tab to the status of the first tab
-  const [activeTab, setActiveTab] = useState(TABS[0].status);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const dispatch = useDispatch<AppDispatch>();
+  const orders = useSelector(selectOrders);
+  const loading = useSelector(selectOrderLoading);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // This logic correctly filters orders based on the active tab's status
-    const filtered = allOrdersData.filter(o => o.status === activeTab);
-    setFilteredOrders(filtered);
-  }, [activeTab]);
+  // Set the initial active tab to the status of the first tab
+  const [activeTab, setActiveTab] = useState(TABS[0].status);
 
-  const renderOrders = (orders: Order[]) => {
-    if (orders.length === 0) {
+  // Fetch orders
+  useEffect(() => {
+    dispatch(getOrders({ page: 1, limit: 1000 }));
+  }, [dispatch]);
+
+  // Filter orders by status
+  const filteredOrders = orders.filter((order: Order) => {
+    const orderData = order as Record<string, unknown>;
+    const status = String(orderData.status || 'Pending');
+    return status === activeTab;
+  });
+
+  const renderOrders = (ordersList: Order[]) => {
+    if (loading) {
+      return <div className="text-center p-8 bg-white rounded-lg shadow-xl text-slate-500">Loading orders...</div>;
+    }
+
+    if (ordersList.length === 0) {
       return <div className="text-center p-8 bg-white rounded-lg shadow-xl text-slate-500">No orders found in this category.</div>
     }
 
@@ -35,34 +51,45 @@ export default function OrderManagementPage() {
       <>
         {/* Mobile View */}
         <div className="space-y-4 md:hidden">
-          {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-lg shadow-lg p-4 border border-slate-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-bold text-slate-800">{order.id}</p>
-                  <p className="text-xs text-slate-500">{order.orderDate}</p>
+          {ordersList.map((order: Order) => {
+            const orderData = order as Record<string, unknown>;
+            const orderId = String(orderData._id || orderData.id || '');
+            const orderDate = orderData.orderDate || orderData.createdAt || '';
+            const totalAmount = Number(orderData.totalAmount || orderData.total || 0);
+            const customerName = String(orderData.customerName || orderData.customer || 'N.A');
+            const userId = String(orderData.userId || orderData.user || 'N.A');
+            const items = (orderData.items || []) as Array<Record<string, unknown>>;
+            const totalItems = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+            return (
+              <div key={order._id} className="bg-white rounded-lg shadow-lg p-4 border border-slate-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-slate-800">{orderId}</p>
+                    <p className="text-xs text-slate-500">{String(orderDate)}</p>
+                  </div>
+                  <p className="font-bold text-lg text-slate-900">₹{totalAmount.toLocaleString("en-IN")}</p>
                 </div>
-                <p className="font-bold text-lg text-slate-900">₹{order.totalAmount.toLocaleString("en-IN")}</p>
+                <div className="mt-4 pt-4 border-t border-slate-200 text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Customer:</span>
+                    <span className="font-medium text-slate-700">{customerName} ({userId})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Total Items:</span>
+                    <span className="font-medium text-slate-700">{totalItems}</span>
+                  </div>
+                </div>
+                {showActionButton && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <button onClick={() => navigate(`/admin/order-details/${order._id}`)} className="w-full px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors">
+                      View & Process
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="mt-4 pt-4 border-t border-slate-200 text-sm space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Customer:</span>
-                  <span className="font-medium text-slate-700">{order.customerName} ({order.userId})</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Total Items:</span>
-                  <span className="font-medium text-slate-700">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-                </div>
-              </div>
-              {showActionButton && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <button onClick={() => navigate(`/admin/order-details/${order.id}`)} className="w-full px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors">
-                    View & Process
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Desktop View */}
@@ -78,27 +105,38 @@ export default function OrderManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-b border-slate-200 hover:bg-slate-50">
-                  <td className="p-4 font-medium text-slate-800">
-                    <div>{order.id}</div>
-                    <div className="text-xs text-slate-400">{order.orderDate}</div>
-                  </td>
-                  <td className="p-4 text-slate-600">
-                    <div>{order.customerName}</div>
-                    <div className="text-xs text-slate-400">{order.userId}</div>
-                  </td>
-                  <td className="p-4 text-slate-600">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="p-4 font-semibold">₹{order.totalAmount.toLocaleString("en-IN")}</td>
-                  {showActionButton && (
-                    <td className="p-4 text-center">
-                      <button onClick={() => navigate(`/admin/order-details/${order.id}`)} className="px-4 py-2 bg-blue-500 text-white text-xs font-semibold rounded-full hover:bg-blue-600 transition-colors">
-                        View & Process
-                      </button>
+              {ordersList.map((order: Order) => {
+                const orderData = order as Record<string, unknown>;
+                const orderId = String(orderData._id || orderData.id || '');
+                const orderDate = orderData.orderDate || orderData.createdAt || '';
+                const totalAmount = Number(orderData.totalAmount || orderData.total || 0);
+                const customerName = String(orderData.customerName || orderData.customer || 'N.A');
+                const userId = String(orderData.userId || orderData.user || 'N.A');
+                const items = (orderData.items || []) as Array<Record<string, unknown>>;
+                const totalItems = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+                return (
+                  <tr key={order._id} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="p-4 font-medium text-slate-800">
+                      <div>{orderId}</div>
+                      <div className="text-xs text-slate-400">{String(orderDate)}</div>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="p-4 text-slate-600">
+                      <div>{customerName}</div>
+                      <div className="text-xs text-slate-400">{userId}</div>
+                    </td>
+                    <td className="p-4 text-slate-600">{totalItems}</td>
+                    <td className="p-4 font-semibold">₹{totalAmount.toLocaleString("en-IN")}</td>
+                    {showActionButton && (
+                      <td className="p-4 text-center">
+                        <button onClick={() => navigate(`/admin/order-details/${order._id}`)} className="px-4 py-2 bg-blue-500 text-white text-xs font-semibold rounded-full hover:bg-blue-600 transition-colors">
+                          View & Process
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

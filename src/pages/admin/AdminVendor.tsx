@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
   Button,
@@ -18,45 +19,74 @@ import {
   TableRow,
   Paper,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import { FiSearch, FiDownload, FiUpload, FiEdit, FiTrash2 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
-import { vendorData } from "../../data/VendorDummyData";
 import { DateRangeFilter, type DateRangeValue } from "../../components/common/DateRangeFilter";
+import { getVendors, deleteVendor } from "../../redux/slices/vendorSlice";
+import { selectVendors, selectVendorLoading, selectAllVendorsData } from "../../redux/slices/vendorSlice";
+import type { AppDispatch } from "../../redux/store/store";
 import dayjs from "dayjs";
 
 const AdminVendor: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const vendors = useSelector(selectVendors);
+  const loading = useSelector(selectVendorLoading);
+  const allVendorsData = useSelector(selectAllVendorsData);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
 
-  // 🔍 Filtered data (search + date)
-  const filteredData = useMemo(() => {
-    return vendorData.filter((vendor) => {
-      const matchesSearch = vendor.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+    const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+    dispatch(getVendors({ 
+      search: searchTerm, 
+      page, 
+      limit: rowsPerPage,
+      fromDate,
+      toDate,
+    }));
+  }, [dispatch, searchTerm, page, rowsPerPage, dateRange]);
 
-      if (dateRange[0] && dateRange[1]) {
-        const vendorDate = dayjs(vendor.date);
+  // 🔍 Filtered data (search + date) - client-side filtering for additional filtering if needed
+  const filteredData = useMemo(() => {
+    if (!vendors || vendors.length === 0) return [];
+    
+    return vendors.filter((vendor) => {
+      const matchesSearch = (vendor.vendorName || vendor.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (dateRange[0] && dateRange[1] && vendor.createdAt) {
+        const vendorDate = dayjs(vendor.createdAt);
         const start = dateRange[0];
         const end = dateRange[1];
-        const inRange =
-          vendorDate.isAfter(start, "day") && vendorDate.isBefore(end, "day");
+        const inRange = vendorDate.isAfter(start, "day") && vendorDate.isBefore(end, "day");
         return matchesSearch && inRange;
       }
 
       return matchesSearch;
     });
-  }, [searchTerm, dateRange]);
+  }, [vendors, searchTerm, dateRange]);
 
   // 📄 Pagination
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = allVendorsData?.totalPages || Math.ceil((filteredData.length || 0) / rowsPerPage);
   const paginatedData = filteredData.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
+
+  const handleDelete = async (vendorId: string) => {
+    if (window.confirm('Are you sure you want to delete this vendor?')) {
+      await dispatch(deleteVendor(vendorId));
+      // Refresh the list
+      const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
+      const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
+      dispatch(getVendors({ search: searchTerm, page, limit: rowsPerPage, fromDate, toDate }));
+    }
+  };
 
   return (
     <AdminLayout>
@@ -131,25 +161,31 @@ const AdminVendor: React.FC = () => {
             </TableHead>
 
             <TableBody>
-              {paginatedData.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <CircularProgress size={24} />
+                  </TableCell>
+                </TableRow>
+              ) : paginatedData.length > 0 ? (
                 paginatedData.map((vendor, index) => (
-                  <TableRow key={vendor.id}>
+                  <TableRow key={vendor._id || vendor.id}>
                     <TableCell>{(page - 1) * rowsPerPage + index + 1}</TableCell>
-                    <TableCell>{vendor.name}</TableCell>
-                    <TableCell>₹{vendor.amount.toLocaleString()}</TableCell>
+                    <TableCell>{vendor.vendorName || vendor.name || 'N/A'}</TableCell>
+                    <TableCell>₹{(vendor as any).amount?.toLocaleString() || '0'}</TableCell>
                     <TableCell>
                       <span
                         className={`px-3 py-1 rounded-full text-sm ${
-                          vendor.paymentStatus === "Paid"
+                          (vendor as any).paymentStatus === "Paid"
                             ? "bg-green-100 text-green-700"
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {vendor.paymentStatus}
+                        {(vendor as any).paymentStatus || 'Pending'}
                       </span>
                     </TableCell>
-                    <TableCell>{vendor.closing}</TableCell>
-                    <TableCell>{dayjs(vendor.date).format("DD MMM YYYY")}</TableCell>
+                    <TableCell>{(vendor as any).closing || 'N/A'}</TableCell>
+                    <TableCell>{vendor.createdAt ? dayjs(vendor.createdAt).format("DD MMM YYYY") : 'N/A'}</TableCell>
                     <TableCell>
                       <Box className="flex gap-3">
                         <Tooltip title="Edit">
@@ -164,6 +200,7 @@ const AdminVendor: React.FC = () => {
                             size="small"
                             color="error"
                             startIcon={<FiTrash2 />}
+                            onClick={() => handleDelete(vendor._id || vendor.id)}
                           />
                         </Tooltip>
                       </Box>
