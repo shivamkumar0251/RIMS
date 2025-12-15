@@ -1,327 +1,325 @@
 import {
-    Box,
     Button,
-    Card,
-    CardContent,
+    Checkbox,
     CircularProgress,
-    IconButton,
-    InputAdornment,
     MenuItem,
-    Pagination,
     Paper,
-    Select,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
-    TextField,
-    Tooltip,
-    Typography,
+    TextField
 } from "@mui/material";
 import dayjs from "dayjs";
-import { useMemo, useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import {
-    FiFileText,
-    FiRefreshCw,
-    FiSearch,
-    FiTable,
-    FiTrash2,
-    FiUpload,
-} from "react-icons/fi";
-import DateRangeFilter, { type DateRangeValue } from "../../components/common/DateRangeFilter";
+import React, { useEffect, useState } from "react";
+import { FiSend } from "react-icons/fi";
+
 import { AdminLayout } from "../../layouts/AdminLayout";
-import { getConsumableStocks, deleteConsumableStock, selectConsumableStocks, selectConsumableStockLoading, selectAllConsumableStocksData } from "../../redux/slices/consumableStockSlice";
-import type { AppDispatch } from "../../redux/store/store";
-import type { ConsumableStock } from "../../redux/slices/consumableStockSlice";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
-export default function Consumables() {
-    const dispatch = useDispatch<AppDispatch>();
-    const consumableStocks = useSelector(selectConsumableStocks);
-    const loading = useSelector(selectConsumableStockLoading);
-    const allConsumableStocksData = useSelector(selectAllConsumableStocksData);
+import {
+    addConsumableStock,
+    getConsumableStocks,
+    selectConsumableStockState
+} from "../../redux/slices/consumableStockSlice";
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
-    const [page, setPage] = useState(1);
+import {
+    getCategories,
+    selectCategories
+} from "../../redux/slices/categorySlice";
 
-    // Fetch consumable stocks when filters change
-    useEffect(() => {
-        const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
-        const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
-        dispatch(getConsumableStocks({ 
-            search: searchTerm, 
-            page, 
-            limit: rowsPerPage,
-            fromDate,
-            toDate,
-        }));
-    }, [dispatch, searchTerm, page, rowsPerPage, dateRange]);
+import {
+    getCompanies,
+    selectCompanies
+} from "../../redux/slices/companySlice";
 
-    // ---- Pagination ----
-    const totalPages = allConsumableStocksData?.totalPages || 1;
+import {
+    getVendorNameList,
+    selectVendorNames
+} from "../../redux/slices/vendorSlice";
 
-    // ---- Delete ----
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this consumable stock?')) {
-            await dispatch(deleteConsumableStock(id));
-        }
-    };
+import type { ConsumableStockPostData } from "../../redux/slices/consumableStockSlice";
 
-    const handleRefresh = () => {
-        setSearchTerm("");
-        setDateRange([null, null]);
-        setPage(1);
-        dispatch(getConsumableStocks({ search: '', page: 1, limit: rowsPerPage }));
-    };
+const Consumables: React.FC = () => {
+  const dispatch = useAppDispatch();
 
-    const safeValue = (val: unknown) =>
-        val === null || val === undefined || val === "" ? "N.A" : String(val);
+  const { loading, consumableStocks, allConsumableStocksData } =
+    useAppSelector(selectConsumableStockState);
 
-    return (
-        <AdminLayout>
-            <Box sx={{ p: 3, backgroundColor: "#f9fafb", minHeight: "100vh" }}>
-                {/* Header */}
-                <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    flexWrap="wrap"
-                    mb={2}
-                >
-                    {/* Left Controls */}
-                    <Box
-                        sx={{
-                            display: "flex",
-                            gap: 2,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                        }}
-                    >
-                        <TextField
-                            placeholder="Search Products..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <FiSearch />
-                                    </InputAdornment>
-                                ),
-                            }}
-                            sx={{ minWidth: 250 }}
-                        />
-                        <DateRangeFilter
-                            value={dateRange}
-                            onChange={setDateRange}
-                            fullWidth={false}
-                            size="small"
-                        />
-                    </Box>
+  const categories = useAppSelector(selectCategories);
+  const companies = useAppSelector(selectCompanies);
+  const vendors = useAppSelector(selectVendorNames);
 
-                    {/* Right Controls */}
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                        <Tooltip title="Export PDF">
-                            <IconButton
-                                sx={{
-                                    backgroundColor: "#f44336",
-                                    color: "white",
-                                    transition: "0.3s",
-                                    "&:hover": {
-                                        backgroundColor: "#d32f2f",
-                                        transform: "scale(1.05)",
-                                    },
-                                }}
-                            >
-                                <FiFileText />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Export Excel">
-                            <IconButton
-                                sx={{
-                                    backgroundColor: "#4caf50",
-                                    color: "white",
-                                    transition: "0.3s",
-                                    "&:hover": {
-                                        backgroundColor: "#388e3c",
-                                        transform: "scale(1.05)",
-                                    },
-                                }}
-                            >
-                                <FiTable />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Refresh">
-                            <IconButton
-                                onClick={handleRefresh}
-                                sx={{
-                                    backgroundColor: "#2196f3",
-                                    color: "white",
-                                    transition: "0.3s",
-                                    "&:hover": {
-                                        backgroundColor: "#1976d2",
-                                        transform: "scale(1.05)",
-                                    },
-                                }}
-                            >
-                                <FiRefreshCw />
-                            </IconButton>
-                        </Tooltip>
-                        <Button
-                            variant="contained"
-                            startIcon={<FiUpload />}
-                            sx={{
-                                transition: "0.3s",
-                                "&:hover": { transform: "scale(1.05)" },
-                            }}
-                        >
-                            Import
-                        </Button>
-                    </Box>
-                </Box>
+  // ---------------- Filters ----------------
+  const [categoryId, setCategoryId] = useState("");
+  const [vendorId, setVendorId] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
-                {/* Table */}
-                <Card sx={{ boxShadow: 4, borderRadius: 3 }}>
-                    <CardContent>
-                        <Typography variant="h6" mb={2}>
-                            Consumables List
-                        </Typography>
+  // ---------------- Pagination ----------------
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(10);
 
-                        <TableContainer component={Paper}>
-                            <Table>
-                                <TableHead sx={{ backgroundColor: "#e3f2fd" }}>
-                                    <TableRow>
-                                        <TableCell>S.No</TableCell>
-                                        <TableCell>Product Name</TableCell>
-                                        <TableCell>Category</TableCell>
-                                        <TableCell>Brand</TableCell>
-                                        <TableCell>Pack Size</TableCell>
-                                        <TableCell>Unit</TableCell>
-                                        <TableCell>Consumed Item</TableCell>
-                                        <TableCell>Per Unit Rate</TableCell>
-                                        <TableCell>Taxable Value</TableCell>
-                                        <TableCell>GST (%)</TableCell>
-                                        <TableCell>Total</TableCell>
-                                        <TableCell>Created Date</TableCell>
-                                        <TableCell align="center">Action</TableCell>
-                                    </TableRow>
-                                </TableHead>
+  // ---------------- Selection & Inputs ----------------
+  const [selected, setSelected] = useState<string[]>([]);
+  const [usageMap, setUsageMap] = useState<Record<string, number>>({});
+  const [wastageMap, setWastageMap] = useState<Record<string, number>>({});
 
-                                <TableBody>
-                                    {loading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={13} align="center">
-                                                <CircularProgress size={24} sx={{ my: 2 }} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : consumableStocks.length > 0 ? (
-                                        consumableStocks.map((item: ConsumableStock, idx) => {
-                                            const itemData = item as Record<string, unknown>;
-                                            const productName = String(itemData.productName || itemData.name || 'N.A');
-                                            const category = String(itemData.category || itemData.categoryName || 'N.A');
-                                            const brand = String(itemData.brand || itemData.brandName || itemData.companyName || 'N.A');
-                                            const packSize = String(itemData.packSize || 'N.A');
-                                            const unit = String(itemData.unit || 'N.A');
-                                            const consumables = Number(itemData.consumables || itemData.consumedStock || 0);
-                                            const perUnitRate = Number(itemData.perUnitRate || itemData.price || 0);
-                                            const taxableValue = Number(itemData.taxableValue || consumables * perUnitRate);
-                                            const gst = Number(itemData.gst || 0);
-                                            const total = Number(itemData.total || taxableValue + (taxableValue * gst / 100));
-                                            const createdDate = itemData.createdAt 
-                                                ? dayjs(String(itemData.createdAt)).format('M/D/YYYY')
-                                                : itemData.createdDate 
-                                                ? String(itemData.createdDate)
-                                                : 'N.A';
+  // ---------------- Fetch master data ----------------
+  useEffect(() => {
+    dispatch(getCategories({page:1, limit:1000}));
+    dispatch(getCompanies({page:1, limit:1000}));
+    dispatch(getVendorNameList());
+  }, [dispatch]);
 
-                                            return (
-                                                <TableRow key={item._id}>
-                                                    <TableCell>
-                                                        {(page - 1) * rowsPerPage + idx + 1}
-                                                    </TableCell>
-                                                    <TableCell>{safeValue(productName)}</TableCell>
-                                                    <TableCell>{safeValue(category)}</TableCell>
-                                                    <TableCell>{safeValue(brand)}</TableCell>
-                                                    <TableCell>{safeValue(packSize)}</TableCell>
-                                                    <TableCell>{safeValue(unit)}</TableCell>
-                                                    <TableCell>{consumables}</TableCell>
-                                                    <TableCell>₹{perUnitRate.toFixed(2)}</TableCell>
-                                                    <TableCell>₹{taxableValue.toFixed(2)}</TableCell>
-                                                    <TableCell>{gst}%</TableCell>
-                                                    <TableCell>₹{total.toFixed(2)}</TableCell>
-                                                    <TableCell>{createdDate}</TableCell>
-                                                    <TableCell align="center">
-                                                        <Tooltip title="Delete">
-                                                            <IconButton
-                                                                sx={{
-                                                                    color: "white",
-                                                                    backgroundColor: "#f44336",
-                                                                    "&:hover": {
-                                                                        backgroundColor: "#d32f2f",
-                                                                        transform: "scale(1.1)",
-                                                                    },
-                                                                    transition: "0.3s",
-                                                                }}
-                                                                onClick={() => handleDelete(item._id)}
-                                                            >
-                                                                <FiTrash2 />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={13} align="center">
-                                                No consumable stocks found
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-                        {/* Pagination */}
-                        <Box
-                            sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                mt: 2,
-                                alignItems: "center",
-                            }}
-                        >
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Typography variant="body2" sx={{ color: "#666" }}>
-                                    Rows per page
-                                </Typography>
-                                <Select<number>
-                                    value={rowsPerPage}
-                                    onChange={(e) =>
-                                        setRowsPerPage(Number(e.target.value))
-                                    }
-                                    size="small"
-                                    sx={{ minWidth: 80 }}
-                                >
-                                    <MenuItem value={5}>5</MenuItem>
-                                    <MenuItem value={10}>10</MenuItem>
-                                    <MenuItem value={25}>25</MenuItem>
-                                </Select>
-                            </Box>
-                            <Pagination
-                                count={totalPages}
-                                page={page}
-                                onChange={(_, value) => setPage(value)}
-                                color="primary"
-                                showFirstButton
-                                showLastButton
-                            />
-                        </Box>
-                    </CardContent>
-                </Card>
-            </Box>
-        </AdminLayout>
+  // ---------------- Fetch consumables ----------------
+  useEffect(() => {
+    dispatch(
+      getConsumableStocks({
+        page: page + 1,
+        limit,
+        categoryId,
+        vendorId,
+        companyId,
+        fromDate,
+        toDate
+      })
     );
-}
+  }, [dispatch, page, limit, categoryId, vendorId, companyId, fromDate, toDate]);
+
+  // ---------------- Selection logic ----------------
+  const toggleRow = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selected.length === consumableStocks.length) {
+      setSelected([]);
+    } else {
+      setSelected(consumableStocks.map((s) => s.productId._id));
+    }
+  };
+
+  // ---------------- Submit to backend ----------------
+  const handleSubmit = () => {
+    const payload: ConsumableStockPostData[] = selected.map((productId) => ({
+      productId,
+      transfersToUsage: usageMap[productId] || 0,
+      transfersToWastage: wastageMap[productId] || 0
+    }));
+
+    if (!payload.length) return;
+
+    dispatch(addConsumableStock(payload));
+    setSelected([]);
+    setUsageMap({});
+    setWastageMap({});
+  };
+console.log('consumableStocks', consumableStocks);
+
+  // ---------------- Render ----------------
+  return (
+    <AdminLayout>
+      <div className="p-4 space-y-4">
+        {/* ---------------- Filters ---------------- */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <TextField
+            select
+            size="small"
+            label="Category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {categories.map((c) => (
+              <MenuItem key={c._id} value={c._id}>
+                {c.categoryName}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            size="small"
+            label="Vendor"
+            value={vendorId}
+            onChange={(e) => setVendorId(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {vendors.map((v) => (
+              <MenuItem key={v._id} value={v._id}>
+                {v.vendor_name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            size="small"
+            label="Company"
+            value={companyId}
+            onChange={(e) => setCompanyId(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {companies.map((c) => (
+              <MenuItem key={c._id} value={c._id}>
+                {c.brandName}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            size="small"
+            type="date"
+            label="From"
+            InputLabelProps={{ shrink: true }}
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+
+          <TextField
+            size="small"
+            type="date"
+            label="To"
+            InputLabelProps={{ shrink: true }}
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
+        </div>
+         {/* ---------------- Submit ---------------- */}
+        <div className="flex justify-end">
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<FiSend />}
+            disabled={!selected.length}
+            onClick={handleSubmit}
+          >
+            Post to Usage / Wastage
+          </Button>
+        </div>
+
+        {/* ---------------- Table ---------------- */}
+        <Paper>
+          <TableContainer>
+            <Table size="small">
+              <TableHead className="bg-gray-100">
+                <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={
+                        selected.length === consumableStocks.length &&
+                        consumableStocks.length > 0
+                      }
+                      onChange={toggleAll}
+                    />
+                  </TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Vendor</TableCell>
+                  <TableCell>Company</TableCell>
+                  <TableCell>Product</TableCell>
+                  <TableCell>Pack</TableCell>
+                  <TableCell>Unit</TableCell>
+                  <TableCell>Opening</TableCell>
+                  <TableCell>Received</TableCell>
+                  <TableCell>Usage</TableCell>
+                  <TableCell>Wastage</TableCell>
+                  <TableCell>Closing</TableCell>
+                  <TableCell>Date</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={13} align="center">
+                      <CircularProgress size={24} />
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {consumableStocks.map((row) => {
+                  const pid = row.productId?._id;
+
+                  return (
+                    <TableRow key={row._id} hover>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selected.includes(pid)}
+                          onChange={() => toggleRow(pid)}
+                        />
+                      </TableCell>
+
+                      <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
+                      <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
+                      <TableCell>{row.productId?.companyId?.brandName}</TableCell>
+                      <TableCell>{row.productId?.productName}</TableCell>
+                      <TableCell>{row.productId?.packSize}</TableCell>
+                      <TableCell>{row.productId?.unit}</TableCell>
+                      <TableCell>{row?.openingStock}</TableCell>
+                      <TableCell>{row?.rcvdKitchenQty}</TableCell>
+
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={usageMap[pid] || ""}
+                          onChange={(e) =>
+                            setUsageMap({
+                              ...usageMap,
+                              [pid]: Number(e.target.value)
+                            })
+                          }
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={wastageMap[pid] || ""}
+                          onChange={(e) =>
+                            setWastageMap({
+                              ...wastageMap,
+                              [pid]: Number(e.target.value)
+                            })
+                          }
+                        />
+                      </TableCell>
+
+                      <TableCell>{row.closingStock}</TableCell>
+                      <TableCell>
+                        {dayjs(row.createdAt).format("DD/MM/YYYY")}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* ---------------- Pagination ---------------- */}
+          <TablePagination
+            component="div"
+            count={allConsumableStocksData?.pagination.total || 0}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={limit}
+            onRowsPerPageChange={(e) => {
+              setLimit(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          />
+        </Paper>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default Consumables;

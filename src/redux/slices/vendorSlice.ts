@@ -7,16 +7,11 @@ import type { RootState } from '../store/store';
 // ---------------- Types ----------------
 export interface Vendor {
   _id: string;
-  vendorName?: string;
-  [key: string]: any;
+  vendor_name?: string;
 }
-
-interface VendorState {
-  loading: boolean;
-  error: string | null;
-  vendors: Vendor[];
-  vendorNames: string[];
-  allVendorsData: GetVendorsResponse | null;
+export interface GetVendorNameListResponse {
+  success: boolean;
+  data: Vendor[];
 }
 
 // ---------------- BULK UPLOAD VENDOR via EXCEL ----------------
@@ -25,32 +20,65 @@ export interface BulkVendorExcelResponse {
   inserted: number;
   failed: number;
   errors?: { row: number; message: string }[];
-  data: Vendor[];
+  data: GetVendorData[];
 }
 
-// GET vendors
-interface GetVendorsResponse {
+export interface GetVendorData {
+  _id: string,
+  franchiseId: string,
+  vendor_name: string,
+  vendor_mobileNo: string,
+  vendor_address: string,
+  vendor_state: string,
+  vendor_country: string,
+  vendor_pinCode: string,
+  vendor_bankName: string,
+  vendor_accountNumber: string,
+  vendor_ifscCode: string,
+  vendor_paymentTerms: string,
+  vendor_preferredPaymentMode: string,
+  vendor_creditLimit: number,
+  vendor_outstandingBalance: number,
+  vendor_gstType: string,
+  vendor_registrationType: string,
+  vendor_gstNumber: string,
+  vendor_openingBalance: number,
+  createdAt: string
+}
+export type VendorFormType = Omit<
+  GetVendorData,
+  "_id" | "createdAt" | "franchiseId"
+>;
+
+export interface GetVendorResponse {
   success: boolean;
+  data: GetVendorData[];
   total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: Vendor[];
+  page: number;
+  limit: number;
+}
+interface VendorState {
+  loading: boolean;
+  error: string | null;
+  vendorsNameList: Vendor[];
+  vendorsData: GetVendorData[];
+  allVendorsData: GetVendorResponse | null;
 }
 
 // ---------------- Initial State ----------------
 const initialState: VendorState = {
   loading: false,
   error: null,
-  vendors: [],
-  vendorNames: [],
+  vendorsNameList: [],
+  vendorsData: [],
   allVendorsData: null,
 };
+
 
 // ---------------- Thunks ----------------
 // GET VENDOR NAME LIST
 export const getVendorNameList = createAsyncThunk<
-  string[],
+  GetVendorNameListResponse,
   void,
   { rejectValue: { message: string } }
 >(
@@ -63,7 +91,7 @@ export const getVendorNameList = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as string[];
+        return response.data as GetVendorNameListResponse;
       }
 
       return thunkAPI.rejectWithValue({
@@ -79,7 +107,7 @@ export const getVendorNameList = createAsyncThunk<
 );
 
 export const getVendors = createAsyncThunk<
-  GetVendorsResponse,
+  GetVendorResponse,
   { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
   { rejectValue: { message: string } }
 >(
@@ -91,7 +119,7 @@ export const getVendors = createAsyncThunk<
       const response = await apiCaller({ url, method: 'GET' });
 
       if (response.status === 200) {
-        const body = response.data as GetVendorsResponse;
+        const body = response.data as GetVendorResponse;
         return body;
       }
 
@@ -109,8 +137,8 @@ export const getVendors = createAsyncThunk<
 
 // ADD VENDOR
 export const addVendor = createAsyncThunk<
-  Vendor,
-  Partial<Vendor>,
+  GetVendorData,
+  Partial<GetVendorData>,
   { rejectValue: { message: string } }
 >(
   'vendor/addVendor',
@@ -123,7 +151,7 @@ export const addVendor = createAsyncThunk<
       });
 
       if (response.status === 201) {
-        return response?.data as Vendor;
+        return response?.data as GetVendorData;
       }
 
       return thunkAPI.rejectWithValue({
@@ -174,8 +202,8 @@ export const addVendorBulkExcel = createAsyncThunk<
 
 // UPDATE VENDOR
 export const updateVendor = createAsyncThunk<
-  Vendor,
-  { vendorId: string; vendorData: Partial<Vendor> },
+  GetVendorData,
+  { vendorId: string; vendorData: Partial<GetVendorData> },
   { rejectValue: { message: string } }
 >(
   'vendor/updateVendor',
@@ -188,7 +216,7 @@ export const updateVendor = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as Vendor;
+        return response.data as GetVendorData;
       }
 
       return thunkAPI.rejectWithValue({
@@ -247,7 +275,7 @@ const vendorSlice = createSlice({
       })
       .addCase(getVendorNameList.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendorNames = action.payload;
+        state.vendorsNameList = action.payload.data;
       })
       .addCase(getVendorNameList.rejected, (state, action) => {
         state.loading = false;
@@ -262,7 +290,7 @@ const vendorSlice = createSlice({
       .addCase(getVendors.fulfilled, (state, action) => {
         state.loading = false;
         state.allVendorsData = action.payload;
-        state.vendors = action.payload.data;
+        state.vendorsData = action.payload.data;
       })
       .addCase(getVendors.rejected, (state, action) => {
         state.loading = false;
@@ -276,7 +304,7 @@ const vendorSlice = createSlice({
       })
       .addCase(addVendor.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendors.push(action.payload);
+        state.vendorsData.push(action.payload);
       })
       .addCase(addVendor.rejected, (state, action) => {
         state.loading = false;
@@ -291,7 +319,7 @@ const vendorSlice = createSlice({
 
         // Merge uploaded vendors into existing list
         if (action.payload?.data?.length) {
-          state.vendors = [...state.vendors, ...action.payload.data];
+          state.vendorsData = [...state.vendorsData, ...action.payload.data];
         }
       })
       .addCase(addVendorBulkExcel.rejected, (state, action) => {
@@ -306,7 +334,7 @@ const vendorSlice = createSlice({
       })
       .addCase(updateVendor.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendors = state.vendors.map((vendor) =>
+        state.vendorsData = state.vendorsData.map((vendor) =>
           vendor._id === action.payload._id ? action.payload : vendor
         );
       })
@@ -322,7 +350,7 @@ const vendorSlice = createSlice({
       })
       .addCase(deleteVendor.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendors = state.vendors.filter(
+        state.vendorsData = state.vendorsData.filter(
           (vendor) => vendor._id !== action.payload.vendorId
         );
       })
@@ -335,11 +363,10 @@ const vendorSlice = createSlice({
 
 // ---------------- Selectors ----------------
 export const selectVendorState = (state: RootState) => state.vendor;
-export const selectVendors = (state: RootState) => state.vendor.vendors;
-export const selectVendorNames = (state: RootState) => state.vendor.vendorNames;
+export const selectVendors = (state: RootState) => state.vendor.vendorsData;
+export const selectVendorNames = (state: RootState) => state.vendor.vendorsNameList;
 export const selectVendorLoading = (state: RootState) => state.vendor.loading;
 export const selectAllVendorsData = (state: RootState) => state.vendor.allVendorsData;
 
 // ---------------- Exports ----------------
 export default vendorSlice.reducer;
-

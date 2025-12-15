@@ -3,31 +3,47 @@ import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
+import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
-export interface KitchenStock {
-  _id: string;
-  [key: string]: any;
+
+export interface KitchenStockPost {
+  productId: string;
+  qty: number
 }
 
+export interface KitchenStock {
+  _id: string;
+  franchiseId: string;
+  productId: ProductInterface;
+  openingStock: number;
+  rcvdKitchenQty: number;
+  transfersToConsumable: number;
+  closingStock: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+// GET kitchen stocks
+interface GetKitchenStocksResponse {
+  success: boolean;
+  data: KitchenStock[];
+  pagination: PaginationInfo;
+}
+
+// ---------------- Initial State ----------------
 interface KitchenStockState {
   loading: boolean;
   error: string | null;
   kitchenStocks: KitchenStock[];
   allKitchenStocksData: GetKitchenStocksResponse | null;
 }
-
-// GET kitchen stocks
-interface GetKitchenStocksResponse {
-  success: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: KitchenStock[];
-}
-
-// ---------------- Initial State ----------------
 const initialState: KitchenStockState = {
   loading: false,
   error: null,
@@ -38,13 +54,13 @@ const initialState: KitchenStockState = {
 // ---------------- Thunks ----------------
 export const getKitchenStocks = createAsyncThunk<
   GetKitchenStocksResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, categoryId?: string, vendorId?: string, companyId?: string, },
   { rejectValue: { message: string } }
 >(
   'kitchenStock/getKitchenStocks',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_KITCHEN_STOCK}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_KITCHEN_STOCK}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -68,14 +84,14 @@ export const getKitchenStocks = createAsyncThunk<
 // ADD KITCHEN STOCK
 export const addKitchenStock = createAsyncThunk<
   KitchenStock,
-  Partial<KitchenStock>,
+  KitchenStockPost[],
   { rejectValue: { message: string } }
 >(
   'kitchenStock/addKitchenStock',
   async (kitchenStockData, thunkAPI) => {
     try {
       const response = await apiCaller({
-        url: API_ENDPOINTS.ADD_KITCHEN_STOCK,
+        url: API_ENDPOINTS.ADD_BULK_KITCHEN_STOCK,
         method: 'POST',
         data: kitchenStockData,
       });
@@ -184,9 +200,8 @@ const kitchenStockSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(addKitchenStock.fulfilled, (state, action) => {
+      .addCase(addKitchenStock.fulfilled, (state) => {
         state.loading = false;
-        state.kitchenStocks.push(action.payload);
       })
       .addCase(addKitchenStock.rejected, (state, action) => {
         state.loading = false;

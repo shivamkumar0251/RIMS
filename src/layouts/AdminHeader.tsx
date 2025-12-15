@@ -12,16 +12,22 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   // Map of routes to page titles
   const routeTitles: Record<string, string> = {
     '/admin-dashboard': 'Dashboard',
-    '/storeStock': 'Store Stock',
-    '/categories': 'Categories',
+    '/admin/categories': 'Categories',
+    '/admin/company': 'Company',
+    '/admin/vendorList': 'VendorList',
     '/admin/products': 'Products',
-    '/assets': 'Assets',
+    '/admin/orders': 'Orders Management',
+    '/admin/vendorsOrder': 'Vendors Order',
+    '/admin/purchase': 'Purchase',
+    '/storeStock': 'Store Stock',
     '/admin/kitchenStock': 'Kitchen Stock',
     '/admin/consumables': 'Consumables',
-    '/admin/orders': 'Orders Management',
-    '/admin/order-details': 'Orders Management',
-    '/admin/vendor': 'Vendors',
     '/admin/setting': 'Setting',
+
+
+    // '/assets': 'Assets',
+    // '/admin/order-details': 'Orders Management',
+    // '/admin/vendor': 'Vendors',
   };
 
   // Detect title from current route (fallback to Dashboard)

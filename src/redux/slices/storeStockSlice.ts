@@ -3,31 +3,47 @@ import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
+import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
-export interface StoreStock {
-  _id: string;
-  [key: string]: any;
+
+export interface StoreStockPostData {
+  productId: string;
+  qty: number
 }
 
+export interface StoreStock {
+  _id: string;
+  franchiseId: string;
+  productId: ProductInterface;
+  openingStock: number;
+  rcvdStoreQty: number;
+  transfersToKitchenStore: number;
+  closingStock: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+// GET store stocks
+interface GetStoreStocksResponse {
+  success: boolean;
+  data: StoreStock[];
+  pagination: PaginationInfo;
+}
+
+// ---------------- Initial State ----------------
 interface StoreStockState {
   loading: boolean;
   error: string | null;
   storeStocks: StoreStock[];
   allStoreStocksData: GetStoreStocksResponse | null;
 }
-
-// GET store stocks
-interface GetStoreStocksResponse {
-  success: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: StoreStock[];
-}
-
-// ---------------- Initial State ----------------
 const initialState: StoreStockState = {
   loading: false,
   error: null,
@@ -38,13 +54,13 @@ const initialState: StoreStockState = {
 // ---------------- Thunks ----------------
 export const getStoreStocks = createAsyncThunk<
   GetStoreStocksResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  categoryId?: string, vendorId?: string, companyId?:string, },
   { rejectValue: { message: string } }
 >(
   'storeStock/getStoreStocks',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+   async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '',  vendorId = '',  companyId = '', }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_STORE_STOCK}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_STORE_STOCK}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -68,14 +84,14 @@ export const getStoreStocks = createAsyncThunk<
 // ADD STORE STOCK
 export const addStoreStock = createAsyncThunk<
   StoreStock,
-  Partial<StoreStock>,
+  StoreStockPostData[],
   { rejectValue: { message: string } }
 >(
   'storeStock/addStoreStock',
   async (storeStockData, thunkAPI) => {
     try {
       const response = await apiCaller({
-        url: API_ENDPOINTS.ADD_STORE_STOCK,
+        url: API_ENDPOINTS.ADD_BULK_STORE_STOCK,
         method: 'POST',
         data: storeStockData,
       });
@@ -184,9 +200,8 @@ const storeStockSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(addStoreStock.fulfilled, (state, action) => {
+      .addCase(addStoreStock.fulfilled, (state) => {
         state.loading = false;
-        state.storeStocks.push(action.payload);
       })
       .addCase(addStoreStock.rejected, (state, action) => {
         state.loading = false;

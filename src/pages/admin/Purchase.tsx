@@ -1,46 +1,55 @@
-import React, { useEffect, useState } from "react";
-import { AdminLayout } from "../../layouts/AdminLayout";
 import {
+  Button,
+  Checkbox,
+  CircularProgress,
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Checkbox,
-  Paper,
-  TextField,
-  Button,
-  CircularProgress,
   TablePagination,
-  MenuItem,
-  Chip
+  TableRow,
+  TextField
 } from "@mui/material";
-import { FiSend } from "react-icons/fi";
 import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
-  getKitchenStocks,
-  addKitchenStock,
-  selectKitchenStockState
-} from "../../redux/slices/kitchenStockSlice";
+  addBulkPurchases,
+  getPurchases,
+  selectPurchaseState
+} from "../../redux/slices/purchaseSlice";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
-import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
-import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { getVendorNameList, selectVendorNames } from "../../redux/slices/vendorSlice";
+import {
+  getCategories,
+  selectCategories
+} from "../../redux/slices/categorySlice";
 
-import type { KitchenStock, KitchenStockPost } from "../../redux/slices/kitchenStockSlice";
+import {
+  getCompanies,
+  selectCompanies
+} from "../../redux/slices/companySlice";
 
-const KitchenStockPage: React.FC = () => {
+import {
+  getVendorNameList,
+  selectVendorNames
+} from "../../redux/slices/vendorSlice";
+
+import type { PurchaseItem, PurchasePostData } from "../../redux/slices/purchaseSlice";
+
+const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
 
-  const { kitchenStocks, loading, allKitchenStocksData } =
-    useAppSelector(selectKitchenStockState);
+  const { purchases, loading, allPurchasesData } =
+    useAppSelector(selectPurchaseState);
 
   const categories = useAppSelector(selectCategories);
-  const vendors = useAppSelector(selectCompanies);
-  const companies = useAppSelector(selectVendorNames);
+  const companies = useAppSelector(selectCompanies);
+  const vendors = useAppSelector(selectVendorNames);
 
   // ---------------- Filters ----------------
   const [categoryId, setCategoryId] = useState("");
@@ -54,20 +63,19 @@ const KitchenStockPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
 
-  // ---------------- Selected Rows ----------------
+  // ---------------- Selection ----------------
   const [selected, setSelected] = useState<Record<string, number>>({});
 
-  // ---------------- Load Dropdowns ----------------
+  // ---------------- Initial Load ----------------
   useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
   }, [dispatch]);
 
-  // ---------------- Load Kitchen Stocks ----------------
   useEffect(() => {
     dispatch(
-      getKitchenStocks({
+      getPurchases({
         page: page + 1,
         limit,
         search,
@@ -78,10 +86,20 @@ const KitchenStockPage: React.FC = () => {
         toDate
       })
     );
-  }, [dispatch, page, limit, search, categoryId, vendorId, companyId, fromDate, toDate]);
+  }, [
+    dispatch,
+    page,
+    limit,
+    search,
+    categoryId,
+    vendorId,
+    companyId,
+    fromDate,
+    toDate
+  ]);
 
   // ---------------- Select Row ----------------
-  const toggleSelect = (row: KitchenStock) => {
+  const handleSelect = (row: PurchaseItem) => {
     setSelected(prev => {
       const next = { ...prev };
       if (next[row.productId._id] !== undefined) {
@@ -93,37 +111,31 @@ const KitchenStockPage: React.FC = () => {
     });
   };
 
-  const updateQty = (productId: string, qty: number) => {
+  const handleQtyChange = (productId: string, value: number) => {
     setSelected(prev => ({
       ...prev,
-      [productId]: qty
+      [productId]: value
     }));
   };
 
-  // ---------------- Stock Alert ----------------
-  const getStockStatus = (qty: number, alert: number) => {
-    if (qty === 0) return <Chip label="Out of Stock" color="error" size="small" />;
-    if (qty <= alert) return <Chip label="Low Stock" color="warning" size="small" />;
-    return <Chip label="In Stock" color="success" size="small" />;
-  };
-
-  // ---------------- Bulk Send to Consumable ----------------
-  const handleSendToConsumable = () => {
-    const payload: KitchenStockPost[] = Object.entries(selected)
+  // ---------------- Bulk Post ----------------
+  const handlePost = () => {
+    const payload: PurchasePostData[] = Object.entries(selected)
       .filter(([_, qty]) => qty > 0)
-      .map(([productId, qty]) => ({
+      .map(([productId, sendToStoreQty]) => ({
         productId,
-        qty
+        sendToStoreQty
       }));
 
     if (!payload.length) return;
 
-    dispatch(addKitchenStock(payload)).then(() => {
+    dispatch(addBulkPurchases(payload)).then(() => {
       setSelected({});
-      dispatch(getKitchenStocks({ page: page + 1, limit }));
+      dispatch(getPurchases({ page: page + 1, limit }));
     });
   };
 
+  // ---------------- Helpers ----------------
   const isSelected = (id: string) => selected[id] !== undefined;
 
   // ---------------- UI ----------------
@@ -154,7 +166,7 @@ const KitchenStockPage: React.FC = () => {
             onChange={e => setVendorId(e.target.value)}
           >
             <MenuItem value="">All</MenuItem>
-            {companies.map(v => (
+            {vendors.map(v => (
               <MenuItem key={v._id} value={v._id}>
                 {v.vendor_name}
               </MenuItem>
@@ -168,7 +180,7 @@ const KitchenStockPage: React.FC = () => {
             onChange={e => setCompanyId(e.target.value)}
           >
             <MenuItem value="">All</MenuItem>
-            {vendors.map(b => (
+            {companies.map(b => (
               <MenuItem key={b._id} value={b._id}>
                 {b.brandName}
               </MenuItem>
@@ -198,15 +210,14 @@ const KitchenStockPage: React.FC = () => {
           />
         </div>
 
-        {/* ---------------- Action Button ---------------- */}
+        {/* ---------------- Action ---------------- */}
         <div className="flex justify-end">
           <Button
             variant="contained"
-            startIcon={<FiSend />}
             disabled={!Object.keys(selected).length}
-            onClick={handleSendToConsumable}
+            onClick={handlePost}
           >
-            Send to Consumable
+            Send To Store
           </Button>
         </div>
 
@@ -225,22 +236,21 @@ const KitchenStockPage: React.FC = () => {
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Brand</TableCell>
-                  <TableCell>Opening</TableCell>
+                  <TableCell>MRP</TableCell>
                   <TableCell>Received</TableCell>
-                  <TableCell>Closing</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Qty → Consumable</TableCell>
+                  <TableCell>Current</TableCell>
+                  <TableCell>Send Qty</TableCell>
                   <TableCell>Date</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {kitchenStocks.map(row => (
+                {purchases.map(row => (
                   <TableRow key={row._id} hover>
                     <TableCell>
                       <Checkbox
                         checked={isSelected(row.productId._id)}
-                        onChange={() => toggleSelect(row)}
+                        onChange={() => handleSelect(row)}
                       />
                     </TableCell>
 
@@ -250,17 +260,9 @@ const KitchenStockPage: React.FC = () => {
                     <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
                     <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
                     <TableCell>{row.productId?.companyId?.brandName}</TableCell>
-
-                    <TableCell>{row.openingStock}</TableCell>
-                    <TableCell>{row.rcvdKitchenQty}</TableCell>
-                    <TableCell>{row.closingStock}</TableCell>
-
-                    <TableCell>
-                      {getStockStatus(
-                        row.closingStock,
-                        row.productId.stockAlert
-                      )}
-                    </TableCell>
+                    <TableCell>{row.productId.productMRP}</TableCell>
+                    <TableCell>{row.rcvdPurchaseQty}</TableCell>
+                    <TableCell>{row.currentPurchaseQty}</TableCell>
 
                     <TableCell>
                       {isSelected(row.productId._id) && (
@@ -269,7 +271,7 @@ const KitchenStockPage: React.FC = () => {
                           size="small"
                           value={selected[row.productId._id]}
                           onChange={e =>
-                            updateQty(
+                            handleQtyChange(
                               row.productId._id,
                               Number(e.target.value)
                             )
@@ -289,12 +291,12 @@ const KitchenStockPage: React.FC = () => {
         </TableContainer>
 
         {/* ---------------- Pagination ---------------- */}
-        {allKitchenStocksData && (
+        {allPurchasesData && (
           <TablePagination
             component="div"
             page={page}
             rowsPerPage={limit}
-            count={allKitchenStocksData.pagination.total}
+            count={allPurchasesData.pagination.total}
             onPageChange={(_, newPage) => setPage(newPage)}
             onRowsPerPageChange={e => {
               setLimit(Number(e.target.value));
@@ -307,4 +309,4 @@ const KitchenStockPage: React.FC = () => {
   );
 };
 
-export default KitchenStockPage;
+export default Purchase;

@@ -3,31 +3,47 @@ import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
+import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
-export interface Purchase {
+export interface PurchasePostData {
+  productId: string;
+  sendToStoreQty: number
+}
+export interface PurchasePUpdateData {
+  sendToStoreQty: number
+}
+
+export interface PurchaseItem {
   _id: string;
-  [key: string]: any;
+  franchiseId: string;
+  productId: ProductInterface;
+  rcvdPurchaseQty: number;
+  sendToStoreQty: number;
+  currentPurchaseQty: number;
+  createdAt: string;
 }
 
-interface PurchaseState {
-  loading: boolean;
-  error: string | null;
-  purchases: Purchase[];
-  allPurchasesData: GetPurchasesResponse | null;
-}
-
-// GET purchases
-interface GetPurchasesResponse {
-  success: boolean;
+export interface PaginationInfo {
+  page: number;
+  limit: number;
   total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: Purchase[];
+  pages: number;
+}
+// GET purchases
+export interface GetPurchasesResponse {
+  success: boolean;
+  data: PurchaseItem[];
+  pagination: PaginationInfo;
 }
 
 // ---------------- Initial State ----------------
+interface PurchaseState {
+  loading: boolean;
+  error: string | null;
+  purchases: PurchaseItem[];
+  allPurchasesData: GetPurchasesResponse | null;
+}
 const initialState: PurchaseState = {
   loading: false,
   error: null,
@@ -38,13 +54,13 @@ const initialState: PurchaseState = {
 // ---------------- Thunks ----------------
 export const getPurchases = createAsyncThunk<
   GetPurchasesResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
+   { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  categoryId?: string, vendorId?: string, companyId?:string, },
   { rejectValue: { message: string } }
 >(
   'purchase/getPurchases',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '',  vendorId = '',  companyId = '', }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_PURCHASE}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_PURCHASE}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -65,23 +81,24 @@ export const getPurchases = createAsyncThunk<
   }
 );
 
-// ADD PURCHASE
-export const addPurchase = createAsyncThunk<
-  Purchase,
-  Partial<Purchase>,
+
+// ADD BULK PURCHASE
+export const addBulkPurchases = createAsyncThunk<
+  PurchasePostData,
+  PurchasePostData[],
   { rejectValue: { message: string } }
 >(
-  'purchase/addPurchase',
+  'purchase/addBulkPurchases',
   async (purchaseData, thunkAPI) => {
     try {
       const response = await apiCaller({
-        url: API_ENDPOINTS.ADD_PURCHASE,
+        url: API_ENDPOINTS.ADD_BULK_PURCHASE,
         method: 'POST',
         data: purchaseData,
       });
 
       if (response.status === 201) {
-        return response?.data as Purchase;
+        return response?.data as PurchasePostData;
       }
 
       return thunkAPI.rejectWithValue({
@@ -96,10 +113,11 @@ export const addPurchase = createAsyncThunk<
   }
 );
 
+
 // UPDATE PURCHASE
 export const updatePurchase = createAsyncThunk<
-  Purchase,
-  { purchaseId: string; purchaseData: Partial<Purchase> },
+  PurchaseItem,
+  { purchaseId: string; purchaseData: Partial<PurchasePUpdateData> },
   { rejectValue: { message: string } }
 >(
   'purchase/updatePurchase',
@@ -112,7 +130,7 @@ export const updatePurchase = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as Purchase;
+        return response.data as PurchaseItem;
       }
 
       return thunkAPI.rejectWithValue({
@@ -159,7 +177,7 @@ export const deletePurchase = createAsyncThunk<
 
 // ---------------- Slice ----------------
 const purchaseSlice = createSlice({
-  name: 'purchases',
+  name: 'purchase',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -180,15 +198,14 @@ const purchaseSlice = createSlice({
       })
 
       // ADD
-      .addCase(addPurchase.pending, (state) => {
+      .addCase(addBulkPurchases.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addPurchase.fulfilled, (state, action) => {
+      .addCase(addBulkPurchases.fulfilled, (state) => {
         state.loading = false;
-        state.purchases.push(action.payload);
       })
-      .addCase(addPurchase.rejected, (state, action) => {
+      .addCase(addBulkPurchases.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Add purchase failed';
       })
@@ -235,4 +252,3 @@ export const selectAllPurchasesData = (state: RootState) => state.purchase.allPu
 
 // ---------------- Exports ----------------
 export default purchaseSlice.reducer;
-

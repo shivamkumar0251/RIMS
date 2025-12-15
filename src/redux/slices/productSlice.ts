@@ -5,39 +5,68 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
 
 // ---------------- Types ----------------
-export interface Product {
+export interface CategoryRef {
   _id: string;
-  productName?: string;
-  [key: string]: any;
+  categoryName?: string;
 }
 
+export interface VendorRef {
+  _id: string;
+  vendor_name?: string;
+}
+
+export interface CompanyRef {
+  _id: string;
+  brandName?: string;
+}
+
+export interface ProductInterface {
+  _id: string;
+  categoryId: CategoryRef ;
+  vendorsId: VendorRef;
+  companyId: CompanyRef;
+  productName: string;
+  packSize: string;
+  unit: string;
+  quantity: number;
+  shape: string;
+  colour: string;
+  printStatus: string;
+  productImage?: string;
+  gstPct: number;
+  productMRP: number;
+  taxableValue: number;
+  perUnitRate: number;
+  totalMRP: number;
+  stockAlert: number;
+  createdAt: string;
+}
+
+// GET products response format
+export interface GetProductsResponse {
+  success: boolean;
+  data: ProductInterface[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// BULK UPLOAD PRODUCT via EXCEL
+export interface BulkProductExcelResponse {
+  success: boolean;
+  insertedCount: number;
+  data: ProductInterface[];
+}
+
+
+
+// ---------------- State ----------------
 interface ProductState {
   loading: boolean;
   error: string | null;
-  products: Product[];
+  products: ProductInterface[];
   allProductsData: GetProductsResponse | null;
 }
-
-// ---------------- BULK UPLOAD PRODUCT via EXCEL ----------------
-export interface BulkProductExcelResponse {
-  success: boolean;
-  inserted: number;
-  failed: number;
-  errors?: { row: number; message: string }[];
-  data: Product[];
-}
-
-// GET products
-interface GetProductsResponse {
-  success: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: Product[];
-}
-
-// ---------------- Initial State ----------------
 const initialState: ProductState = {
   loading: false,
   error: null,
@@ -46,26 +75,27 @@ const initialState: ProductState = {
 };
 
 // ---------------- Thunks ----------------
+// GET PRODUCTS
 export const getProducts = createAsyncThunk<
   GetProductsResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, company?:string, },
   { rejectValue: { message: string } }
 >(
   'product/getProducts',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '',  category = '',  vendor = '',  company = '',}, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_PRODUCTS}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_PRODUCTS}?search=${search}&category=${category}&vendor=${vendor}&company=${company}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
       if (response.status === 200) {
-        const body = response.data as GetProductsResponse;
-        return body;
+        return response.data as GetProductsResponse;
       }
 
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Failed to fetch products',
+        message: (response.data as { message?: string })?.message  || 'Failed to fetch products',
       });
+
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
@@ -75,28 +105,29 @@ export const getProducts = createAsyncThunk<
   }
 );
 
-// ADD PRODUCT
+// ADD PRODUCT (FormData)
 export const addProduct = createAsyncThunk<
-  Product,
-  Partial<Product>,
+  ProductInterface,
+  ProductInterface,
   { rejectValue: { message: string } }
 >(
   'product/addProduct',
-  async (productData, thunkAPI) => {
+  async (formData, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.ADD_PRODUCTS,
         method: 'POST',
-        data: productData,
+        data: formData,
       });
 
-      if (response.status === 201) {
-        return response?.data as Product;
+      if (response.status === 201 || response.status === 200) {
+        return response.data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Add product failed',
+        message: (response.data as { message?: string })?.message  || 'Add product failed',
       });
+
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
@@ -106,7 +137,7 @@ export const addProduct = createAsyncThunk<
   }
 );
 
-// ADD BULK-EXCEL
+// BULK EXCEL UPLOAD
 export const addProductBulkExcel = createAsyncThunk<
   BulkProductExcelResponse,
   FormData,
@@ -126,9 +157,7 @@ export const addProductBulkExcel = createAsyncThunk<
       }
 
       return thunkAPI.rejectWithValue({
-        message:
-          (response.data as { message?: string })?.message ||
-          'Bulk product upload failed',
+        message: (response.data as { message?: string })?.message  || 'Bulk product upload failed',
       });
 
     } catch (error) {
@@ -140,10 +169,10 @@ export const addProductBulkExcel = createAsyncThunk<
   }
 );
 
-// UPDATE PRODUCT
+// UPDATE PRODUCT (FormData)
 export const updateProduct = createAsyncThunk<
-  Product,
-  { productId: string; productData: Partial<Product> },
+  ProductInterface,
+  { productId: string; productData: ProductInterface },
   { rejectValue: { message: string } }
 >(
   'product/updateProduct',
@@ -156,43 +185,14 @@ export const updateProduct = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as Product;
+        return response.data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({
         message: (response.data as { message?: string })?.message || 'Update failed',
-      });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
 
-// BULK UPDATE PRODUCTS
-export const bulkUpdateProducts = createAsyncThunk<
-  { updated: number },
-  FormData,
-  { rejectValue: { message: string } }
->(
-  'product/bulkUpdateProducts',
-  async (formData, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.BULK_UPDATE_PRODUCTS,
-        method: 'PUT',
-        data: formData,
       });
 
-      if (response.status === 200) {
-        return response.data as { updated: number };
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Bulk update failed',
-      });
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
@@ -223,37 +223,7 @@ export const deleteProduct = createAsyncThunk<
       return thunkAPI.rejectWithValue({
         message: (response.data as { message?: string })?.message || 'Delete failed',
       });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
 
-// BULK DELETE PRODUCTS
-export const bulkDeleteProducts = createAsyncThunk<
-  { deletedIds: string[] },
-  { ids: string[] },
-  { rejectValue: { message: string } }
->(
-  'product/bulkDeleteProducts',
-  async ({ ids }, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.BULK_DELETE_PRODUCTS,
-        method: 'DELETE',
-        data: { ids },
-      });
-
-      if (response.status === 200) {
-        return { deletedIds: ids };
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Bulk delete failed',
-      });
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue({
@@ -298,15 +268,15 @@ const productSlice = createSlice({
         state.loading = false;
         state.error = action.payload?.message || 'Add product failed';
       })
+
+      // BULK
       .addCase(addProductBulkExcel.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(addProductBulkExcel.fulfilled, (state, action) => {
         state.loading = false;
-
-        // Merge uploaded products into existing list
-        if (action.payload?.data?.length) {
+        if (action.payload?.data?.length > 0) {
           state.products = [...state.products, ...action.payload.data];
         }
       })
@@ -322,27 +292,13 @@ const productSlice = createSlice({
       })
       .addCase(updateProduct.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = state.products.map((product) =>
-          product._id === action.payload._id ? action.payload : product
+        state.products = state.products.map((p) =>
+          p._id === action.payload._id ? action.payload : p
         );
       })
       .addCase(updateProduct.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Update product failed';
-      })
-
-      // BULK UPDATE
-      .addCase(bulkUpdateProducts.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(bulkUpdateProducts.fulfilled, (state) => {
-        state.loading = false;
-        // Note: You may need to refetch products after bulk update
-      })
-      .addCase(bulkUpdateProducts.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Bulk update failed';
+        state.error = action.payload?.message || 'Update failed';
       })
 
       // DELETE
@@ -353,28 +309,12 @@ const productSlice = createSlice({
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.loading = false;
         state.products = state.products.filter(
-          (product) => product._id !== action.payload.productId
+          (p) => p._id !== action.payload.productId
         );
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Delete product failed';
-      })
-
-      // BULK DELETE
-      .addCase(bulkDeleteProducts.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(bulkDeleteProducts.fulfilled, (state, action) => {
-        state.loading = false;
-        state.products = state.products.filter(
-          (product) => !action.payload.deletedIds.includes(product._id)
-        );
-      })
-      .addCase(bulkDeleteProducts.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Bulk delete failed';
+        state.error = action.payload?.message || 'Delete failed';
       });
   },
 });
@@ -385,6 +325,113 @@ export const selectProducts = (state: RootState) => state.product.products;
 export const selectProductLoading = (state: RootState) => state.product.loading;
 export const selectAllProductsData = (state: RootState) => state.product.allProductsData;
 
-// ---------------- Exports ----------------
+// ---------------- Export ----------------
 export default productSlice.reducer;
 
+
+// {
+//   "success": true,
+//   "data": [
+//     {
+//       "_id": "693bddb76988710aa8dc1e6b",
+//       "franchiseId": "admin1@yopmail.com_1759735593474",
+//       "categoryId": {
+//         "_id": "69294f0e00b70714a4fd0d6f",
+//         "categoryName": "Home Appliances"
+//       },
+//       "vendorsId": {
+//         "_id": "692eba60dff469d64dea8363",
+//         "vendor_name": "Green Organics"
+//       },
+//       "companyId": {
+//         "_id": "692949d5502ddf1939f3dcce",
+//         "brandName": "PrimeFoods1"
+//       },
+//       "productName": "Sample Product B",
+//       "packSize": "10x10",
+//       "unit": "box",
+//       "quantity": 100,
+//       "shape": "tablet",
+//       "colour": "white",
+//       "printStatus": "Printed",
+//       "gstPct": 12,
+//       "productMRP": 150,
+//       "taxableValue": 0,
+//       "perUnitRate": 120,
+//       "totalMRP": 5000,
+//       "stockAlert": 5,
+//       "__v": 0,
+//       "createdAt": "2025-12-12T09:17:43.899Z",
+//       "updatedAt": "2025-12-12T09:17:43.899Z"
+//     },
+//     {
+//       "_id": "693bdcf06988710aa8dc1d80",
+//       "franchiseId": "admin1@yopmail.com_1759735593474",
+//       "categoryId": {
+//         "_id": "69294f0e00b70714a4fd0d6f",
+//         "categoryName": "Home Appliances"
+//       },
+//       "vendorsId": {
+//         "_id": "692eba60dff469d64dea8363",
+//         "vendor_name": "Green Organics"
+//       },
+//       "companyId": {
+//         "_id": "692949d5502ddf1939f3dcce",
+//         "brandName": "PrimeFoods1"
+//       },
+//       "productName": "Sample Product A",
+//       "packSize": "10x10",
+//       "unit": "box",
+//       "quantity": 100,
+//       "shape": "tablet",
+//       "colour": "white",
+//       "printStatus": "Printed",
+//       "gstPct": 12,
+//       "productMRP": 150,
+//       "taxableValue": 0,
+//       "perUnitRate": 120,
+//       "totalMRP": 5000,
+//       "stockAlert": 5,
+//       "__v": 0,
+//       "createdAt": "2025-12-12T09:14:24.130Z",
+//       "updatedAt": "2025-12-12T09:14:24.130Z"
+//     }
+//   ],
+//   "total": 15,
+//   "page": 1,
+//   "limit": 2
+// }
+
+
+// {
+//   "success": true,
+//   "message": "Product added",
+//   "data": {
+//     "franchiseId": "admin1@yopmail.com_1759735593474",
+//     "categoryId": "69294f0f00b70714a4fd0d75",
+//     "vendorsId": "692eba60dff469d64dea8361",
+//     "companyId": "692949d5502ddf1939f3dccc",
+//     "productName": "pen",
+//     "packSize": "10",
+//     "unit": "kg",
+//     "quantity": 500,
+//     "shape": "round",
+//     "colour": "black",
+//     "printStatus": "Printed",
+//     "productImage": "https://res.cloudinary.com/dmoqhod45/image/upload/v1765802334/hopsnchopsModel/products/product_1765802332161_1765802332161.jpg",
+//     "gstPct": 10,
+//     "productMRP": 25,
+//     "taxableValue": 5,
+//     "perUnitRate": 20,
+//     "totalMRP": 693,
+//     "stockAlert": 10,
+//     "_id": "6940015ff371a83286011678",
+//     "createdAt": "2025-12-15T12:38:55.497Z",
+//     "updatedAt": "2025-12-15T12:38:55.497Z",
+//     "__v": 0
+//   }
+// }
+
+// this is my productSlice this is ok all things are ok all type are ok 
+//  i will give you my product page wait 
+// i have some type error in my product page so please solve it 

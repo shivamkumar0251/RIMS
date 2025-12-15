@@ -39,7 +39,6 @@ const ForgetPassword: React.FC = () => {
     //   }
     // } else {
     //   showToast.error("Login Error.");
-    //   console.log("response false", response);
     // }
   };
 

@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { FaBeer, FaClock, FaMapMarkerAlt, FaPhone, FaSearch } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaSearch, FaBeer } from 'react-icons/fa';
-import { getOutlets } from '../redux/slices/outletSlice';
-import { selectOutlets, selectOutletLoading } from '../redux/slices/outletSlice';
-import type { AppDispatch } from '../redux/store/store';
 import type { Outlet as OutletType } from '../redux/slices/outletSlice';
+import { getOutlets, selectOutletLoading, selectOutlets } from '../redux/slices/outletSlice';
+import type { AppDispatch } from '../redux/store/store';
 
 // --- TypeScript Interface for Outlet Data ---
-interface Outlet {
-  id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  hours?: string;
-  imageUrl?: string;
-  googleMapsUrl?: string;
-  features?: string[];
-}
+// interface Outlet {
+//   id: string;
+//   name: string;
+//   address?: string;
+//   phone?: string;
+//   hours?: string;
+//   imageUrl?: string;
+//   googleMapsUrl?: string;
+//   features?: string[];
+// }
 
 // --- Reusable Outlet Card Component ---
 const OutletCard: React.FC<{ outlet: OutletType }> = ({ outlet }) => {

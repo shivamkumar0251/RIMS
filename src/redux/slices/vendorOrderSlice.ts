@@ -3,41 +3,54 @@ import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
+import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
+
+
+
 export interface VendorOrderProduct {
-  productId: string;
-  quantity: number;
-  price: number;
+  _id: string;
+  productId: ProductInterface;
+  orderQty: number;
+  sendToPurchaseQty: number;
+  createdAt: string;
 }
 
 export interface VendorOrder {
   _id: string;
-  vendorId: string;
-  orderDate: string;
   products: VendorOrderProduct[];
-  status?: string;
-  [key: string]: any;
+  totalAmount: number;
+  totalClosingAmount: number;
+  paymentStatus: string;
+  totelOrderQty: number;
+  orderDate: string;
+  orderNumber: string;
 }
 
+// GET vendor orders
+interface GetVendorOrdersResponse {
+  success: boolean;
+  data: VendorOrder[];
+  total: number;
+  pages: number;
+  limit: number;
+}
+export interface VendorDataUpdateProduct {
+  productId: string;
+  sendToPurchaseQty: number;
+  remarks: string;
+}
+export interface VendorDataUpdate {
+  products:VendorDataUpdateProduct[]
+}
+// ---------------- Initial State ----------------
 interface VendorOrderState {
   loading: boolean;
   error: string | null;
   vendorOrders: VendorOrder[];
   allVendorOrdersData: GetVendorOrdersResponse | null;
 }
-
-// GET vendor orders
-interface GetVendorOrdersResponse {
-  success: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  orders: VendorOrder[];
-}
-
-// ---------------- Initial State ----------------
 const initialState: VendorOrderState = {
   loading: false,
   error: null,
@@ -45,51 +58,18 @@ const initialState: VendorOrderState = {
   allVendorOrdersData: null,
 };
 
+
 // ---------------- Thunks ----------------
-// CREATE VENDOR ORDER
-export const createVendorOrder = createAsyncThunk<
-  VendorOrder,
-  { vendorId: string; orderDate: string; products: VendorOrderProduct[] },
-  { rejectValue: { message: string } }
->(
-  'vendorOrder/createVendorOrder',
-  async ({ vendorId, orderDate, products }, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.CREATE_VENDOR_ORDER,
-        method: 'POST',
-        data: { vendorId, orderDate, products },
-      });
-
-      if (response.status === 201) {
-        return response?.data as VendorOrder;
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Create vendor order failed',
-      });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
-
 // GET VENDOR ORDERS
 export const getVendorOrders = createAsyncThunk<
   GetVendorOrdersResponse,
-  { page?: number; limit?: number; vendorId?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/getVendorOrders',
-  async ({ page = 1, limit = 10, vendorId }, thunkAPI) => {
+ async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '',  vendor = '',  brand = '', }, thunkAPI) => {
     try {
-      let url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?page=${page}&limit=${limit}`;
-      if (vendorId) {
-        url += `&vendorId=${vendorId}`;
-      }
+      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -110,50 +90,19 @@ export const getVendorOrders = createAsyncThunk<
   }
 );
 
-// UPDATE VENDOR ORDER PRODUCT
-export const updateVendorOrderProduct = createAsyncThunk<
-  { message: string },
-  { orderId: string; productId: string; quantity: number; price: number },
-  { rejectValue: { message: string } }
->(
-  'vendorOrder/updateVendorOrderProduct',
-  async ({ orderId, productId, quantity, price }, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.UPDATE_VENDOR_ORDER_PRODUCT,
-        method: 'PUT',
-        data: { orderId, productId, quantity, price },
-      });
-
-      if (response.status === 200) {
-        return { message: (response.data as { message?: string })?.message || 'Order product updated successfully' };
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Update failed',
-      });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
-
 // UPDATE VENDOR ORDER
 export const updateVendorOrder = createAsyncThunk<
   VendorOrder,
-  { vendorOrderId: string; orderDate?: string; status?: string },
+  { vendorOrderId: string; products?: VendorDataUpdateProduct[];  },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/updateVendorOrder',
-  async ({ vendorOrderId, orderDate, status }, thunkAPI) => {
+  async ({ vendorOrderId, products,  }, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.UPDATE_VENDOR_ORDER(vendorOrderId),
         method: 'PUT',
-        data: { orderDate, status },
+        data: { products, },
       });
 
       if (response.status === 200) {
@@ -172,36 +121,6 @@ export const updateVendorOrder = createAsyncThunk<
   }
 );
 
-// DELETE VENDOR ORDER
-export const deleteVendorOrder = createAsyncThunk<
-  { vendorOrderId: string },
-  string,
-  { rejectValue: { message: string } }
->(
-  'vendorOrder/deleteVendorOrder',
-  async (vendorOrderId, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.DELETE_VENDOR_ORDER(vendorOrderId),
-        method: 'DELETE',
-      });
-
-      if (response.status === 200) {
-        return { vendorOrderId };
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Delete failed',
-      });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
-
 // ---------------- Slice ----------------
 const vendorOrderSlice = createSlice({
   name: 'vendorOrders',
@@ -209,20 +128,6 @@ const vendorOrderSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // CREATE
-      .addCase(createVendorOrder.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createVendorOrder.fulfilled, (state, action) => {
-        state.loading = false;
-        state.vendorOrders.push(action.payload);
-      })
-      .addCase(createVendorOrder.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Create vendor order failed';
-      })
-
       // GET
       .addCase(getVendorOrders.pending, (state) => {
         state.loading = true;
@@ -231,25 +136,11 @@ const vendorOrderSlice = createSlice({
       .addCase(getVendorOrders.fulfilled, (state, action) => {
         state.loading = false;
         state.allVendorOrdersData = action.payload;
-        state.vendorOrders = action.payload.orders || [];
+        state.vendorOrders = action.payload.data || [];
       })
       .addCase(getVendorOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Error';
-      })
-
-      // UPDATE ORDER PRODUCT
-      .addCase(updateVendorOrderProduct.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateVendorOrderProduct.fulfilled, (state) => {
-        state.loading = false;
-        // Note: You may need to refetch orders after updating a product
-      })
-      .addCase(updateVendorOrderProduct.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Update order product failed';
       })
 
       // UPDATE
@@ -266,22 +157,6 @@ const vendorOrderSlice = createSlice({
       .addCase(updateVendorOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Update vendor order failed';
-      })
-
-      // DELETE
-      .addCase(deleteVendorOrder.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deleteVendorOrder.fulfilled, (state, action) => {
-        state.loading = false;
-        state.vendorOrders = state.vendorOrders.filter(
-          (order) => order._id !== action.payload.vendorOrderId
-        );
-      })
-      .addCase(deleteVendorOrder.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Delete vendor order failed';
       });
   },
 });
@@ -294,4 +169,3 @@ export const selectAllVendorOrdersData = (state: RootState) => state.vendorOrder
 
 // ---------------- Exports ----------------
 export default vendorOrderSlice.reducer;
-

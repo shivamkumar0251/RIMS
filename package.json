@@ -38,6 +38,7 @@
     "recharts": "^3.2.1",
     "redux-persist": "^6.0.0",
     "tailwindcss": "^4.1.12",
+    "xlsx": "^0.18.5",
     "yup": "^1.7.1"
   },
   "devDependencies": {

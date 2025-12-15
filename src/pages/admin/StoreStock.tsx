@@ -1,438 +1,317 @@
+import React, { useEffect, useState } from "react";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import {
-  Box,
-  Chip,
-  CircularProgress,
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Checkbox,
+  Paper,
   TextField,
-  Tooltip,
-  Typography
+  Button,
+  CircularProgress,
+  TablePagination,
+  MenuItem,
+  Chip
 } from "@mui/material";
-import React, { useState, useEffect, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { FiSend } from "react-icons/fi";
+import dayjs from "dayjs";
+
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
-  FiFileText,
-  FiRefreshCw,
-  FiSearch,
-  FiTable
-} from "react-icons/fi";
-import { AdminLayout } from "../../layouts/AdminLayout";
-import { getStoreStocks, selectStoreStocks, selectStoreStockLoading, selectAllStoreStocksData } from "../../redux/slices/storeStockSlice";
+  getStoreStocks,
+  addStoreStock,
+  selectStoreStockState
+} from "../../redux/slices/storeStockSlice";
+
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import type { AppDispatch } from "../../redux/store/store";
-import type { StoreStock } from "../../redux/slices/storeStockSlice";
+import { getVendorNameList, selectVendorNames } from "../../redux/slices/vendorSlice";
 
-// ✅ Helper function to calculate status based on quantity
-const getStockStatus = (quantity: number): string => {
-  if (quantity === 0) return "Out of Stock";
-  if (quantity <= 10) return "Low Stock";
-  return "In Stock";
-};
+import type { StoreStock, StoreStockPostData } from "../../redux/slices/storeStockSlice";
 
-// ✅ Component
-const StoreStock: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const storeStocks = useSelector(selectStoreStocks);
-  const loading = useSelector(selectStoreStockLoading);
-  const allStoreStocksData = useSelector(selectAllStoreStocksData);
-  const categories = useSelector(selectCategories);
-  const companies = useSelector(selectCompanies);
+const StoreStockComponent: React.FC = () => {
+  const dispatch = useAppDispatch();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedBrand, setSelectedBrand] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
+  const { storeStocks, loading, allStoreStocksData } =
+    useAppSelector(selectStoreStockState);
 
-  // Fetch initial data
+  const categories = useAppSelector(selectCategories);
+  const vendors = useAppSelector(selectCompanies);
+  const companies = useAppSelector(selectVendorNames);
+
+  // ---------------- Filters ----------------
+  const [categoryId, setCategoryId] = useState("");
+  const [vendorId, setVendorId] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  // ---------------- Pagination ----------------
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(10);
+
+  // ---------------- Selected Rows ----------------
+  const [selected, setSelected] = useState<Record<string, number>>({});
+
+  // ---------------- Load Dropdowns ----------------
   useEffect(() => {
-    dispatch(getCategories({ page: 1, limit: 1000 }));
-    dispatch(getCompanies({ page: 1, limit: 1000 }));
+    dispatch(getCategories({page:1, limit:1000}));
+    dispatch(getCompanies({page:1, limit:1000}));
+    dispatch(getVendorNameList());
   }, [dispatch]);
 
-  // Fetch store stocks when filters change
+  // ---------------- Load Store Stocks ----------------
   useEffect(() => {
-    dispatch(getStoreStocks({ 
-      search: searchTerm, 
-      page, 
-      limit: rowsPerPage,
-    }));
-  }, [dispatch, searchTerm, page, rowsPerPage]);
+    dispatch(
+      getStoreStocks({
+        page: page + 1,
+        limit,
+        search,
+        categoryId,
+        vendorId,
+        companyId,
+        fromDate,
+        toDate
+      })
+    );
+  }, [
+    dispatch,
+    page,
+    limit,
+    search,
+    categoryId,
+    vendorId,
+    companyId,
+    fromDate,
+    toDate
+  ]);
 
-  // ✅ Extract unique categories and brands from API data
-  const categoryList = useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    categories.forEach(cat => {
-      if (cat.categoryName) uniqueCategories.add(cat.categoryName);
-    });
-    return Array.from(uniqueCategories).sort();
-  }, [categories]);
-
-  const brandList = useMemo(() => {
-    const uniqueBrands = new Set<string>();
-    companies.forEach(comp => {
-      const compData = comp as Record<string, unknown>;
-      if (compData.companyName && typeof compData.companyName === 'string') {
-        uniqueBrands.add(compData.companyName);
+  // ---------------- Select Row ----------------
+  const toggleSelect = (row: StoreStock) => {
+    setSelected(prev => {
+      const next = { ...prev };
+      if (next[row.productId._id] !== undefined) {
+        delete next[row.productId._id];
+      } else {
+        next[row.productId._id] = 0;
       }
-      if (compData.brandName && typeof compData.brandName === 'string') {
-        uniqueBrands.add(compData.brandName);
-      }
+      return next;
     });
-    return Array.from(uniqueBrands).filter(Boolean).sort();
-  }, [companies]);
-
-  // ✅ Client-side filtering for category, brand, and status
-  const filteredData = useMemo(() => {
-    if (!storeStocks || storeStocks.length === 0) return [];
-    
-    return storeStocks.filter((item: StoreStock) => {
-      const itemData = item as Record<string, unknown>;
-      const productName = String(itemData.productName || itemData.product_name || itemData.name || '');
-      const category = String(itemData.category || itemData.categoryName || '');
-      const brand = String(itemData.brand || itemData.brandName || itemData.companyName || '');
-      const quantity = Number(itemData.quantity || itemData.closingStock || 0);
-      const status = getStockStatus(quantity);
-
-      const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || category === selectedCategory;
-      const matchesBrand = selectedBrand === "All" || brand === selectedBrand;
-      const matchesStatus = selectedStatus === "All" || status === selectedStatus;
-
-      return matchesSearch && matchesCategory && matchesBrand && matchesStatus;
-    });
-  }, [storeStocks, searchTerm, selectedCategory, selectedBrand, selectedStatus]);
-
-  // ✅ Pagination
-  const start = (page - 1) * rowsPerPage;
-  const paginatedData = filteredData.slice(start, start + rowsPerPage);
-  const totalPages = allStoreStocksData?.totalPages || Math.ceil((filteredData.length || 0) / rowsPerPage);
-
-  // ✅ Handlers
-  const handleRefresh = () => {
-    setSearchTerm("");
-    setSelectedCategory("All");
-    setSelectedBrand("All");
-    setSelectedStatus("All");
-    setPage(1);
-    // Refetch data
-    dispatch(getStoreStocks({ search: '', page: 1, limit: rowsPerPage }));
   };
 
-  const safeValue = (val: unknown) =>
-    val === null || val === undefined || val === "" ? "N.A" : String(val);
+  const updateQty = (productId: string, qty: number) => {
+    setSelected(prev => ({
+      ...prev,
+      [productId]: qty
+    }));
+  };
 
+  // ---------------- Stock Alert ----------------
+  const getStockStatus = (qty: number, alert: number) => {
+    if (qty === 0) return <Chip label="Out of Stock" color="error" size="small" />;
+    if (qty <= alert) return <Chip label="Low Stock" color="warning" size="small" />;
+    return <Chip label="In Stock" color="success" size="small" />;
+  };
+
+  // ---------------- Bulk Send ----------------
+  const handleSendToKitchen = () => {
+    const payload: StoreStockPostData[] = Object.entries(selected)
+      .filter(([_, qty]) => qty > 0)
+      .map(([productId, qty]) => ({
+        productId,
+        qty
+      }));
+
+    if (!payload.length) return;
+
+    dispatch(addStoreStock(payload)).then(() => {
+      setSelected({});
+      dispatch(getStoreStocks({ page: page + 1, limit }));
+    });
+  };
+
+  const isSelected = (id: string) => selected[id] !== undefined;
+
+  // ---------------- UI ----------------
   return (
     <AdminLayout>
-      <Box
-        sx={{
-          p: 3,
-          bgcolor: "#f9f9f9",
-          minHeight: "100vh",
-          "@media (max-width:600px)": {
-            p: 1.5,
-          },
-        }}
-      >
-        {/* Header Section */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          flexWrap="wrap"
-          mb={2}
-          sx={{
-            gap: 2,
-            "@media (max-width:600px)": {
-              flexDirection: "column",
-              alignItems: "stretch",
-            },
-          }}
-        >
-          {/* Filters */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              mb: 2,
-              flexWrap: "wrap",
-              "@media (max-width:600px)": {
-                flexDirection: "column",
-                alignItems: "stretch",
-                gap: 1.5,
-              },
-            }}
+      <div className="p-4 space-y-4">
+
+        {/* ---------------- Filters ---------------- */}
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <TextField
+            select
+            label="Category"
+            value={categoryId}
+            onChange={e => setCategoryId(e.target.value)}
           >
-            <TextField
-              placeholder="Search Product..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <FiSearch />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                minWidth: 250,
-                "@media (max-width:600px)": {
-                  width: "100%",
-                },
-              }}
-            />
+            <MenuItem value="">All</MenuItem>
+            {categories.map(c => (
+              <MenuItem key={c._id} value={c._id}>
+                {c.categoryName}
+              </MenuItem>
+            ))}
+          </TextField>
 
-            <FormControl
-              sx={{
-                minWidth: 150,
-                "@media (max-width:600px)": { width: "100%" },
-              }}
-            >
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Category"
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <MenuItem value="All">All</MenuItem>
-                {categoryList.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl
-              sx={{
-                minWidth: 150,
-                "@media (max-width:600px)": { width: "100%" },
-              }}
-            >
-              <InputLabel>Brand</InputLabel>
-              <Select
-                value={selectedBrand}
-                label="Brand"
-                onChange={(e) => {
-                  setSelectedBrand(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <MenuItem value="All">All</MenuItem>
-                {brandList.map((b) => (
-                  <MenuItem key={b} value={b}>
-                    {b}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* ✅ Status Filter */}
-            <FormControl
-              sx={{
-                minWidth: 150,
-                "@media (max-width:600px)": { width: "100%" },
-              }}
-            >
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={selectedStatus}
-                label="Status"
-                onChange={(e) => {
-                  setSelectedStatus(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <MenuItem value="All">All</MenuItem>
-                <MenuItem value="In Stock">In Stock</MenuItem>
-                <MenuItem value="Low Stock">Low Stock</MenuItem>
-                <MenuItem value="Out of Stock">Out of Stock</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-
-          {/* Actions */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1,
-              "@media (max-width:600px)": {
-                justifyContent: "center",
-                width: "100%",
-              },
-            }}
+          <TextField
+            select
+            label="Vendor"
+            value={vendorId}
+            onChange={e => setVendorId(e.target.value)}
           >
-            <Tooltip title="Export PDF">
-              <IconButton sx={{ backgroundColor: "#f44336", color: "white" }}>
-                <FiFileText />
-              </IconButton>
-            </Tooltip>
+            <MenuItem value="">All</MenuItem>
+            { companies.map(v => (
+              <MenuItem key={v._id} value={v._id}>
+                {v.vendor_name}
+              </MenuItem>
+            ))}
+          </TextField>
 
-            <Tooltip title="Export Excel">
-              <IconButton sx={{ backgroundColor: "#4caf50", color: "white" }}>
-                <FiTable />
-              </IconButton>
-            </Tooltip>
+          <TextField
+            select
+            label="Brand"
+            value={companyId}
+            onChange={e => setCompanyId(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {vendors.map(b => (
+              <MenuItem key={b._id} value={b._id}>
+                {b.brandName}
+              </MenuItem>
+            ))}
+          </TextField>
 
-            <Tooltip title="Refresh">
-              <IconButton
-                sx={{ backgroundColor: "#2196f3", color: "white" }}
-                onClick={handleRefresh}
-              >
-                <FiRefreshCw />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
+          <TextField
+            label="Search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
 
-        {/* Table */}
-        <TableContainer
-          component={Paper}
-          sx={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            overflowX: "auto", // ✅ Mobile horizontal scroll
-          }}
-        >
-          <Table>
-            <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableRow>
-                <TableCell>S.No</TableCell>
-                <TableCell>Product Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Brand</TableCell>
-                <TableCell>Unit</TableCell>
-                <TableCell>Closing Stock</TableCell>
-                <TableCell>Per Unit Rate</TableCell>
-                <TableCell>Taxable Value</TableCell>
-                <TableCell>GST (%)</TableCell>
-                <TableCell>Total Amount</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
+          <TextField
+            type="date"
+            label="From"
+            InputLabelProps={{ shrink: true }}
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
+          />
 
-            <TableBody>
-              {loading ? (
+          <TextField
+            type="date"
+            label="To"
+            InputLabelProps={{ shrink: true }}
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
+          />
+        </div>
+
+        {/* ---------------- Action Button ---------------- */}
+        <div className="flex justify-end">
+          <Button
+            variant="contained"
+            startIcon={<FiSend />}
+            disabled={!Object.keys(selected).length}
+            onClick={handleSendToKitchen}
+          >
+            Send to Kitchen Store
+          </Button>
+        </div>
+
+        {/* ---------------- Table ---------------- */}
+        <TableContainer component={Paper}>
+          {loading ? (
+            <div className="p-6 text-center">
+              <CircularProgress />
+            </div>
+          ) : (
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={11} align="center">
-                    <CircularProgress size={24} sx={{ my: 2 }} />
-                  </TableCell>
+                  <TableCell />
+                  <TableCell>Product</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Vendor</TableCell>
+                  <TableCell>Brand</TableCell>
+                  <TableCell>MRP</TableCell>
+                  <TableCell>Opening</TableCell>
+                  <TableCell>Received</TableCell>
+                  <TableCell>Closing</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Qty → Kitchen</TableCell>
+                  <TableCell>Date</TableCell>
                 </TableRow>
-              ) : paginatedData.length > 0 ? (
-                paginatedData.map((item: StoreStock, index) => {
-                  const itemData = item as Record<string, unknown>;
-                  const productName = String(itemData.productName || itemData.product_name || itemData.name || 'N.A');
-                  const category = String(itemData.category || itemData.categoryName || 'N.A');
-                  const brand = String(itemData.brand || itemData.brandName || itemData.companyName || 'N.A');
-                  const unit = String(itemData.unit || 'N.A');
-                  const quantity = Number(itemData.quantity || itemData.closingStock || 0);
-                  const perUnitRate = Number(itemData.perUnitRate || itemData.price || 0);
-                  const gst = Number(itemData.gst || 0);
-                  const taxableValue = quantity * perUnitRate;
-                  const totalAmount = taxableValue + (taxableValue * gst / 100);
-                  const status = getStockStatus(quantity);
+              </TableHead>
 
-                  return (
-                    <TableRow key={item._id || item.id} hover>
-                      <TableCell>{start + index + 1}</TableCell>
-                      <TableCell>{safeValue(productName)}</TableCell>
-                      <TableCell>{safeValue(category)}</TableCell>
-                      <TableCell>{safeValue(brand)}</TableCell>
-                      <TableCell>{safeValue(unit)}</TableCell>
-                      <TableCell align="center">{quantity}</TableCell>
-                      <TableCell>₹{safeValue(perUnitRate)}</TableCell>
-                      <TableCell>₹{safeValue(taxableValue.toFixed(2))}</TableCell>
-                      <TableCell>{safeValue(gst)}%</TableCell>
-                      <TableCell>₹{safeValue(totalAmount.toFixed(2))}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={status}
-                          color={
-                            status === "In Stock"
-                              ? "success"
-                              : status === "Low Stock"
-                              ? "warning"
-                              : "error"
-                          }
+              <TableBody>
+                {storeStocks.map(row => (
+                  <TableRow key={row._id} hover>
+                    <TableCell>
+                      <Checkbox
+                        checked={isSelected(row.productId._id)}
+                        onChange={() => toggleSelect(row)}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      {row.productId.productName} ({row.productId.packSize})
+                    </TableCell>
+                    <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
+                    <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
+                    <TableCell>{row.productId?.companyId?.brandName}</TableCell>
+                    <TableCell>{row.productId.productMRP}</TableCell>
+                    <TableCell>{row.openingStock}</TableCell>
+                    <TableCell>{row.rcvdStoreQty}</TableCell>
+                    <TableCell>{row.closingStock}</TableCell>
+                    <TableCell>
+                      {getStockStatus(row.closingStock, row.productId.stockAlert)}
+                    </TableCell>
+
+                    <TableCell>
+                      {isSelected(row.productId._id) && (
+                        <TextField
+                          type="number"
                           size="small"
+                          value={selected[row.productId._id]}
+                          onChange={e =>
+                            updateQty(
+                              row.productId._id,
+                              Number(e.target.value)
+                            )
+                          }
                         />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={11} align="center">
-                    No store stocks found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {dayjs(row.createdAt).format("DD/MM/YYYY")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </TableContainer>
 
-        {/* Pagination */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mt: 2,
-            flexWrap: "wrap",
-            "@media (max-width:600px)": {
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 1.5,
-            },
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" sx={{ color: "#666" }}>
-              Rows per page
-            </Typography>
-            <Select<number>
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setPage(1);
-              }}
-              size="small"
-              sx={{ minWidth: 80 }}
-            >
-              <MenuItem value={5}>5</MenuItem>
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={25}>25</MenuItem>
-            </Select>
-          </Box>
-
-          <Pagination
-            count={totalPages}
+        {/* ---------------- Pagination ---------------- */}
+        {allStoreStocksData && (
+          <TablePagination
+            component="div"
             page={page}
-            onChange={(_, value) => setPage(value)}
-            color="primary"
-            showFirstButton
-            showLastButton
+            rowsPerPage={limit}
+            count={allStoreStocksData.pagination.total}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            onRowsPerPageChange={e => {
+              setLimit(Number(e.target.value));
+              setPage(0);
+            }}
           />
-        </Box>
-      </Box>
+        )}
+      </div>
     </AdminLayout>
   );
 };
 
-export default StoreStock;
+export default StoreStockComponent;

@@ -3,31 +3,48 @@ import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
+import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
+export interface ConsumableStockPostData {
+  productId: string;
+  transfersToUsage: number
+  transfersToWastage: number
+}
 export interface ConsumableStock {
   _id: string;
-  [key: string]: any;
+  franchiseId: string;
+  productId: ProductInterface;
+  openingStock: number;
+  rcvdKitchenQty: number;
+  transfersInUse: number;
+  transfersToWastage: number;
+  closingStock: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+// GET consumable stocks
+interface GetConsumableStocksResponse {
+  success: boolean;
+  data: ConsumableStock[];
+  pagination: PaginationInfo;
+
+}
+
+// ---------------- Initial State ----------------
 interface ConsumableStockState {
   loading: boolean;
   error: string | null;
   consumableStocks: ConsumableStock[];
   allConsumableStocksData: GetConsumableStocksResponse | null;
 }
-
-// GET consumable stocks
-interface GetConsumableStocksResponse {
-  success: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
-  data: ConsumableStock[];
-}
-
-// ---------------- Initial State ----------------
 const initialState: ConsumableStockState = {
   loading: false,
   error: null,
@@ -38,13 +55,13 @@ const initialState: ConsumableStockState = {
 // ---------------- Thunks ----------------
 export const getConsumableStocks = createAsyncThunk<
   GetConsumableStocksResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, categoryId?: string, vendorId?: string, companyId?: string, },
   { rejectValue: { message: string } }
 >(
   'consumableStock/getConsumableStocks',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+   async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_CONSUMABLE}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_CONSUMABLE}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -68,14 +85,14 @@ export const getConsumableStocks = createAsyncThunk<
 // ADD CONSUMABLE STOCK
 export const addConsumableStock = createAsyncThunk<
   ConsumableStock,
-  Partial<ConsumableStock>,
+  ConsumableStockPostData[],
   { rejectValue: { message: string } }
 >(
   'consumableStock/addConsumableStock',
   async (consumableStockData, thunkAPI) => {
     try {
       const response = await apiCaller({
-        url: API_ENDPOINTS.ADD_CONSUMABLE,
+        url: API_ENDPOINTS.ADD_BULK_CONSUMABLE,
         method: 'POST',
         data: consumableStockData,
       });
@@ -184,9 +201,8 @@ const consumableStockSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(addConsumableStock.fulfilled, (state, action) => {
+      .addCase(addConsumableStock.fulfilled, (state) => {
         state.loading = false;
-        state.consumableStocks.push(action.payload);
       })
       .addCase(addConsumableStock.rejected, (state, action) => {
         state.loading = false;

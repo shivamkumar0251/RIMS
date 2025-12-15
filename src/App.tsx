@@ -5,7 +5,6 @@ import MainSpinner from "./components/common/MainSpinner";
 import ForgetPassword from './pages/auth/Forgetpassword';
 import ResetPassword from "./pages/auth/Resetpassword";
 
-// const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
 const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
 const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
 const LazyHome = lazy(() => import("./pages/Home"));
@@ -18,16 +17,14 @@ import OurOutlets from "./pages/Outlet";
 import AccountSetting from "./pages/admin/AccountSettings";
 import AddProductAdvanced from "./pages/admin/AddProduct";
 import ProfilePage from "./pages/admin/AdminProfile";
-import AdminVendor from "./pages/admin/AdminVendor";
 import ProductCategories from "./pages/admin/Categories";
-import CategoryManagement from "./pages/admin/CategoryManagement";
+import CompanyBrand from "./pages/admin/CompanyBrand";
 import Consumables from "./pages/admin/Consumables";
 import InventoryTabs from "./pages/admin/InventoryTabs";
 import KitchenStock from "./pages/admin/KitchenStock";
-import OrderDetailPage from "./pages/admin/OrderDetailPage";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import ProductTable from "./pages/admin/ProductTable";
-import StoreStock from "./pages/admin/StoreStock";
+import StoreStockComponent from "./pages/admin/StoreStock";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
@@ -36,6 +33,10 @@ import UserConsumables from "./pages/user/UserConsumables";
 import UserProducts from "./pages/user/UserProducts";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
+import VendorList from "./pages/admin/VendorList";
+import VendorsOrder from "./pages/admin/VendorsOrder";
+import Purchase from "./pages/admin/Purchase";
+import VendorOrderDetails from "./components/adminComponents/VendorOrderDetails";
 function App() {
   return (
     <>
@@ -54,17 +55,19 @@ function App() {
             <Route path="/admin-dashboard" element={<LazyAdmindashboard />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
-            <Route path="/addCategoryManagement" element={<CategoryManagement />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
-            <Route path="/storeStock" element={<StoreStock />} />
-            <Route path="/categories" element={<ProductCategories />} />
+            <Route path="/storeStock" element={<StoreStockComponent />} />
+            <Route path="/admin/categories" element={<ProductCategories />} />
+            <Route path="/admin/company" element={<CompanyBrand />} />
+            <Route path="/admin/vendorList" element={<VendorList />} />
+            <Route path="/admin/vendorsOrder" element={<VendorsOrder />} />
+            <Route path="/admin/vendors-orders/:id" element={<VendorOrderDetails />} />
+            <Route path="/admin/purchase" element={<Purchase />} />
             <Route path="/admin/products" element={<ProductTable />} />
             <Route path="/assets" element={<InventoryTabs />} />
             <Route path="/admin/setting" element={<AccountSetting />} />
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/consumables" element={<Consumables />} />
-            <Route path="/admin/vendor" element={<AdminVendor />} />
-            <Route path="/admin/order-details/:orderId" element={<OrderDetailPage />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

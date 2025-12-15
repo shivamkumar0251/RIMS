@@ -127,7 +127,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ open, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted:", formData);
     alert("Product Added Successfully!");
     onClose();
   };

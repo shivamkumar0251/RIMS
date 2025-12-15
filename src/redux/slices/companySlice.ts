@@ -7,13 +7,11 @@ import type { RootState } from '../store/store';
 // ---------------- Types ----------------
 export interface Company {
   _id: string;
-  companyName?: string;
   brandName?: string;
   createdAt?: string;
-  [key: string]: any;
 }
 
-interface CompanyState {
+export interface CompanyState {
   loading: boolean;
   error: string | null;
   companies: Company[];
@@ -23,21 +21,20 @@ interface CompanyState {
 // ---------------- BULK UPLOAD COMPANY via EXCEL ----------------
 export interface BulkCompanyExcelResponse {
   success: boolean;
-  inserted: number;
+  insertedCount: number;
   failed: number;
   errors?: { row: number; message: string }[];
   data: Company[];
 }
 
 // GET companies
-interface GetCompaniesResponse {
+export interface GetCompaniesResponse {
   success: boolean;
   total: number;
-  currentPage: number;
-  totalPages: number;
-  count: number;
+  limit: number;
+  page: number;
   data: Company[];
-}
+} 
 
 // ---------------- Initial State ----------------
 const initialState: CompanyState = {
@@ -203,37 +200,6 @@ export const deleteCompany = createAsyncThunk<
   }
 );
 
-// BULK DELETE COMPANY
-export const bulkDeleteCompany = createAsyncThunk<
-  { deletedIds: string[] },
-  { ids: string[] },
-  { rejectValue: { message: string } }
->(
-  'company/bulkDeleteCompany',
-  async ({ ids }, thunkAPI) => {
-    try {
-      const response = await apiCaller({
-        url: API_ENDPOINTS.BULK_DELETE_COMPANY,
-        method: 'POST',
-        data: { ids },
-      });
-
-      if (response.status === 200) {
-        return { deletedIds: ids };
-      }
-
-      return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message || 'Bulk delete failed',
-      });
-    } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Server error',
-      });
-    }
-  }
-);
-
 // ---------------- Slice ----------------
 const companySlice = createSlice({
   name: 'companies',
@@ -316,22 +282,6 @@ const companySlice = createSlice({
       .addCase(deleteCompany.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Delete company failed';
-      })
-
-      // BULK DELETE
-      .addCase(bulkDeleteCompany.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(bulkDeleteCompany.fulfilled, (state, action) => {
-        state.loading = false;
-        state.companies = state.companies.filter(
-          (company) => !action.payload.deletedIds.includes(company._id)
-        );
-      })
-      .addCase(bulkDeleteCompany.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message || 'Bulk delete failed';
       });
   },
 });
