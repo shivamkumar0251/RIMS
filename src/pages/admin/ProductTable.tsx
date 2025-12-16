@@ -29,7 +29,7 @@ import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 // Product slice thunks & selectors (from your message)
-import type { CategoryRef, GetProductsResponse, ProductInterface } from "../../redux/slices/productSlice";
+import type { BulkProductExcelResponse, CategoryRef, GetProductsResponse, ProductInterface } from "../../redux/slices/productSlice";
 import {
   addProduct,
   addProductBulkExcel,
@@ -42,7 +42,7 @@ import {
 // Category, Company, Vendor slices (selectors & thunks you mentioned)
 import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { addVendor, getVendorNameList, selectVendorNames, type VendorFormType } from "../../redux/slices/vendorSlice";
+import { addVendor, getVendorNameList, selectVendorNames, type GetVendorData, type VendorFormType } from "../../redux/slices/vendorSlice";
 
 type PartialProductForm = Partial<ProductInterface>;
 
@@ -187,15 +187,15 @@ export default function ProductTable() {
     const franchiseId = localStorage.getItem("franchiseId");
     if (franchiseId) formData.append("franchiseId", franchiseId);
 
-    const res = await dispatch(addProductBulkExcel(formData) as any);
-    const payload = res?.payload;
+    const res = await dispatch(addProductBulkExcel(formData));
+    const payload = res?.payload as BulkProductExcelResponse;
 
     if (payload?.success) {
       alert(`Inserted: ${payload?.insertedCount || 0}`);
       fetchProducts();
       e.currentTarget.value = "";
     } else {
-      alert(payload?.message || "Bulk upload failed");
+      alert( "Bulk upload failed");
       fetchProducts();
       e.currentTarget.value = "";
     }
@@ -340,9 +340,10 @@ export default function ProductTable() {
       return;
     }
 
-    const res = await dispatch(addVendor(vendorForm) as any);
+    const res = await dispatch(addVendor(vendorForm));
+    const payload = res.payload as GetVendorData;
 
-    if (res?.payload?.success) {
+    if (payload?._id) {
       alert("Vendor added");
 
       // refresh vendor list
@@ -371,7 +372,7 @@ export default function ProductTable() {
         vendor_openingBalance: 0,
       });
     } else {
-      alert(res?.payload?.message || "Failed to add vendor");
+      alert("Failed to add vendor");
     }
   };
 
