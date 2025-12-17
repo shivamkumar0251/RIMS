@@ -1,5 +1,10 @@
-// export const API_BASE_URL = 'https://hopsnchops-backend.onrender.com/v1';
-export const API_BASE_URL = 'http://localhost:5050/v1';
+// Production
+// Development
+export const API_BASE_PRODUCTION_URL = 'https://hopsnchops-backend.onrender.com/v1';
+export const API_BASE_DEVELOPMENT_URL = 'http://localhost:5050/v1';
+export const API_BASE_URL =  import.meta.env.PROD  ? API_BASE_PRODUCTION_URL : API_BASE_DEVELOPMENT_URL;
+
+console.log('API_BASE_URL', API_BASE_URL);
 
 export const API_ENDPOINTS = {
   LOGIN_API: `${API_BASE_URL}/users/login`,
@@ -47,14 +52,14 @@ export const API_ENDPOINTS = {
   UPDATE_PRODUCTS: (id: string) => `${API_BASE_URL}/products/${id}`,
   DELETE_PRODUCTS: (id: string) => `${API_BASE_URL}/products/${id}`,
   // ===== Order (Section 9) =====
-  GET_ORDERS: `${API_BASE_URL}/order/products`, 
+  GET_ORDERS: `${API_BASE_URL}/order/products`,
   ADD_ORDERS: `${API_BASE_URL}/order`,
-  UPDATE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`, 
+  UPDATE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`,
   DELETE_WHOLE_ORDERS: (id: string) => `${API_BASE_URL}/order/${id}`,
-  DELETE_ORDERS_ITEMS: (id: string) => `${API_BASE_URL}/order/${id}/items`, 
+  DELETE_ORDERS_ITEMS: (id: string) => `${API_BASE_URL}/order/${id}/items`,
   // ===== Vendor Orders (Section 8) - Different from regular orders =====
   GET_VENDOR_ORDERS_LIST: `${API_BASE_URL}/order`,
-  UPDATE_VENDOR_ORDER: (id: string) => `${API_BASE_URL}/order/${id}/send-to-purchase`,  
+  UPDATE_VENDOR_ORDER: (id: string) => `${API_BASE_URL}/order/${id}/send-to-purchase`,
   // ===== purchase =====
   GET_PURCHASE: `${API_BASE_URL}/purchase`,
   ADD_PURCHASE: `${API_BASE_URL}/purchase`,
@@ -73,7 +78,7 @@ export const API_ENDPOINTS = {
   ADD_BULK_KITCHEN_STOCK: `${API_BASE_URL}/kitchenStock/bulk/create`,
   UPDATE_KITCHEN_STOCK: (id: string) => `${API_BASE_URL}/kitchenStock/${id}`,
   DELETE_KITCHEN_STOCK: (id: string) => `${API_BASE_URL}/kitchenStock/${id}`,
-   // ===== consumableStock =====
+  // ===== consumableStock =====
   GET_CONSUMABLE: `${API_BASE_URL}/consumableStock`,
   ADD_CONSUMABLE: `${API_BASE_URL}/consumableStock`,
   ADD_BULK_CONSUMABLE: `${API_BASE_URL}/consumableStock/bulk/create`,
