@@ -71,7 +71,7 @@ export default function CompanyBrand() {
                 search: query || undefined,
                 fromDate: fromDate || undefined,
                 toDate: toDate || undefined
-            }) as any
+            })
         );
     };
 

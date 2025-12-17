@@ -18,27 +18,27 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography,
+  Typography
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs"; // Import Dayjs and Dayjs type
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
-import DateRangeFilter from "../../components/common/DateRangeFilter";
 import PaginationComponent from "../../components/common/Pagination";
-import MainSpinner from "../../components/common/MainSpinner";
+import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
-  getCategories,
   addCategory,
-  updateCategory,
-  deleteCategory,
+  addCategoryBulkExcel,
   addSubCategory,
-  updateSubCategory,
+  deleteCategory,
   deleteSubCategory,
+  getCategories,
   selectCategoryState,
+  updateCategory,
+  updateSubCategory
 } from "../../redux/slices/categorySlice";
-import type { Category } from "../../redux/slices/categorySlice";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+// import * as XLSX from "xlsx";
 
 type DateRangeValue = [Dayjs | null, Dayjs | null];
 
@@ -64,67 +64,11 @@ interface RawSub {
   createdAt?: string;
 }
 
-
 export default function ProductCategories() {
-
   const { loading, error, categories: apiCategories, allCategoriesData } = useAppSelector(selectCategoryState);
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ioLoading, setIoLoading] = useState(false);
-
-  // Export current page (or available) categories to JSON and CSV
-  const handleExport = async () => {
-    try {
-      setIoLoading(true);
-      const list = (allCategoriesData?.data ?? apiCategories ?? []) as Category[];
-
-      // JSON download
-      const jsonBlob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
-      const jsonUrl = URL.createObjectURL(jsonBlob);
-      const a = document.createElement('a');
-      a.href = jsonUrl;
-      a.download = `categories_export_${new Date().toISOString()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(jsonUrl);
-
-      // CSV download (flatten subnames joined by '|')
-      const csvRows: string[] = [];
-      csvRows.push(['categoryName', 'createdAt', 'subCategories'].join(','));
-      const getSubName = (s: unknown) => {
-        if (!s) return '';
-        if (typeof s === 'string') return s;
-        if (typeof s === 'object' && s !== null) {
-          const o = s as Record<string, unknown>;
-          return String(o.subCategoryName ?? o.subCategory ?? '');
-        }
-        return '';
-      };
-  
-      for (const c of list) {
-        const catName = String(c.categoryName ?? '').replace(/"/g, '""');
-        const createdAt = String(c.createdAt ?? '');
-        const subsArr = Array.isArray(c.subCategories) ? c.subCategories : [];
-        const subs = subsArr.map(getSubName).join('|').replace(/"/g, '""');
-        csvRows.push([`"${catName}"`, `"${createdAt}"`, `"${subs}"`].join(','));
-      }
-      const csvBlob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-      const csvUrl = URL.createObjectURL(csvBlob);
-      const a2 = document.createElement('a');
-      a2.href = csvUrl;
-      a2.download = `categories_export_${new Date().toISOString()}.csv`;
-      document.body.appendChild(a2);
-      a2.click();
-      a2.remove();
-      URL.revokeObjectURL(csvUrl);
-    } catch (err) {
-      alert('Export failed. See console for details.');
-      console.error(err);
-    } finally {
-      setIoLoading(false);
-    }
-  };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -132,61 +76,46 @@ export default function ProductCategories() {
 
   // Import supports JSON array of categories. It will add categories (name only).
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+    // Allow only XLSX
+    if (!file.name.endsWith(".xlsx")) {
+      alert("Only XLSX files are allowed");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setIoLoading(true);
     try {
-      const text = await file.text();
-      if (file.type.includes('json') || file.name.endsWith('.json')) {
-        const parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) throw new Error('Expected an array of categories in JSON');
-        for (const item of parsed) {
-          let name = '';
-          if (item && typeof item === 'object') {
-            const o = item as Record<string, unknown>;
-            name = String(o.categoryName ?? '');
-          }
-          if (name) {
-            try {
-              await dispatch(addCategory({ categoryName: name }));
-            } catch (err) {
-              console.error('Add category failed', err);
-            }
-          }
-        }
-        alert('Import finished (categories added). Refreshing list.');
-        await dispatch(getCategories({ search: '', page: 1, limit: rowsPerPage, fromDate: '', toDate: '' }));
-      } else if (file.type.includes('csv') || file.name.endsWith('.csv')) {
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        if (lines.length <= 1) {
-          alert('No CSV rows to import');
-        } else {
-          lines.shift();
-          for (const line of lines) {
-            const cols = line.split(',');
-            const catName = cols[0]?.replace(/^"|"$/g, '') || '';
-            if (catName) {
-              try {
-                await dispatch(addCategory({ categoryName: catName }));
-              } catch (err) {
-                console.error(err);
-              }
-            }
-          }
-          alert('CSV import finished (categories added). Refreshing list.');
-          await dispatch(getCategories({ search: '', page: 1, limit: rowsPerPage, fromDate: '', toDate: '' }));
-        }
-      } else {
-        alert('Unsupported file type. Please provide JSON or CSV.');
-      }
-    } catch (err) {
-      alert('Import failed. See console for details.');
-      console.error(err);
+      const formData = new FormData();
+      formData.append("file", file); // 👈 key must match backend
+      await dispatch(addCategoryBulkExcel(formData)).unwrap();
+      alert("XLSX import completed successfully");
+      // Refresh list
+      const fromDate = dateRange[0]
+        ? dateRange[0].startOf("day").toISOString()
+        : "";
+      const toDate = dateRange[1]
+        ? dateRange[1].endOf("day").toISOString()
+        : "";
+      dispatch(
+        getCategories({
+          search: debouncedSearch || "",
+          page: 1,
+          limit: rowsPerPage,
+          fromDate,
+          toDate,
+        })
+      );
+    } catch (error) {
+      console.error(error);
+      alert("XLSX import failed");
     } finally {
       setIoLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -364,6 +293,29 @@ export default function ProductCategories() {
     dispatch(getCategories({ search: debouncedSearch || '', page, limit: rowsPerPage, fromDate, toDate }));
   };
 
+  /** ========= DOWNLOAD TEMPLATE ========= **/
+  const handleDownloadTemplate = () => {
+    // Excel-compatible tabular text
+    const content =
+      "categoryName\tsubCategories\n" +
+      "Hotels\tBed\n" +
+      "Hotels\tTV\n" +
+      "Fruits\tBlackberry\n";
+
+    const blob = new Blob([content], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "CategorySubCategoryTemplate.xlsx";
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+  };
+
 
   // --- Render ---
 
@@ -378,77 +330,100 @@ export default function ProductCategories() {
           </Typography>
         )}
 
-        {loading ? <MainSpinner /> :
-          <div>
-            <Card className="mb-6 shadow-md">
-              <CardContent className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <Box className="flex flex-col sm:flex-row gap-4 w-full md:w-auto mt-1">
-                  <TextField
-                    size="small"
-                    placeholder="Search category/subcategory..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setPage(1);
-                    }}
-                    InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch size={18} className="text-gray-500" /></InputAdornment> }}
-                    className="w-full sm:w-64"
-                  />
 
-                  <DateRangeFilter
-                    value={dateRange}
-                    onChange={(newValue) => {
-                      setDateRange(newValue);
-                      setPage(1);
-                    }}
-                    size="small"
-                    className="w-full sm:w-80"
-                  />
-                </Box>
+        <div>
+          <Card className="mb-6 shadow-md">
+            <CardContent className="flex flex-col md:flex-row gap-4 justify-between items-center">
+              <Box className="flex flex-col sm:flex-row gap-4 w-full md:w-auto mt-1">
+                <TextField
+                  size="small"
+                  placeholder="Search category/subcategory..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch size={18} className="text-gray-500" /></InputAdornment> }}
+                  className="w-full sm:w-64"
+                />
 
-                <div className="flex gap-3 w-full md:w-auto justify-end">
-                  <Button
-                    startIcon={<FiDownload />}
-                    variant="outlined"
-                    color="inherit"
-                    className="normal-case"
-                    disabled={loading || ioLoading}
-                    onClick={handleExport}
-                  >
-                    Export
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/json,text/csv"
-                    style={{ display: 'none' }}
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    startIcon={<FiUpload />}
-                    variant="outlined"
-                    color="inherit"
-                    className="normal-case"
-                    disabled={loading || ioLoading}
-                    onClick={handleImportClick}
-                  >
-                    Import
-                  </Button>
-                  <Button
-                    startIcon={<FiPlus />}
-                    variant="contained"
-                    className="!bg-green-600 hover:!bg-green-700 normal-case"
-                    onClick={handleAddCategory}
-                    disabled={loading || ioLoading}
-                  >
-                    Add Category
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <TextField
+                  type="date"
+                  size="small"
+                  label="From"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : ""}
+                  onChange={(e) => {
+                    setDateRange([
+                      e.target.value ? dayjs(e.target.value) : null,
+                      dateRange[1],
+                    ]);
+                    setPage(1);
+                  }}
+                  className="w-full sm:w-40"
+                />
 
-            {/* --- Table --- */}
-            <TableContainer component={Paper} className="shadow-md">
+                <TextField
+                  type="date"
+                  size="small"
+                  label="To"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : ""}
+                  onChange={(e) => {
+                    setDateRange([
+                      dateRange[0],
+                      e.target.value ? dayjs(e.target.value) : null,
+                    ]);
+                    setPage(1);
+                  }}
+                  className="w-full sm:w-40"
+                />
+              </Box>
+
+              <div className="flex gap-3 w-full md:w-auto justify-end">
+                <Button
+                  variant="outlined"
+                  startIcon={<FiDownload />}
+                  onClick={handleDownloadTemplate}
+                >
+                  Download Template
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+                <Button
+                  startIcon={<FiUpload />}
+                  variant="outlined"
+                  color="inherit"
+                  className="normal-case"
+                  disabled={loading || ioLoading}
+                  onClick={handleImportClick}
+                >
+                  Import
+                </Button>
+                <Button
+                  startIcon={<FiPlus />}
+                  variant="contained"
+                  className="!bg-green-600 hover:!bg-green-700 normal-case"
+                  onClick={handleAddCategory}
+                  disabled={loading || ioLoading}
+                >
+                  Add Category
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* --- Table --- */}
+
+          <TableContainer component={Paper} className="shadow-md">
+            {loading ?
+              <SmallSpinner size={60} />
+              :
               <Table>
                 <TableHead className="bg-gray-100">
                   <TableRow>
@@ -563,42 +538,43 @@ export default function ProductCategories() {
                   )}
                 </TableBody>
               </Table>
+            }
+            {/* Pagination (server-driven) */}
+            <PaginationComponent
+              page={page}
+              onPageChange={(v) => setPage(v)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(v) => { setRowsPerPage(v); setPage(1); }}
+              totalPages={totalPages}
+              totalCount={totalCount}
+            />
+          </TableContainer>
 
-              {/* Pagination (server-driven) */}
-              <PaginationComponent
-                page={page}
-                onPageChange={(v) => setPage(v)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(v) => { setRowsPerPage(v); setPage(1); }}
-                totalPages={totalPages}
-                totalCount={totalCount}
-              />
-            </TableContainer>
+          {/* Category Modal */}
+          <Dialog open={isCatModalOpen} onClose={() => setIsCatModalOpen(false)}>
+            <DialogTitle>{editingItemId ? "Edit Category" : "Add New Category"}</DialogTitle>
+            <DialogContent>
+              <TextField autoFocus margin="dense" label="Category Name" fullWidth value={currentName} onChange={(e) => { setCurrentName(e.target.value); setCategoryError(""); }} error={!!categoryError} helperText={categoryError} />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setIsCatModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
+            </DialogActions>
+          </Dialog>
 
-            {/* Category Modal */}
-            <Dialog open={isCatModalOpen} onClose={() => setIsCatModalOpen(false)}>
-              <DialogTitle>{editingItemId ? "Edit Category" : "Add New Category"}</DialogTitle>
-              <DialogContent>
-                <TextField autoFocus margin="dense" label="Category Name" fullWidth value={currentName} onChange={(e) => { setCurrentName(e.target.value); setCategoryError(""); }} error={!!categoryError} helperText={categoryError} />
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setIsCatModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleSaveCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
-              </DialogActions>
-            </Dialog>
+          {/* Sub-Category Modal */}
+          <Dialog open={isSubCatModalOpen} onClose={() => setIsSubCatModalOpen(false)}>
+            <DialogTitle>{editingItemId ? "Edit Sub-Category" : `Add Sub-Category to ${selectedCategory?.name || ""}`}</DialogTitle>
+            <DialogContent>
+              <TextField autoFocus margin="dense" label="Sub-Category Name" fullWidth value={currentName} onChange={(e) => setCurrentName(e.target.value)} />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setIsSubCatModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveSubCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
+            </DialogActions>
+          </Dialog>
+        </div>
 
-            {/* Sub-Category Modal */}
-            <Dialog open={isSubCatModalOpen} onClose={() => setIsSubCatModalOpen(false)}>
-              <DialogTitle>{editingItemId ? "Edit Sub-Category" : `Add Sub-Category to ${selectedCategory?.name || ""}`}</DialogTitle>
-              <DialogContent>
-                <TextField autoFocus margin="dense" label="Sub-Category Name" fullWidth value={currentName} onChange={(e) => setCurrentName(e.target.value)} />
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setIsSubCatModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleSaveSubCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
-              </DialogActions>
-            </Dialog>
-          </div>}
       </div>
     </AdminLayout>
   );

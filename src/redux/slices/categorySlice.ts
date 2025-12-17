@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '../../api/endpoints';
 import type { RootState } from '../store/store';
 
 // ---------------- Types ----------------
+
 export interface SubCategory {
   _id: string;
   subCategoryName: string;
@@ -18,20 +19,22 @@ export interface Category {
   subCategories?: SubCategory[];
 }
 
-interface CategoryState {
-  loading: boolean;
-  error: string | null;
-  categories: Category[];
-  allCategoriesData: GetCategoriesResponse | null;
+export interface AddCategoryResponse extends Category {
+  success: boolean;
+  message: string;
+}
+export interface BulkresultsData {
+  created: number,
+  updated: number,
+  addedSubCategories: number,
+  skipped: number
 }
 
 // ---------------- BULK UPLOAD CATEGORY via EXCEL ----------------
 export interface BulkCategoryExcelResponse {
   success: boolean;
-  inserted: number;
-  failed: number;
-  errors?: { row: number; message: string }[];
-  data: Category[];
+  message: string;
+  results?: BulkresultsData;
 }
 
 // GET categories
@@ -44,6 +47,12 @@ interface GetCategoriesResponse {
   data: Category[];
 }
 // ---------------- Initial State ----------------
+interface CategoryState {
+  loading: boolean;
+  error: string | null;
+  categories: Category[];
+  allCategoriesData: GetCategoriesResponse | null;
+}
 const initialState: CategoryState = {
   loading: false,
   error: null,
@@ -83,7 +92,7 @@ export const getCategories = createAsyncThunk<
 
 // ADD CATEGORY
 export const addCategory = createAsyncThunk<
-  Category,
+  AddCategoryResponse,
   { categoryName: string },
   { rejectValue: { message: string } }
 >(
@@ -97,7 +106,7 @@ export const addCategory = createAsyncThunk<
       });
 
       if (response.status === 201) {
-        return response?.data as Category;
+        return response?.data as AddCategoryResponse;
       }
 
       return thunkAPI.rejectWithValue({
@@ -342,21 +351,16 @@ const categorySlice = createSlice({
         state.loading = false;
         state.categories.push(action.payload);
       })
-      .addCase(addCategory.rejected, (state, action) => {
+      .addCase(addCategory.rejected, (state) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Add category failed';
+        state.error = 'Add category failed';
       })
       .addCase(addCategoryBulkExcel.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addCategoryBulkExcel.fulfilled, (state, action) => {
+      .addCase(addCategoryBulkExcel.fulfilled, (state) => {
         state.loading = false;
-
-        // Merge uploaded categories into existing list
-        if (action.payload?.data?.length) {
-          state.categories = [...state.categories, ...action.payload.data];
-        }
       })
       .addCase(addCategoryBulkExcel.rejected, (state, action) => {
         state.loading = false;
@@ -368,97 +372,97 @@ const categorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-    .addCase(updateCategory.fulfilled, (state, action) => {
-      state.loading = false;
-      state.categories = state.categories.map((cat) =>
-        cat._id === action.payload._id ? action.payload : cat
-      );
-    })
-    .addCase(updateCategory.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload?.message || 'Update category failed';
-    })
-
-    // DELETE
-    .addCase(deleteCategory.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
-    .addCase(deleteCategory.fulfilled, (state, action) => {
-      state.loading = false;
-      state.categories = state.categories.filter(
-        (cat) => cat._id !== action.payload.categoryId
-      );
-    })
-    .addCase(deleteCategory.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload?.message || 'Delete category failed';
-    })
-
-    // ------------- SUBCATEGORY -------------
-
-    // ADD SUB
-    .addCase(addSubCategory.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
-    .addCase(addSubCategory.fulfilled, (state, action) => {
-      state.loading = false;
-      const category = state.categories.find(
-        (cat) => cat._id === action.payload.categoryId
-      );
-      if (category) {
-        if (!category.subCategories) category.subCategories = [];
-        category.subCategories.push(action.payload.subCategory);
-      }
-    })
-    .addCase(addSubCategory.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload?.message || 'Add subcategory failed';
-    })
-
-    // UPDATE SUB
-    .addCase(updateSubCategory.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
-    .addCase(updateSubCategory.fulfilled, (state, action) => {
-      state.loading = false;
-      const category = state.categories.find(
-        (cat) => cat._id === action.payload.categoryId
-      );
-      if (category && category.subCategories) {
-        category.subCategories = category.subCategories.map((sub) =>
-          sub._id === action.payload.subCategory._id ? action.payload.subCategory : sub
+      .addCase(updateCategory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.categories = state.categories.map((cat) =>
+          cat._id === action.payload._id ? action.payload : cat
         );
-      }
-    })
-    .addCase(updateSubCategory.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload?.message || 'Update subcategory failed';
-    })
+      })
+      .addCase(updateCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Update category failed';
+      })
 
-    // DELETE SUB
-    .addCase(deleteSubCategory.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
-    .addCase(deleteSubCategory.fulfilled, (state, action) => {
-      state.loading = false;
-      const category = state.categories.find(
-        (cat) => cat._id === action.payload.categoryId
-      );
-      if (category && category.subCategories) {
-        category.subCategories = category.subCategories.filter(
-          (sub) => sub._id !== action.payload.subCategoryId
+      // DELETE
+      .addCase(deleteCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteCategory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.categories = state.categories.filter(
+          (cat) => cat._id !== action.payload.categoryId
         );
-      }
-    })
-    .addCase(deleteSubCategory.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload?.message || 'Delete subcategory failed';
-    });
-},
+      })
+      .addCase(deleteCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Delete category failed';
+      })
+
+      // ------------- SUBCATEGORY -------------
+
+      // ADD SUB
+      .addCase(addSubCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addSubCategory.fulfilled, (state, action) => {
+        state.loading = false;
+        const category = state.categories.find(
+          (cat) => cat._id === action.payload.categoryId
+        );
+        if (category) {
+          if (!category.subCategories) category.subCategories = [];
+          category.subCategories.push(action.payload.subCategory);
+        }
+      })
+      .addCase(addSubCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Add subcategory failed';
+      })
+
+      // UPDATE SUB
+      .addCase(updateSubCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateSubCategory.fulfilled, (state, action) => {
+        state.loading = false;
+        const category = state.categories.find(
+          (cat) => cat._id === action.payload.categoryId
+        );
+        if (category && category.subCategories) {
+          category.subCategories = category.subCategories.map((sub) =>
+            sub._id === action.payload.subCategory._id ? action.payload.subCategory : sub
+          );
+        }
+      })
+      .addCase(updateSubCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Update subcategory failed';
+      })
+
+      // DELETE SUB
+      .addCase(deleteSubCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteSubCategory.fulfilled, (state, action) => {
+        state.loading = false;
+        const category = state.categories.find(
+          (cat) => cat._id === action.payload.categoryId
+        );
+        if (category && category.subCategories) {
+          category.subCategories = category.subCategories.filter(
+            (sub) => sub._id !== action.payload.subCategoryId
+          );
+        }
+      })
+      .addCase(deleteSubCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Delete subcategory failed';
+      });
+  },
 });
 
 // ---------------- Selectors ----------------

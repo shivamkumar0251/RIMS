@@ -1,12 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
-import { AdminLayout } from "../../layouts/AdminLayout";
 import {
     Button,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControl,
+    InputLabel,
+    MenuItem,
     Paper,
+    Select,
     Table,
     TableBody,
     TableCell,
@@ -15,27 +18,28 @@ import {
     TablePagination,
     TableRow,
     TextField,
-    CircularProgress,
 } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
 import {
+    FiDownload,
+    FiEdit,
     FiPlus,
     FiSearch,
-    FiEdit,
     FiTrash2,
     FiUpload,
-    FiDownload,
 } from "react-icons/fi";
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import * as XLSX from "xlsx";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import {
     addVendor,
     addVendorBulkExcel,
     deleteVendor,
     getVendors,
-    updateVendor,
-    selectVendorLoading,
     selectAllVendorsData,
+    selectVendorLoading,
+    updateVendor,
 } from "../../redux/slices/vendorSlice";
-import * as XLSX from "xlsx";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 interface VendorForm {
     vendor_name: string;
@@ -93,6 +97,10 @@ function VendorList() {
         franchiseId,
     });
 
+    const PAYMENT_TERMS = ["net 15", "net 30", "on Delivery"];
+    const PAYMENT_MODES = ["cash", "bank_transfer", "UPI", "cheque"];
+    const GST_TYPES = ["cgst_sgst", "igst", "non_gst", "exempt"];
+    const REGISTRATION_TYPES = ["composition", "registered", "unRegistered"];
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Fetch Vendors
@@ -146,12 +154,19 @@ function VendorList() {
     // Save Vendor
     const handleSaveVendor = async () => {
         if (!formData.vendor_name.trim()) return;
+        // ✅ clone object
+        const vendorPayload: any = { ...formData };
+
+        // ✅ remove unwanted keys
+        delete vendorPayload._id;
+        delete vendorPayload.franchiseId;
 
         if (editingVendor) {
+
             await dispatch(
                 updateVendor({
                     vendorId: editingVendor._id,
-                    vendorData: formData,
+                    vendorData: vendorPayload,
                 }) as any
             );
         } else {
@@ -427,27 +442,121 @@ function VendorList() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {Object.keys(formData)
                                 .filter((k) => k !== "franchiseId")
-                                .map((key: any) => (
-                                    <TextField
-                                        key={key}
-                                        label={key.replace(/_/g, " ").toUpperCase()}
-                                        type={
-                                            key.includes("Balance") ||
-                                            key.includes("Limit")
-                                                ? "number"
-                                                : "text"
-                                        }
-                                        fullWidth
-                                        value={(formData as any)[key]}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                [key]: e.target.value,
-                                            })
-                                        }
-                                    />
-                                ))}
+                                .map((key: any) => {
+                                    // 🔹 Payment Terms
+                                    if (key === "vendor_paymentTerms") {
+                                        return (
+                                            <FormControl fullWidth key={key}>
+                                                <InputLabel>PAYMENT TERMS</InputLabel>
+                                                <Select
+                                                    value={formData.vendor_paymentTerms}
+                                                    label="PAYMENT TERMS"
+                                                    onChange={(e) =>
+                                                        setFormData({ ...formData, vendor_paymentTerms: e.target.value })
+                                                    }
+                                                >
+                                                    {PAYMENT_TERMS.map((opt) => (
+                                                        <MenuItem key={opt} value={opt}>
+                                                            {opt}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        );
+                                    }
+
+                                    // 🔹 Preferred Payment Mode
+                                    if (key === "vendor_preferredPaymentMode") {
+                                        return (
+                                            <FormControl fullWidth key={key}>
+                                                <InputLabel>PAYMENT MODE</InputLabel>
+                                                <Select
+                                                    value={formData.vendor_preferredPaymentMode}
+                                                    label="PAYMENT MODE"
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            vendor_preferredPaymentMode: e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    {PAYMENT_MODES.map((opt) => (
+                                                        <MenuItem key={opt} value={opt}>
+                                                            {opt}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        );
+                                    }
+
+                                    // 🔹 GST Type
+                                    if (key === "vendor_gstType") {
+                                        return (
+                                            <FormControl fullWidth key={key}>
+                                                <InputLabel>GST TYPE</InputLabel>
+                                                <Select
+                                                    value={formData.vendor_gstType}
+                                                    label="GST TYPE"
+                                                    onChange={(e) =>
+                                                        setFormData({ ...formData, vendor_gstType: e.target.value })
+                                                    }
+                                                >
+                                                    {GST_TYPES.map((opt) => (
+                                                        <MenuItem key={opt} value={opt}>
+                                                            {opt}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        );
+                                    }
+
+                                    // 🔹 Registration Type
+                                    if (key === "vendor_registrationType") {
+                                        return (
+                                            <FormControl fullWidth key={key}>
+                                                <InputLabel>REGISTRATION TYPE</InputLabel>
+                                                <Select
+                                                    value={formData.vendor_registrationType}
+                                                    label="REGISTRATION TYPE"
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            vendor_registrationType: e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    {REGISTRATION_TYPES.map((opt) => (
+                                                        <MenuItem key={opt} value={opt}>
+                                                            {opt}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        );
+                                    }
+
+                                    // 🔹 Default Text / Number Fields
+                                    return (
+                                        <TextField
+                                            key={key}
+                                            label={key.replace(/_/g, " ").toUpperCase()}
+                                            type={
+                                                key.includes("Balance") || key.includes("Limit")
+                                                    ? "number"
+                                                    : "text"
+                                            }
+                                            fullWidth
+                                            value={(formData as any)[key]}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, [key]: e.target.value })
+                                            }
+                                        />
+                                    );
+                                })}
                         </div>
+
                     </DialogContent>
 
                     <DialogActions>
@@ -463,3 +572,5 @@ function VendorList() {
 }
 
 export default VendorList;
+
+
