@@ -1,17 +1,17 @@
 import {
-    Button,
-    Checkbox,
-    CircularProgress,
-    MenuItem,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TablePagination,
-    TableRow,
-    TextField
+  Button,
+  Checkbox,
+  CircularProgress,
+  MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
@@ -21,24 +21,24 @@ import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import {
-    addConsumableStock,
-    getConsumableStocks,
-    selectConsumableStockState
+  addConsumableStock,
+  getConsumableStocks,
+  selectConsumableStockState
 } from "../../redux/slices/consumableStockSlice";
 
 import {
-    getCategories,
-    selectCategories
+  getCategories,
+  selectCategories
 } from "../../redux/slices/categorySlice";
 
 import {
-    getCompanies,
-    selectCompanies
+  getCompanies,
+  selectCompanies
 } from "../../redux/slices/companySlice";
 
 import {
-    getVendorNameList,
-    selectVendorNames
+  getVendorNameList,
+  selectVendorNames
 } from "../../redux/slices/vendorSlice";
 
 import type { ConsumableStockPostData } from "../../redux/slices/consumableStockSlice";
@@ -59,6 +59,7 @@ const Consumables: React.FC = () => {
   const [companyId, setCompanyId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
 
   // ---------------- Pagination ----------------
   const [page, setPage] = useState(0);
@@ -71,8 +72,8 @@ const Consumables: React.FC = () => {
 
   // ---------------- Fetch master data ----------------
   useEffect(() => {
-    dispatch(getCategories({page:1, limit:1000}));
-    dispatch(getCompanies({page:1, limit:1000}));
+    dispatch(getCategories({ page: 1, limit: 1000 }));
+    dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
   }, [dispatch]);
 
@@ -82,6 +83,7 @@ const Consumables: React.FC = () => {
       getConsumableStocks({
         page: page + 1,
         limit,
+        search,
         categoryId,
         vendorId,
         companyId,
@@ -89,7 +91,7 @@ const Consumables: React.FC = () => {
         toDate
       })
     );
-  }, [dispatch, page, limit, categoryId, vendorId, companyId, fromDate, toDate]);
+  }, [dispatch, page, search, limit, categoryId, vendorId, companyId, fromDate, toDate]);
 
   // ---------------- Selection logic ----------------
   const toggleRow = (id: string) => {
@@ -121,14 +123,19 @@ const Consumables: React.FC = () => {
     setUsageMap({});
     setWastageMap({});
   };
-console.log('consumableStocks', consumableStocks);
 
   // ---------------- Render ----------------
   return (
     <AdminLayout>
       <div className="p-4 space-y-4">
         {/* ---------------- Filters ---------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <TextField
+            label="Search"
+            size="small"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
           <TextField
             select
             size="small"
@@ -192,7 +199,7 @@ console.log('consumableStocks', consumableStocks);
             onChange={(e) => setToDate(e.target.value)}
           />
         </div>
-         {/* ---------------- Submit ---------------- */}
+        {/* ---------------- Submit ---------------- */}
         <div className="flex justify-end">
           <Button
             variant="contained"
@@ -220,11 +227,10 @@ console.log('consumableStocks', consumableStocks);
                       onChange={toggleAll}
                     />
                   </TableCell>
+                  <TableCell>Product</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Company</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Pack</TableCell>
                   <TableCell>Unit</TableCell>
                   <TableCell>Opening</TableCell>
                   <TableCell>Received</TableCell>
@@ -255,12 +261,10 @@ console.log('consumableStocks', consumableStocks);
                           onChange={() => toggleRow(pid)}
                         />
                       </TableCell>
-
+                      <TableCell>{row.productId?.productName} ({row.productId?.packSize})</TableCell>
                       <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
                       <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
                       <TableCell>{row.productId?.companyId?.brandName}</TableCell>
-                      <TableCell>{row.productId?.productName}</TableCell>
-                      <TableCell>{row.productId?.packSize}</TableCell>
                       <TableCell>{row.productId?.unit}</TableCell>
                       <TableCell>{row?.openingStock}</TableCell>
                       <TableCell>{row?.rcvdKitchenQty}</TableCell>

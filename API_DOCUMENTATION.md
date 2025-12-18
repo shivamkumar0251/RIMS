@@ -195,7 +195,7 @@ Authorization: Bearer <your_jwt_token>
 **Response:**
 ```json
 {
-  "message": "User registered successfully",
+  "message": "User Registered successfully",
   "user": { ... }
 }
 ```

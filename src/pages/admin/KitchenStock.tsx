@@ -1,30 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { AdminLayout } from "../../layouts/AdminLayout";
 import {
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Checkbox,
-  Paper,
-  TextField,
-  Button,
-  CircularProgress,
   TablePagination,
-  MenuItem,
-  Chip
+  TableRow,
+  TextField
 } from "@mui/material";
-import { FiSend } from "react-icons/fi";
 import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
+import { FiSend } from "react-icons/fi";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
-  getKitchenStocks,
   addKitchenStock,
+  getKitchenStocks,
   selectKitchenStockState
 } from "../../redux/slices/kitchenStockSlice";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
@@ -126,6 +126,31 @@ const KitchenStockPage: React.FC = () => {
 
   const isSelected = (id: string) => selected[id] !== undefined;
 
+  const totalRows = kitchenStocks.length;
+
+  const selectedCount = kitchenStocks.filter(
+    row => selected[row.productId._id] !== undefined
+  ).length;
+
+  const allSelected = totalRows > 0 && selectedCount === totalRows;
+  const someSelected = selectedCount > 0 && selectedCount < totalRows;
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      // Unselect all
+      setSelected({});
+    } else {
+      // Select all visible rows
+      const next: Record<string, number> = {};
+      kitchenStocks.forEach(row => {
+        next[row.productId._id] = selected[row.productId._id] ?? 0;
+      });
+      setSelected(next);
+    }
+  };
+
+
+
   // ---------------- UI ----------------
   return (
     <AdminLayout>
@@ -134,6 +159,13 @@ const KitchenStockPage: React.FC = () => {
         {/* ---------------- Filters ---------------- */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <TextField
+            size="small"
+            label="Search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <TextField
+            size="small"
             select
             label="Category"
             value={categoryId}
@@ -148,6 +180,7 @@ const KitchenStockPage: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Vendor"
             value={vendorId}
@@ -162,6 +195,7 @@ const KitchenStockPage: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Brand"
             value={companyId}
@@ -175,13 +209,10 @@ const KitchenStockPage: React.FC = () => {
             ))}
           </TextField>
 
-          <TextField
-            label="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+
 
           <TextField
+            size="small"
             type="date"
             label="From"
             InputLabelProps={{ shrink: true }}
@@ -190,6 +221,7 @@ const KitchenStockPage: React.FC = () => {
           />
 
           <TextField
+            size="small"
             type="date"
             label="To"
             InputLabelProps={{ shrink: true }}
@@ -220,7 +252,13 @@ const KitchenStockPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell />
+                  <TableCell>
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </TableCell>
                   <TableCell>Product</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>

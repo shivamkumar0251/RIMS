@@ -14,7 +14,8 @@ import {
     TablePagination,
     TableRow,
     TextField,
-    CircularProgress
+    CircularProgress,
+    Typography
 } from "@mui/material";
 
 import { useEffect, useRef, useState } from "react";
@@ -148,9 +149,11 @@ export default function CompanyBrand() {
                 <div className="flex flex-col md:flex-row justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold">Company / Brand</h2>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate}>
-                            Download Template
+                            <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                                Download Template
+                            </Typography>
                         </Button>
 
                         <input
@@ -166,7 +169,7 @@ export default function CompanyBrand() {
                             startIcon={<FiUpload />}
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            Import Excel
+                            <Typography sx={{ fontSize: { xs: "10px", sm: "14px", md: "16px" } }}>Import</Typography>
                         </Button>
 
                         <Button
@@ -179,7 +182,9 @@ export default function CompanyBrand() {
                                 setEditOpen(true);
                             }}
                         >
+                            <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
                             Add Brand
+                            </Typography>
                         </Button>
                     </div>
                 </div>

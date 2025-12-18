@@ -16,6 +16,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography
@@ -23,7 +24,7 @@ import {
 import dayjs, { Dayjs } from "dayjs"; // Import Dayjs and Dayjs type
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
-import PaginationComponent from "../../components/common/Pagination";
+// import PaginationComponent from "../../components/common/Pagination";
 import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
@@ -160,7 +161,7 @@ export default function ProductCategories() {
     dispatch(getCategories({ search: debouncedSearch || '', page, limit: rowsPerPage, fromDate, toDate }));
   }, [dispatch, debouncedSearch, page, rowsPerPage, dateRange]);
 
-  const totalPages = allCategoriesData?.totalPages || 1;
+  // const totalPages = allCategoriesData?.totalPages || 1;
   // `total` is the total number of items across all pages (backend provided)
   const totalCount = allCategoriesData?.total ?? allCategoriesData?.count ?? 0;
 
@@ -386,7 +387,9 @@ export default function ProductCategories() {
                   startIcon={<FiDownload />}
                   onClick={handleDownloadTemplate}
                 >
-                  Download Template
+                  <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                    Download Template
+                  </Typography>
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -396,14 +399,15 @@ export default function ProductCategories() {
                   onChange={handleFileChange}
                 />
                 <Button
-                  startIcon={<FiUpload />}
+                  size="small"
+                  startIcon={<FiUpload size={13} />}
                   variant="outlined"
                   color="inherit"
                   className="normal-case"
                   disabled={loading || ioLoading}
                   onClick={handleImportClick}
                 >
-                  Import
+                  <Typography sx={{ fontSize: { xs: "10px", sm: "14px", md: "16px" } }}>Import</Typography>
                 </Button>
                 <Button
                   startIcon={<FiPlus />}
@@ -412,7 +416,10 @@ export default function ProductCategories() {
                   onClick={handleAddCategory}
                   disabled={loading || ioLoading}
                 >
-                  Add Category
+                  <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                    Add Category
+                  </Typography>
+
                 </Button>
               </div>
             </CardContent>
@@ -540,13 +547,19 @@ export default function ProductCategories() {
               </Table>
             }
             {/* Pagination (server-driven) */}
-            <PaginationComponent
-              page={page}
-              onPageChange={(v) => setPage(v)}
+            <TablePagination
+              component="div"
+              count={totalCount}
+              page={page - 1} // MUI uses 0-based index
+              onPageChange={(_, newPage) => {
+                setPage(newPage + 1); // convert back to 1-based
+              }}
               rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(v) => { setRowsPerPage(v); setPage(1); }}
-              totalPages={totalPages}
-              totalCount={totalCount}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(1); // reset to first page
+              }}
+              rowsPerPageOptions={[5, 10, 25, 50]}
             />
           </TableContainer>
 

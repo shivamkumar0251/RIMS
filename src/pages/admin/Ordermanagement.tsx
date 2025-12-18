@@ -198,7 +198,7 @@ export default function OrderManagementPage(): JSX.Element {
 
         {/* Header */}
         <Box className="flex items-center justify-between mb-4">
-          <Typography variant="h5">Order Management</Typography>
+          <Typography variant="h6">Order Management</Typography>
           <Box className="flex gap-2">
             <Button
               variant="contained"
@@ -207,7 +207,7 @@ export default function OrderManagementPage(): JSX.Element {
               disabled={visibleSelectedCount === 0}
               onClick={handleSendOrder}
             >
-              Send Order ({visibleSelectedCount})
+                Send Order ({visibleSelectedCount})
             </Button>
           </Box>
         </Box>

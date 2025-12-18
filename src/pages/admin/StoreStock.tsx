@@ -1,30 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { AdminLayout } from "../../layouts/AdminLayout";
 import {
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Checkbox,
-  Paper,
-  TextField,
-  Button,
-  CircularProgress,
   TablePagination,
-  MenuItem,
-  Chip
+  TableRow,
+  TextField
 } from "@mui/material";
-import { FiSend } from "react-icons/fi";
 import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
+import { FiSend } from "react-icons/fi";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
-  getStoreStocks,
   addStoreStock,
+  getStoreStocks,
   selectStoreStockState
 } from "../../redux/slices/storeStockSlice";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
@@ -59,8 +59,8 @@ const StoreStockComponent: React.FC = () => {
 
   // ---------------- Load Dropdowns ----------------
   useEffect(() => {
-    dispatch(getCategories({page:1, limit:1000}));
-    dispatch(getCompanies({page:1, limit:1000}));
+    dispatch(getCategories({ page: 1, limit: 1000 }));
+    dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
   }, [dispatch]);
 
@@ -136,6 +136,29 @@ const StoreStockComponent: React.FC = () => {
 
   const isSelected = (id: string) => selected[id] !== undefined;
 
+  const totalRows = storeStocks.length;
+
+  const selectedCount = storeStocks.filter(
+    row => selected[row.productId._id] !== undefined
+  ).length;
+
+  const allSelected = totalRows > 0 && selectedCount === totalRows;
+  const someSelected = selectedCount > 0 && selectedCount < totalRows;
+  const handleSelectAll = () => {
+    if (allSelected) {
+      // Unselect all
+      setSelected({});
+    } else {
+      // Select all visible rows
+      const next: Record<string, number> = {};
+      storeStocks.forEach(row => {
+        next[row.productId._id] = selected[row.productId._id] ?? 0;
+      });
+      setSelected(next);
+    }
+  };
+
+
   // ---------------- UI ----------------
   return (
     <AdminLayout>
@@ -144,6 +167,13 @@ const StoreStockComponent: React.FC = () => {
         {/* ---------------- Filters ---------------- */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <TextField
+            size="small"
+            label="Search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <TextField
+            size="small"
             select
             label="Category"
             value={categoryId}
@@ -158,13 +188,14 @@ const StoreStockComponent: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Vendor"
             value={vendorId}
             onChange={e => setVendorId(e.target.value)}
           >
             <MenuItem value="">All</MenuItem>
-            { companies.map(v => (
+            {companies.map(v => (
               <MenuItem key={v._id} value={v._id}>
                 {v.vendor_name}
               </MenuItem>
@@ -172,6 +203,7 @@ const StoreStockComponent: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Brand"
             value={companyId}
@@ -186,12 +218,7 @@ const StoreStockComponent: React.FC = () => {
           </TextField>
 
           <TextField
-            label="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-
-          <TextField
+            size="small"
             type="date"
             label="From"
             InputLabelProps={{ shrink: true }}
@@ -200,6 +227,7 @@ const StoreStockComponent: React.FC = () => {
           />
 
           <TextField
+            size="small"
             type="date"
             label="To"
             InputLabelProps={{ shrink: true }}
@@ -230,7 +258,13 @@ const StoreStockComponent: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell />
+                  <TableCell>
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </TableCell>
                   <TableCell>Product</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>

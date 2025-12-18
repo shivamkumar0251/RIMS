@@ -138,6 +138,35 @@ const Purchase: React.FC = () => {
   // ---------------- Helpers ----------------
   const isSelected = (id: string) => selected[id] !== undefined;
 
+  // ---------------- Select All Helpers ----------------
+  const allSelected =
+    purchases.length > 0 &&
+    purchases.every(row => selected[row.productId._id] !== undefined);
+
+  const someSelected =
+    purchases.some(row => selected[row.productId._id] !== undefined);
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      // Unselect all visible rows
+      const next = { ...selected };
+      purchases.forEach(row => {
+        delete next[row.productId._id];
+      });
+      setSelected(next);
+    } else {
+      // Select all visible rows
+      const next = { ...selected };
+      purchases.forEach(row => {
+        if (next[row.productId._id] === undefined) {
+          next[row.productId._id] = 0;
+        }
+      });
+      setSelected(next);
+    }
+  };
+
+
   // ---------------- UI ----------------
   return (
     <AdminLayout>
@@ -145,7 +174,15 @@ const Purchase: React.FC = () => {
 
         {/* ---------------- Filters ---------------- */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+
           <TextField
+            size="small"
+            label="Search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <TextField
+            size="small"
             select
             label="Category"
             value={categoryId}
@@ -160,6 +197,7 @@ const Purchase: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Vendor"
             value={vendorId}
@@ -174,6 +212,7 @@ const Purchase: React.FC = () => {
           </TextField>
 
           <TextField
+            size="small"
             select
             label="Brand"
             value={companyId}
@@ -188,12 +227,7 @@ const Purchase: React.FC = () => {
           </TextField>
 
           <TextField
-            label="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-
-          <TextField
+            size="small"
             type="date"
             label="From"
             InputLabelProps={{ shrink: true }}
@@ -202,6 +236,7 @@ const Purchase: React.FC = () => {
           />
 
           <TextField
+            size="small"
             type="date"
             label="To"
             InputLabelProps={{ shrink: true }}
@@ -231,7 +266,13 @@ const Purchase: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell />
+                  <TableCell>
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={!allSelected && someSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </TableCell>
                   <TableCell>Product</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
@@ -310,3 +351,6 @@ const Purchase: React.FC = () => {
 };
 
 export default Purchase;
+
+
+// we want to option of select all in 

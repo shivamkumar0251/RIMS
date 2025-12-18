@@ -4,8 +4,6 @@ export const API_BASE_PRODUCTION_URL = 'https://hopsnchops-backend.onrender.com/
 export const API_BASE_DEVELOPMENT_URL = 'http://localhost:5050/v1';
 export const API_BASE_URL =  import.meta.env.PROD  ? API_BASE_PRODUCTION_URL : API_BASE_DEVELOPMENT_URL;
 
-console.log('API_BASE_URL', API_BASE_URL);
-
 export const API_ENDPOINTS = {
   LOGIN_API: `${API_BASE_URL}/users/login`,
   GET_USER_BY_ID: `${API_BASE_URL}/users/login`,

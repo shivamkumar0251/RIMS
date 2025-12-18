@@ -36,7 +36,7 @@ import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import VendorList from "./pages/admin/VendorList";
 import VendorsOrder from "./pages/admin/VendorsOrder";
 import Purchase from "./pages/admin/Purchase";
-import VendorOrderDetails from "./components/adminComponents/VendorOrderDetails";
+import VendorOrderDetails from "./pages/admin/VendorOrderDetails";
 function App() {
   return (
     <>

@@ -42,7 +42,7 @@ export interface VendorDataUpdateProduct {
   remarks: string;
 }
 export interface VendorDataUpdate {
-  products:VendorDataUpdateProduct[]
+  products: VendorDataUpdateProduct[]
 }
 // ---------------- Initial State ----------------
 interface VendorOrderState {
@@ -63,13 +63,13 @@ const initialState: VendorOrderState = {
 // GET VENDOR ORDERS
 export const getVendorOrders = createAsyncThunk<
   GetVendorOrdersResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, paymentStatus?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/getVendorOrders',
- async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '',  vendor = '',  brand = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', paymentStatus = '' }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&paymentStatus=${paymentStatus}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -93,11 +93,11 @@ export const getVendorOrders = createAsyncThunk<
 // UPDATE VENDOR ORDER
 export const updateVendorOrder = createAsyncThunk<
   VendorOrder,
-  { vendorOrderId: string; products?: VendorDataUpdateProduct[];  },
+  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/updateVendorOrder',
-  async ({ vendorOrderId, products,  }, thunkAPI) => {
+  async ({ vendorOrderId, products, }, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.UPDATE_VENDOR_ORDER(vendorOrderId),

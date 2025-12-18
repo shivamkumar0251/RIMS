@@ -18,6 +18,7 @@ import {
     TablePagination,
     TableRow,
     TextField,
+    Typography,
 } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -97,10 +98,10 @@ function VendorList() {
         franchiseId,
     });
 
-    const PAYMENT_TERMS = ["net 15", "net 30", "on Delivery"];
-    const PAYMENT_MODES = ["cash", "bank_transfer", "UPI", "cheque"];
-    const GST_TYPES = ["cgst_sgst", "igst", "non_gst", "exempt"];
-    const REGISTRATION_TYPES = ["composition", "registered", "unRegistered"];
+    const PAYMENT_TERMS = ["Net 15", "Net 30", "On Delivery"];
+    const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque"];
+    const GST_TYPES = ["Cgst Sgst", "Igst", "Non Gst", "Exempt"];
+    const REGISTRATION_TYPES = ["Composition", "Registered", "UnRegistered"];
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Fetch Vendors
@@ -238,16 +239,17 @@ function VendorList() {
         <AdminLayout>
             <div className="p-4 space-y-4">
                 {/* Header */}
+                <h1 className="text-xl font-semibold">Vendor List</h1>
                 <div className="flex justify-between items-center">
-                    <h1 className="text-xl font-semibold">Vendor List</h1>
-
                     <div className="flex gap-3">
                         <Button
                             variant="outlined"
                             startIcon={<FiDownload />}
                             onClick={handleDownloadTemplate}
                         >
-                            Template
+                            <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                                Template
+                            </Typography>
                         </Button>
 
                         {/* Excel Upload */}
@@ -263,7 +265,9 @@ function VendorList() {
                             startIcon={<FiUpload />}
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            Upload Excel
+                            <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                                Upload Excel
+                            </Typography>
                         </Button>
 
                         <Button
@@ -271,7 +275,9 @@ function VendorList() {
                             startIcon={<FiPlus />}
                             onClick={() => handleOpenDialog()}
                         >
-                            Add Vendor
+                            <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                                Add Vendor
+                            </Typography>
                         </Button>
                     </div>
                 </div>

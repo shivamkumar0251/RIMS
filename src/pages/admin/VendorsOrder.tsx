@@ -15,6 +15,7 @@ import {
   selectVendorOrderState
 } from "../../redux/slices/vendorOrderSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import dayjs from "dayjs";
 
 function VendorsOrder() {
   const dispatch = useAppDispatch();
@@ -33,15 +34,16 @@ function VendorsOrder() {
       limit: 10,
       ...filters
     }));
-  }, [filters]);
+  }, [filters, dispatch]);
 
   return (
     <AdminLayout>
-      <h2 className="text-xl font-semibold mb-4">Vendor Orders</h2>
+      <h2 className="text-xl font-semibold mb-4 px-4 pt-3">Vendor Orders</h2>
 
       {/* FILTERS */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4 px-4">
         <TextField
+          size="small"
           type="date"
           label="From Date"
           InputLabelProps={{ shrink: true }}
@@ -50,22 +52,26 @@ function VendorsOrder() {
         />
 
         <TextField
+          size="small"
           type="date"
           label="To Date"
           InputLabelProps={{ shrink: true }}
           value={filters.toDate}
           onChange={e => setFilters({ ...filters, toDate: e.target.value })}
         />
-
+      </div>
+      <div className="grid grid-cols-1 gap-4 mb-4 px-4">
         <TextField
+          size="small"
           select
           label="Payment Status"
           value={filters.paymentStatus}
           onChange={e => setFilters({ ...filters, paymentStatus: e.target.value })}
         >
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="pending">Pending</MenuItem>
-          <MenuItem value="paid">Paid</MenuItem>
+          <MenuItem value="Pending">Pending</MenuItem>
+          <MenuItem value="Paid">Paid</MenuItem>
+          <MenuItem value="Partial">Partial</MenuItem>
         </TextField>
       </div>
 
@@ -91,7 +97,7 @@ function VendorsOrder() {
                 onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
               >
                 <TableCell>{order.orderNumber}</TableCell>
-                <TableCell>{order.orderDate}</TableCell>
+                <TableCell>{dayjs(order.orderDate).format("DD/MM/YYYY")}</TableCell>
                 <TableCell>{order.totelOrderQty}</TableCell>
                 <TableCell>{order.totalAmount}</TableCell>
                 <TableCell>{order.paymentStatus}</TableCell>

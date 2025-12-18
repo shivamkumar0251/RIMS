@@ -195,7 +195,7 @@ export default function ProductTable() {
       fetchProducts();
       e.currentTarget.value = "";
     } else {
-      alert( "Bulk upload failed");
+      alert("Bulk upload failed");
       fetchProducts();
       e.currentTarget.value = "";
     }
@@ -380,12 +380,14 @@ export default function ProductTable() {
   return (
     <AdminLayout>
       <div className="p-6">
+        <h2 className="text-xl font-semibold">Products</h2>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Products</h2>
 
           <div className="flex gap-2">
             <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate}>
-              Download Template
+              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                Template
+              </Typography>
             </Button>
 
             <input
@@ -396,11 +398,15 @@ export default function ProductTable() {
               onChange={handleExcelUpload}
             />
             <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()}>
-              Import Excel
+              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                Import Excel
+              </Typography>
             </Button>
 
             <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer}>
-              Add Product
+              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
+                Add Product
+              </Typography>
             </Button>
           </div>
         </div>
@@ -675,7 +681,7 @@ export default function ProductTable() {
             <Typography variant="h6" className="mb-3">Add Vendor</Typography>
             <Divider className="mb-4" />
 
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
 
               {/* Vendor Name */}
               <TextField
@@ -759,7 +765,7 @@ export default function ProductTable() {
                     setVendorForm({ ...vendorForm, vendor_paymentTerms: e.target.value })
                   }
                 >
-                  {["net 15", "net 30", "on Delivery"].map((option) => (
+                  {["Net 15", "Net 30", "On Delivery"].map((option) => (
                     <MenuItem key={option} value={option}>{option}</MenuItem>
                   ))}
                 </Select>
@@ -775,7 +781,7 @@ export default function ProductTable() {
                     setVendorForm({ ...vendorForm, vendor_preferredPaymentMode: e.target.value })
                   }
                 >
-                  {["cash", "bank_transfer", "UPI", "cheque"].map((option) => (
+                  {["Cash", "Bank Transfer", "UPI", "Cheque"].map((option) => (
                     <MenuItem key={option} value={option}>
                       {option.replace("_", " ").toUpperCase()}
                     </MenuItem>
@@ -813,7 +819,7 @@ export default function ProductTable() {
                     setVendorForm({ ...vendorForm, vendor_gstType: e.target.value })
                   }
                 >
-                  {["cgst_sgst", "igst", "non_gst", "exempt"].map((option) => (
+                  {["Cgst Sgst", "Igst", "Non Gst", "Exempt"].map((option) => (
                     <MenuItem key={option} value={option}>
                       {option.toUpperCase().replace("_", " + ")}
                     </MenuItem>
@@ -831,7 +837,7 @@ export default function ProductTable() {
                     setVendorForm({ ...vendorForm, vendor_registrationType: e.target.value })
                   }
                 >
-                  {["composition", "registered", "unRegistered"].map((option) => (
+                  {["Composition", "Registered", "UnRegistered"].map((option) => (
                     <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>

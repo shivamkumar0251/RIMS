@@ -167,7 +167,7 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor })
             <select name="gstType" value={formData.gstType} onChange={handleChange} className="border p-2 rounded-md w-full">
               <option value="">Select GST Type</option>
               <option value="Registered">Registered</option>
-              <option value="Unregistered">Unregistered</option>
+              <option value="UnRegistered">UnRegistered</option>
               <option value="Composite">Composite</option>
             </select>
           </div>
@@ -178,7 +178,7 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor })
               <option value="">Select Registration Type</option>
               <option value="Composition">Composition</option>
               <option value="Registered">Registered</option>
-              <option value="Unregistered/Consumer">Unregistered/Consumer</option>
+              <option value="UnRegistered/Consumer">UnRegistered/Consumer</option>
             </select>
           </div>
 
