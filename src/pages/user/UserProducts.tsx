@@ -82,8 +82,8 @@ const initialUsageAssets: UsageAsset[] = [
 // --- MAIN PAGE COMPONENT ---
 const UserProducts: React.FC = () => {
     const [activeView, setActiveView] = useState<'assets' | 'usage'>('assets');
-    const [fixedAssets, setFixedAssets] = useState<FixedAsset[]>(initialAssets);
-    const [usageAssets, setUsageAssets] = useState<UsageAsset[]>(initialUsageAssets);
+    const [fixedAssets,] = useState<FixedAsset[]>(initialAssets);
+    const [usageAssets,] = useState<UsageAsset[]>(initialUsageAssets);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');

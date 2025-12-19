@@ -134,7 +134,7 @@ const UserOrderManagementPage: React.FC = () => {
               <div className="p-4 bg-white rounded-xl shadow-lg border-l-4 border-green-500">
                 <FiDollarSign className="inline mr-2 text-green-600" />
                 <p className="text-sm text-gray-500">Total Charged</p>
-                <p className="font-extrabold text-xl text-green-700">₹{calculateTotalAmount(selectedOrder).toLocaleString('en-IN')}</p>
+                {/* <p className="font-extrabold text-xl text-green-700">₹{calculateTotalAmount(selectedOrder).toLocaleString('en-IN')}</p> */}
               </div>
             </div>
 
@@ -267,9 +267,9 @@ const UserOrderManagementPage: React.FC = () => {
                       {/* Total */}
                       <div className="border-t pt-3 mt-3 flex justify-between items-center">
                         <span className="text-gray-500 text-sm">Total:</span>
-                        <span className="text-lg font-extrabold text-green-700">
+                        {/* <span className="text-lg font-extrabold text-green-700">
                           ₹{calculateTotalAmount(order).toLocaleString('en-IN')}
-                        </span>
+                        </span> */}
                       </div>
 
                     </div>
