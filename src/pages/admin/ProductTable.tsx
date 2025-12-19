@@ -124,52 +124,24 @@ export default function ProductTable() {
 
   // === XLSX Template download ===
   const handleDownloadTemplate = () => {
-    const fields = [
-      "categoryId",
-      "vendorsId",
-      "companyId",
-      "productName",
-      "packSize",
-      "unit",
-      // "quantity",
-      "shape",
-      "colour",
-      "printStatus",
-      "productImage",
-      "gstPct",
-      // "productMRP",
-      "taxableValue",
-      "perUnitRate",
-      // "totalMRP",
-      "stockAlert",
-      "createdAt",
-    ];
-
-    // empty example row (you can include example values if you wish)
     const sample = [
-      Object.fromEntries(fields.map((f) => [f, ""])),
-      // two example rows (optional)
       {
-        categoryId: "",
-        vendorsId: "",
-        companyId: "",
-        productName: "Sample Product A",
-        packSize: "10x10",
-        unit: "box",
-        // quantity: 100,
-        shape: "tablet",
-        colour: "white",
-        printStatus: "Printed",
-        productImage: "",
-        gstPct: 12,
-        // productMRP: 150,
-        taxableValue: 0,
-        perUnitRate: 120,
-        // totalMRP: 0,
-        stockAlert: 5,
+        CategoryName: "",
+        VendorsName: "",
+        CompanyName: "",
+        ProductName: "Sample Product A",
+        PackSize: "10x10",
+        Unit: "box",
+        Shape: "tablet",
+        Colour: "white",
+        PrintStatus: "Printed",
+        ProductImage: "",
+        GstPercentage: 12,
+        TaxableValue: 0,
+        PerUnitRate: 120,
+        StockAlert: 5,
       },
     ];
-
     const ws = XLSX.utils.json_to_sheet(sample);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "ProductsTemplate");
@@ -372,8 +344,6 @@ export default function ProductTable() {
     }
   };
 
-  console.log('form', form);
-
   return (
     <AdminLayout>
       <div className="p-6">
@@ -483,8 +453,8 @@ export default function ProductTable() {
                   <TableCell>Vendor</TableCell>
                   <TableCell>Company</TableCell>
                   {/* <TableCell>Qty</TableCell> */}
-                  <TableCell>Per Unit</TableCell>
-                  <TableCell>Taxable</TableCell>
+                  <TableCell>Per Unit Rate</TableCell>
+                  <TableCell>Taxable Rate</TableCell>
                   {/* <TableCell>Total</TableCell> */}
                   <TableCell>Stock Alert</TableCell>
                   <TableCell>Created</TableCell>
