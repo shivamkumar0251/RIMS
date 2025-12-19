@@ -482,10 +482,10 @@ export default function ProductTable() {
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Company</TableCell>
-                  <TableCell>Qty</TableCell>
+                  {/* <TableCell>Qty</TableCell> */}
                   <TableCell>Per Unit</TableCell>
                   <TableCell>Taxable</TableCell>
-                  <TableCell>Total</TableCell>
+                  {/* <TableCell>Total</TableCell> */}
                   <TableCell>Stock Alert</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell align="right">Actions</TableCell>
