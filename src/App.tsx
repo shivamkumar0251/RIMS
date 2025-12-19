@@ -20,7 +20,7 @@ import ProfilePage from "./pages/admin/AdminProfile";
 import ProductCategories from "./pages/admin/Categories";
 import CompanyBrand from "./pages/admin/CompanyBrand";
 import Consumables from "./pages/admin/Consumables";
-import InventoryTabs from "./pages/admin/InventoryTabs";
+// import InventoryTabs from "./pages/admin/InventoryTabs";
 import KitchenStock from "./pages/admin/KitchenStock";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import ProductTable from "./pages/admin/ProductTable";
@@ -64,7 +64,7 @@ function App() {
             <Route path="/admin/vendors-orders/:id" element={<VendorOrderDetails />} />
             <Route path="/admin/purchase" element={<Purchase />} />
             <Route path="/admin/products" element={<ProductTable />} />
-            <Route path="/assets" element={<InventoryTabs />} />
+            {/* <Route path="/assets" element={<InventoryTabs />} /> */}
             <Route path="/admin/setting" element={<AccountSetting />} />
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/consumables" element={<Consumables />} />

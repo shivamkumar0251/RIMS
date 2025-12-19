@@ -28,16 +28,16 @@ export interface ProductInterface {
   productName: string;
   packSize: string;
   unit: string;
-  quantity: number;
+  // quantity: number;
   shape: string;
   colour: string;
   printStatus: string;
   productImage?: string;
   gstPct: number;
-  productMRP: number;
+  // productMRP: number;
   taxableValue: number;
   perUnitRate: number;
-  totalMRP: number;
+  // totalMRP: number;
   stockAlert: number;
   createdAt: string;
 }
@@ -327,111 +327,3 @@ export const selectAllProductsData = (state: RootState) => state.product.allProd
 
 // ---------------- Export ----------------
 export default productSlice.reducer;
-
-
-// {
-//   "success": true,
-//   "data": [
-//     {
-//       "_id": "693bddb76988710aa8dc1e6b",
-//       "franchiseId": "admin1@yopmail.com_1759735593474",
-//       "categoryId": {
-//         "_id": "69294f0e00b70714a4fd0d6f",
-//         "categoryName": "Home Appliances"
-//       },
-//       "vendorsId": {
-//         "_id": "692eba60dff469d64dea8363",
-//         "vendor_name": "Green Organics"
-//       },
-//       "companyId": {
-//         "_id": "692949d5502ddf1939f3dcce",
-//         "brandName": "PrimeFoods1"
-//       },
-//       "productName": "Sample Product B",
-//       "packSize": "10x10",
-//       "unit": "box",
-//       "quantity": 100,
-//       "shape": "tablet",
-//       "colour": "white",
-//       "printStatus": "Printed",
-//       "gstPct": 12,
-//       "productMRP": 150,
-//       "taxableValue": 0,
-//       "perUnitRate": 120,
-//       "totalMRP": 5000,
-//       "stockAlert": 5,
-//       "__v": 0,
-//       "createdAt": "2025-12-12T09:17:43.899Z",
-//       "updatedAt": "2025-12-12T09:17:43.899Z"
-//     },
-//     {
-//       "_id": "693bdcf06988710aa8dc1d80",
-//       "franchiseId": "admin1@yopmail.com_1759735593474",
-//       "categoryId": {
-//         "_id": "69294f0e00b70714a4fd0d6f",
-//         "categoryName": "Home Appliances"
-//       },
-//       "vendorsId": {
-//         "_id": "692eba60dff469d64dea8363",
-//         "vendor_name": "Green Organics"
-//       },
-//       "companyId": {
-//         "_id": "692949d5502ddf1939f3dcce",
-//         "brandName": "PrimeFoods1"
-//       },
-//       "productName": "Sample Product A",
-//       "packSize": "10x10",
-//       "unit": "box",
-//       "quantity": 100,
-//       "shape": "tablet",
-//       "colour": "white",
-//       "printStatus": "Printed",
-//       "gstPct": 12,
-//       "productMRP": 150,
-//       "taxableValue": 0,
-//       "perUnitRate": 120,
-//       "totalMRP": 5000,
-//       "stockAlert": 5,
-//       "__v": 0,
-//       "createdAt": "2025-12-12T09:14:24.130Z",
-//       "updatedAt": "2025-12-12T09:14:24.130Z"
-//     }
-//   ],
-//   "total": 15,
-//   "page": 1,
-//   "limit": 2
-// }
-
-
-// {
-//   "success": true,
-//   "message": "Product added",
-//   "data": {
-//     "franchiseId": "admin1@yopmail.com_1759735593474",
-//     "categoryId": "69294f0f00b70714a4fd0d75",
-//     "vendorsId": "692eba60dff469d64dea8361",
-//     "companyId": "692949d5502ddf1939f3dccc",
-//     "productName": "pen",
-//     "packSize": "10",
-//     "unit": "kg",
-//     "quantity": 500,
-//     "shape": "round",
-//     "colour": "black",
-//     "printStatus": "Printed",
-//     "productImage": "https://res.cloudinary.com/dmoqhod45/image/upload/v1765802334/hopsnchopsModel/products/product_1765802332161_1765802332161.jpg",
-//     "gstPct": 10,
-//     "productMRP": 25,
-//     "taxableValue": 5,
-//     "perUnitRate": 20,
-//     "totalMRP": 693,
-//     "stockAlert": 10,
-//     "_id": "6940015ff371a83286011678",
-//     "createdAt": "2025-12-15T12:38:55.497Z",
-//     "updatedAt": "2025-12-15T12:38:55.497Z",
-//     "__v": 0
-//   }
-// }
-
-// this is my productSlice this is ok all things are ok all type are ok 
-//  i will give you my product page wait 
-// i have some type error in my product page so please solve it 

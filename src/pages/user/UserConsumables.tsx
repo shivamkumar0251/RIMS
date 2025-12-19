@@ -38,7 +38,7 @@ import UserLayout from "../../layouts/UserLayout";
 interface Product {
     id: number;
     productName: string;
-    quantity: number;
+    // quantity: number;
     consumables: number;
     wastage: number;
     createdDate: string;
@@ -210,7 +210,7 @@ export default function UserConsumables() {
                                     <TableRow>
                                         <TableCell>S.No</TableCell>
                                         <TableCell>Product Name</TableCell>
-                                        <TableCell>Quantity</TableCell>
+                                        {/* <TableCell>Quantity</TableCell> */}
                                         <TableCell>Consumables</TableCell>
                                         <TableCell>Wastage</TableCell>
                                         <TableCell>Created Date</TableCell>
@@ -223,7 +223,7 @@ export default function UserConsumables() {
                                                 {(page - 1) * rowsPerPage + idx + 1}
                                             </TableCell>
                                             <TableCell>{item.productName}</TableCell>
-                                            <TableCell>{item.quantity}</TableCell>
+                                            {/* <TableCell>{item.quantity}</TableCell> */}
                                             <TableCell>{item.consumables}</TableCell>
                                             <TableCell>{item.wastage}</TableCell>
                                             <TableCell>{item.createdDate}</TableCell>
@@ -316,9 +316,9 @@ export default function UserConsumables() {
                             }}
                         >
                             <Typography fontWeight="bold">{prod.productName}</Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            {/* <Typography variant="body2" color="text.secondary">
                                 Quantity: {prod.quantity}
-                            </Typography>
+                            </Typography> */}
 
                             <TextField
                                 label="Consumables"

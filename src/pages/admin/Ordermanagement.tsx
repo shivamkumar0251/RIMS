@@ -329,7 +329,7 @@ export default function OrderManagementPage(): JSX.Element {
                   <TableCell>Company</TableCell>
                   <TableCell>Stock</TableCell>
                   <TableCell>Current Purchase Qty</TableCell>
-                  <TableCell>Order Qty</TableCell>
+                  {/* <TableCell>Order Qty</TableCell> */}
                   <TableCell>Created</TableCell>
                 </TableRow>
               </TableHead>
@@ -363,7 +363,7 @@ export default function OrderManagementPage(): JSX.Element {
                         <TableCell>{(p.categoryId)?.categoryName}</TableCell>
                         <TableCell>{(p.vendorsId)?.vendor_name}</TableCell>
                         <TableCell>{(p.companyId)?.brandName}</TableCell>
-                        <TableCell>{p.quantity}</TableCell>
+                        {/* <TableCell>{p.quantity}</TableCell> */}
                         <TableCell>{p.currentPurchaseQty ?? "-"}</TableCell>
 
                         <TableCell>

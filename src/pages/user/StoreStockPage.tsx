@@ -28,21 +28,20 @@ export interface Product {
     name: string;
     category: string;
     subCategory: string;
-    quantity: number;
     price: number;
     brand: string;
-    purchaseDate: string; 
+    purchaseDate: string;
 }
 
 const stockProducts: Product[] = [
-    { id: 1, name: 'Warehouse Rack System', category: 'Infrastructure', subCategory: 'Storage', quantity: 10, price: 50000, brand: 'StoraTek', purchaseDate: '2024-01-15' },
-    { id: 2, name: 'Forklift Model A', category: 'Equipment', subCategory: 'Material Handling', quantity: 2, price: 800000, brand: 'LiftCo', purchaseDate: '2024-03-01' },
-    { id: 3, name: 'Pallet Jack', category: 'Equipment', subCategory: 'Material Handling', quantity: 5, price: 15000, brand: 'MoveFast', purchaseDate: '2024-03-20' },
-    { id: 4, name: 'Heavy Duty Shelving', category: 'Infrastructure', subCategory: 'Storage', quantity: 50, price: 1200, brand: 'StoraTek', purchaseDate: '2024-04-10' },
-    { id: 5, name: 'Safety Gloves (Box)', category: 'Safety', subCategory: 'PPE', quantity: 20, price: 800, brand: 'ProtectAll', purchaseDate: '2024-05-05' },
-    { id: 6, name: 'Barcode Scanner', category: 'Infrastructure', subCategory: 'IT Tools', quantity: 8, price: 10500, brand: 'Honeywell', purchaseDate: '2024-06-12' },
-    { id: 7, name: 'Large Industrial Fan', category: 'Equipment', subCategory: 'Climate Control', quantity: 3, price: 35000, brand: 'AirFlow', purchaseDate: '2024-07-01' },
-    { id: 8, name: 'Packing Tape Rolls', category: 'Consumables', subCategory: 'Packaging', quantity: 100, price: 150, brand: 'PackFast', purchaseDate: '2024-07-20' },
+    { id: 1, name: 'Warehouse Rack System', category: 'Infrastructure', subCategory: 'Storage', price: 50000, brand: 'StoraTek', purchaseDate: '2024-01-15' },
+    { id: 2, name: 'Forklift Model A', category: 'Equipment', subCategory: 'Material Handling', price: 800000, brand: 'LiftCo', purchaseDate: '2024-03-01' },
+    { id: 3, name: 'Pallet Jack', category: 'Equipment', subCategory: 'Material Handling', price: 15000, brand: 'MoveFast', purchaseDate: '2024-03-20' },
+    { id: 4, name: 'Heavy Duty Shelving', category: 'Infrastructure', subCategory: 'Storage', price: 1200, brand: 'StoraTek', purchaseDate: '2024-04-10' },
+    { id: 5, name: 'Safety Gloves (Box)', category: 'Safety', subCategory: 'PPE', price: 800, brand: 'ProtectAll', purchaseDate: '2024-05-05' },
+    { id: 6, name: 'Barcode Scanner', category: 'Infrastructure', subCategory: 'IT Tools', price: 10500, brand: 'Honeywell', purchaseDate: '2024-06-12' },
+    { id: 7, name: 'Large Industrial Fan', category: 'Equipment', subCategory: 'Climate Control', price: 35000, brand: 'AirFlow', purchaseDate: '2024-07-01' },
+    { id: 8, name: 'Packing Tape Rolls', category: 'Consumables', subCategory: 'Packaging', price: 150, brand: 'PackFast', purchaseDate: '2024-07-20' },
 ];
 // --- End Mock Data ---
 
@@ -84,22 +83,22 @@ const StoreStockPage: React.FC = () => {
             filtered = filtered.filter(p => p.brand === selectedBrand);
         }
         if (selectedDate) {
-             const filterDate = selectedDate.startOf('day');
-             filtered = filtered.filter(p => dayjs(p.purchaseDate).isSame(filterDate, 'day'));
+            const filterDate = selectedDate.startOf('day');
+            filtered = filtered.filter(p => dayjs(p.purchaseDate).isSame(filterDate, 'day'));
         }
 
         return filtered;
     }, [searchTerm, selectedCategory, selectedBrand, selectedDate]);
 
     const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
-    
+
     // Grouping and Pagination Logic
     const groupedAndPaginated = useMemo(() => {
         const paginatedItems = filteredProducts.slice(
             (page - 1) * rowsPerPage,
             page * rowsPerPage
         );
-        
+
         return paginatedItems.reduce((acc: Record<string, Product[]>, product: Product) => {
             const { subCategory } = product;
             if (!acc[subCategory]) {
@@ -127,11 +126,11 @@ const StoreStockPage: React.FC = () => {
         <UserLayout>
             <div className="container mx-auto p-4 md:p-6 lg:p-8 font-sans bg-gray-50 min-h-screen">
                 <h1 className="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">📦 Store Stock Management</h1>
-                
+
                 {/* --- Filters & Actions (MUI) --- */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4, p: 3, bgcolor: 'white', borderRadius: '12px', boxShadow: 3 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-                        
+
                         {/* Filters */}
                         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
                             <TextField
@@ -190,7 +189,7 @@ const StoreStockPage: React.FC = () => {
                     </Box>
                 </Box>
                 {/* --- End Filters & Actions --- */}
-                
+
                 {/* --- Stock Tables Grouped by Subcategory --- */}
                 {Object.keys(groupedAndPaginated).length > 0 ? (
                     Object.keys(groupedAndPaginated).map(subCategory => (
@@ -203,13 +202,13 @@ const StoreStockPage: React.FC = () => {
                                             <tr>
                                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Product Name (Brand)</th>
                                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-                                                <th className="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Quantity</th>
+                                                {/* <th className="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Quantity</th> */}
                                                 <th className="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit Price</th>
                                                 <th className="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Stock Value</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {groupedAndPaginated[subCategory].map((product: Product) => {
+                                            {/* {groupedAndPaginated[subCategory].map((product: Product) => {
                                                 const totalValue = product.quantity * product.price;
                                                 return (
                                                     <tr key={product.id} className="hover:bg-blue-50/50 border-b border-gray-100 transition-colors">
@@ -222,7 +221,7 @@ const StoreStockPage: React.FC = () => {
                                                         <td className="px-5 py-4 text-sm text-right font-bold text-green-700">₹{totalValue.toLocaleString('en-IN')}</td>
                                                     </tr>
                                                 );
-                                            })}
+                                            })} */}
                                         </tbody>
                                     </table>
                                 </div>
@@ -268,7 +267,7 @@ const StoreStockPage: React.FC = () => {
                     </Box>
                 )}
                 {/* --- End Pagination --- */}
-                
+
             </div>
         </UserLayout>
     );

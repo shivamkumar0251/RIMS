@@ -19,7 +19,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { FaClipboardList, FaWarehouse } from 'react-icons/fa';
 import { FiFileText, FiSearch, FiTable, FiUpload } from 'react-icons/fi';
 // Assuming the path to your DateRangeFilter is correct
-import DateRangeFilter, { type DateRangeValue } from '../../components/common/DateRangeFilter'; 
+import DateRangeFilter, { type DateRangeValue } from '../../components/common/DateRangeFilter';
 import UserLayout from '../../layouts/UserLayout';
 
 // Extend dayjs with necessary plugins for date comparison
@@ -32,7 +32,7 @@ interface FixedAsset {
     itemName: string;
     category: string;
     subcategory: string;
-    quantity: number;
+    // quantity: number;
     price: number;
     imageUrl: string;
     gst: number;
@@ -46,7 +46,7 @@ interface UsageAsset {
     category: string;
     subcategory: string;
     packSize: string;
-    quantity: number;
+    // quantity: number;
     price: number;
     imageUrl: string;
     gst: number;
@@ -57,27 +57,27 @@ interface UsageAsset {
 
 // --- MOCK DATA ---
 const initialAssets: FixedAsset[] = [
-    { id: 1, itemName: 'Projector', category: 'Office Electronics', subcategory: 'Presentation', quantity: 2, price: 50000, gst: 18, imageUrl: 'https://via.placeholder.com/150/0000FF/FFFFFF?text=Projector', brand: 'Epson', createdDate: '2025-10-01' },
-    { id: 2, itemName: 'Company Car', category: 'Transportation', subcategory: 'Cars', quantity: 1, price: 800000, gst: 28, imageUrl: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Car', brand: 'Toyota', createdDate: '2025-09-25' },
-    { id: 3, itemName: 'AC', category: 'Appliances', subcategory: 'Climate Control', quantity: 5, price: 45000, gst: 28, imageUrl: 'https://via.placeholder.com/150/00FF00/FFFFFF?text=AC', brand: 'LG', createdDate: '2025-10-10' },
+    { id: 1, itemName: 'Projector', category: 'Office Electronics', subcategory: 'Presentation', price: 50000, gst: 18, imageUrl: 'https://via.placeholder.com/150/0000FF/FFFFFF?text=Projector', brand: 'Epson', createdDate: '2025-10-01' },
+    { id: 2, itemName: 'Company Car', category: 'Transportation', subcategory: 'Cars', price: 800000, gst: 28, imageUrl: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Car', brand: 'Toyota', createdDate: '2025-09-25' },
+    { id: 3, itemName: 'AC', category: 'Appliances', subcategory: 'Climate Control', price: 45000, gst: 28, imageUrl: 'https://via.placeholder.com/150/00FF00/FFFFFF?text=AC', brand: 'LG', createdDate: '2025-10-10' },
 ];
 
 const initialUsageAssets: UsageAsset[] = [
-    { id: 101, itemName: 'A4 Paper', category: 'Stationery', subcategory: 'Paper Goods', quantity: 50, price: 300, packSize: "500 sheets", gst: 12, imageUrl: 'https://via.placeholder.com/150/FFA500/FFFFFF?text=Paper', brand: 'JK Paper', createdDate: '2025-10-05' },
-    { id: 102, itemName: 'Ink Cartridge', category: 'IT Consumables', subcategory: 'Printing', quantity: 20, price: 1500, packSize: "XL Black", gst: 28, imageUrl: 'https://via.placeholder.com/150/800080/FFFFFF?text=Ink', brand: 'HP', createdDate: '2025-10-12' },
+    { id: 101, itemName: 'A4 Paper', category: 'Stationery', subcategory: 'Paper Goods', price: 300, packSize: "500 sheets", gst: 12, imageUrl: 'https://via.placeholder.com/150/FFA500/FFFFFF?text=Paper', brand: 'JK Paper', createdDate: '2025-10-05' },
+    { id: 102, itemName: 'Ink Cartridge', category: 'IT Consumables', subcategory: 'Printing', price: 1500, packSize: "XL Black", gst: 28, imageUrl: 'https://via.placeholder.com/150/800080/FFFFFF?text=Ink', brand: 'HP', createdDate: '2025-10-12' },
 ];
 
 
-// --- HELPER COMPONENT (QuantitiyInput) ---
-const QuantityInput: React.FC<{ value: number; onChange: (newQuantity: number) => void }> = ({ value, onChange }) => (
-    <input
-        type="number"
-        min="0"
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-        className="w-24 p-1 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500"
-    />
-);
+// // --- HELPER COMPONENT (QuantitiyInput) ---
+// const QuantityInput: React.FC<{ value: number; onChange: (newQuantity: number) => void }> = ({ value, onChange }) => (
+//     <input
+//         type="number"
+//         min="0"
+//         value={value}
+//         onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+//         className="w-24 p-1 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500"
+//     />
+// );
 
 // --- MAIN PAGE COMPONENT ---
 const UserProducts: React.FC = () => {
@@ -89,12 +89,12 @@ const UserProducts: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const [selectedBrand, setSelectedBrand] = useState('All Brands');
     // dateRange is correctly initialized with the DateRangeValue type
-    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]); 
+    const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
     const allItems = activeView === 'assets' ? fixedAssets : usageAssets;
-    const itemType = activeView === 'assets' ? 'assets' : 'usage';
+    // const itemType = activeView === 'assets' ? 'assets' : 'usage';
 
     const categories = useMemo(() => Array.from(new Set(allItems.map(item => item.category))), [allItems]);
     const brands = useMemo(() => Array.from(new Set(allItems.map(item => item.brand).filter((b): b is string => !!b))), [allItems]);
@@ -144,18 +144,18 @@ const UserProducts: React.FC = () => {
         setPage(1);
     }, []);
 
-    const handleQuantityChange = (id: number, newQuantity: number, type: 'assets' | 'usage') => {
-        if (type === 'assets') {
-            setFixedAssets(prev => prev.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
-        } else {
-            setUsageAssets(prev => prev.map(a => a.id === id ? { ...a, quantity: newQuantity } : a));
-        }
-    };
+    // const handleQuantityChange = (id: number,  type: 'assets' | 'usage') => {
+    //     if (type === 'assets') {
+    //         setFixedAssets(prev => prev.map(a => a.id === id ? { ...a } : a));
+    //     } else {
+    //         setUsageAssets(prev => prev.map(a => a.id === id ? { ...a } : a));
+    //     }
+    // };
 
     // --- RENDER CONTENT (TABLE) ---
     const renderContent = () => {
         const assetsToDisplay = paginatedItems as (FixedAsset | UsageAsset)[];
-        
+
         // Safely determine the view type based on activeView state
         const isUsageView = activeView === 'usage';
         // The colspan needs to be 7 for Fixed Assets, and 8 for Usage Assets (due to 'Pack Size')
@@ -169,8 +169,8 @@ const UserProducts: React.FC = () => {
                             <th className="px-4 py-3">#</th>
                             <th className="px-6 py-3">Item Details</th>
                             {/* Correctly conditional header based on view type */}
-                            {isUsageView && <th className="px-6 py-3">Pack Size</th>} 
-                            <th className="px-6 py-3">Quantity</th>
+                            {isUsageView && <th className="px-6 py-3">Pack Size</th>}
+                            {/* <th className="px-6 py-3">Quantity</th> */}
                             <th className="px-6 py-3">Price (Unit)</th>
                             <th className="px-6 py-3">GST Amount</th>
                             <th className="px-6 py-3">Total Value</th>
@@ -179,7 +179,7 @@ const UserProducts: React.FC = () => {
                     <tbody className="divide-y divide-gray-200">
                         {assetsToDisplay.length > 0 ? (
                             assetsToDisplay.map((asset, idx) => {
-                                const baseValue = asset.price * asset.quantity;
+                                const baseValue = asset.price * asset.price;
                                 const gstAmount = baseValue * (asset.gst / 100);
                                 const totalValue = baseValue + gstAmount;
 
@@ -199,9 +199,9 @@ const UserProducts: React.FC = () => {
                                         </td>
                                         {/* Correctly conditional cell based on view type, safe type assertion */}
                                         {isUsageView && <td className="px-6 py-4">{(asset as UsageAsset).packSize}</td>}
-                                        <td className="px-6 py-4">
+                                        {/* <td className="px-6 py-4">
                                             <QuantityInput value={asset.quantity} onChange={(q) => handleQuantityChange(asset.id, q, itemType)} />
-                                        </td>
+                                        </td> */}
                                         <td className="px-6 py-4 text-gray-600">₹{asset.price.toLocaleString('en-IN')}</td>
                                         <td className="px-6 py-4 text-gray-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({asset.gst}%)</td>
                                         <td className="px-6 py-4 font-bold text-lg text-gray-900">₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>

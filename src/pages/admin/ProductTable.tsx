@@ -80,16 +80,16 @@ export default function ProductTable() {
     productName: "",
     packSize: "",
     unit: "",
-    quantity: 0,
+    // quantity: 0,
     shape: "",
     colour: "",
     printStatus: "",
     productImage: "",
     gstPct: 0,
-    productMRP: 0,
+    // productMRP: 0,
     taxableValue: 0,
     perUnitRate: 0,
-    totalMRP: 0,
+    // totalMRP: 0,
     stockAlert: 0,
     createdAt: new Date().toISOString(),
   });
@@ -131,16 +131,16 @@ export default function ProductTable() {
       "productName",
       "packSize",
       "unit",
-      "quantity",
+      // "quantity",
       "shape",
       "colour",
       "printStatus",
       "productImage",
       "gstPct",
-      "productMRP",
+      // "productMRP",
       "taxableValue",
       "perUnitRate",
-      "totalMRP",
+      // "totalMRP",
       "stockAlert",
       "createdAt",
     ];
@@ -156,16 +156,16 @@ export default function ProductTable() {
         productName: "Sample Product A",
         packSize: "10x10",
         unit: "box",
-        quantity: 100,
+        // quantity: 100,
         shape: "tablet",
         colour: "white",
         printStatus: "Printed",
         productImage: "",
         gstPct: 12,
-        productMRP: 150,
+        // productMRP: 150,
         taxableValue: 0,
         perUnitRate: 120,
-        totalMRP: 0,
+        // totalMRP: 0,
         stockAlert: 5,
       },
     ];
@@ -212,16 +212,16 @@ export default function ProductTable() {
       productName: "",
       packSize: "",
       unit: "",
-      quantity: 0,
+      // quantity: 0,
       shape: "",
       colour: "",
       printStatus: "",
       productImage: "",
       gstPct: 0,
-      productMRP: 0,
+      // productMRP: 0,
       taxableValue: 0,
       perUnitRate: 0,
-      totalMRP: 0,
+      // totalMRP: 0,
       stockAlert: 0,
       createdAt: new Date().toISOString(),
     });
@@ -237,20 +237,16 @@ export default function ProductTable() {
 
   // === Auto-calc taxable and total whenever quantity/perUnitRate/gstPct change ===
   useEffect(() => {
-    const q = Number(form.quantity || 0);
     const rate = Number(form.perUnitRate || 0);
     const gst = Number(form.gstPct || 0);
 
-    const taxable = q * rate;
-    const total = taxable + (taxable * gst) / 100;
+    const taxable = (rate * gst) / 100;
 
-    // Update but don't overwrite user-entered productMRP (we calculate taxableValue & totalMRP)
     setForm((prev) => ({
       ...prev,
       taxableValue: Number((taxable).toFixed(2)),
-      totalMRP: Number((total).toFixed(2)),
     }));
-  }, [form.quantity, form.perUnitRate, form.gstPct]);
+  }, [form.perUnitRate, form.gstPct]);
 
   // === Save product (add or update) ===
   const handleSaveProduct = async () => {
@@ -270,16 +266,16 @@ export default function ProductTable() {
       productName: String(form.productName || ""),
       packSize: String(form.packSize || ""),
       unit: String(form.unit || ""),
-      quantity: Number(form.quantity || 0),
+      // quantity: Number(form.quantity || 0),
       shape: String(form.shape || ""),
       colour: String(form.colour || ""),
       printStatus: String(form.printStatus || ""),
       productImage: form.productImage,
       gstPct: Number(form.gstPct || 0),
-      productMRP: Number(form.productMRP || 0),
+      // productMRP: Number(form.productMRP || 0),
       taxableValue: Number(form.taxableValue || 0),
       perUnitRate: Number(form.perUnitRate || 0),
-      totalMRP: Number(form.totalMRP || 0),
+      // totalMRP: Number(form.totalMRP || 0),
       stockAlert: Number(form.stockAlert || 0),
       createdAt: form.createdAt || new Date().toISOString(),
     };
@@ -376,6 +372,7 @@ export default function ProductTable() {
     }
   };
 
+  console.log('form', form);
 
   return (
     <AdminLayout>
@@ -507,10 +504,10 @@ export default function ProductTable() {
                       <TableCell>{typeof p.categoryId === "object" ? (p.categoryId).categoryName : p.categoryId}</TableCell>
                       <TableCell>{typeof p.vendorsId === "object" ? (p.vendorsId).vendor_name : p.vendorsId}</TableCell>
                       <TableCell>{typeof p.companyId === "object" ? (p.companyId).brandName : p.companyId}</TableCell>
-                      <TableCell>{p.quantity}</TableCell>
+                      {/* <TableCell>{p.quantity}</TableCell> */}
                       <TableCell>{p.perUnitRate}</TableCell>
                       <TableCell>{p.taxableValue}</TableCell>
-                      <TableCell>{p.totalMRP}</TableCell>
+                      {/* <TableCell>{p.totalMRP}</TableCell> */}
                       <TableCell>{p.stockAlert}</TableCell>
                       <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell align="right">
@@ -581,32 +578,81 @@ export default function ProductTable() {
                 <TextField
                   select
                   label="Category"
-                  value={String(form.categoryId || "")}
-                  onChange={(e) => setForm({ ...form, categoryId: { _id: e.target.value } })}
+                  value={form.categoryId?._id || ""}
+                  onChange={(e) => {
+                    const selected = categoryOptions.find(
+                      (c) => c.id === e.target.value
+                    );
+                    setForm({
+                      ...form,
+                      categoryId: {
+                        _id: e.target.value,
+                        categoryName: selected?.label || "",
+                      },
+                    });
+                  }}
                 >
                   <MenuItem value="">Select</MenuItem>
-                  {categoryOptions.map(c => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
+                  {categoryOptions.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.label}
+                    </MenuItem>
+                  ))}
                 </TextField>
 
                 <TextField
                   select
                   label="Vendor"
-                  value={String(form.vendorsId || "")}
-                  onChange={(e) => setForm({ ...form, vendorsId: { _id: e.target.value } })}
+                  value={form.vendorsId?._id || ""}
+                  onChange={(e) => {
+                    const selected = vendorOptions.find(
+                      (v) => v.id === e.target.value
+                    );
+
+                    setForm({
+                      ...form,
+                      vendorsId: {
+                        _id: e.target.value,
+                        vendor_name: selected?.label || "",
+                      },
+                    });
+                  }}
                 >
                   <MenuItem value="">Select</MenuItem>
-                  {vendorOptions.map(v => <MenuItem key={v.id} value={v.id}>{v.label}</MenuItem>)}
+                  {vendorOptions.map((v) => (
+                    <MenuItem key={v.id} value={v.id}>
+                      {v.label}
+                    </MenuItem>
+                  ))}
                 </TextField>
+
 
                 <TextField
                   select
                   label="Company"
-                  value={String(form.companyId || "")}
-                  onChange={(e) => setForm({ ...form, companyId: { _id: e.target.value } })}
+                  value={form.companyId?._id || ""}
+                  onChange={(e) => {
+                    const selected = companyOptions.find(
+                      (c) => c.id === e.target.value
+                    );
+
+                    setForm({
+                      ...form,
+                      companyId: {
+                        _id: e.target.value,
+                        brandName: selected?.label || "",
+                      },
+                    });
+                  }}
                 >
                   <MenuItem value="">Select</MenuItem>
-                  {companyOptions.map(c => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
+                  {companyOptions.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.label}
+                    </MenuItem>
+                  ))}
                 </TextField>
+
 
                 <TextField
                   label="Pack Size"
@@ -634,13 +680,13 @@ export default function ProductTable() {
                     <MenuItem value="Pending">Pending</MenuItem>
                   </Select>
                 </FormControl>
-
+{/* 
                 <TextField
                   label="Quantity"
                   type="number"
                   value={form.quantity ?? 0}
                   onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
-                />
+                /> */}
 
                 <TextField
                   label="Per Unit Rate"
@@ -652,9 +698,9 @@ export default function ProductTable() {
                 <TextField label="GST %" type="number" value={form.gstPct ?? 0} onChange={(e) => setForm({ ...form, gstPct: Number(e.target.value) })} />
 
                 <TextField label="Taxable Value" value={form.taxableValue ?? 0} InputProps={{ readOnly: true }} />
-                <TextField label="Total MRP" value={form.totalMRP ?? 0} InputProps={{ readOnly: true }} />
+                {/* <TextField label="Total MRP" value={form.totalMRP ?? 0} InputProps={{ readOnly: true }} /> */}
 
-                <TextField label="Product MRP" type="number" value={form.productMRP ?? 0} onChange={(e) => setForm({ ...form, productMRP: Number(e.target.value) })} />
+                {/* <TextField label="Product MRP" type="number" value={form.productMRP ?? 0} onChange={(e) => setForm({ ...form, productMRP: Number(e.target.value) })} /> */}
                 <TextField label="Stock Alert" type="number" value={form.stockAlert ?? 0} onChange={(e) => setForm({ ...form, stockAlert: Number(e.target.value) })} />
 
                 <TextField label="Per Unit Rate (editable)" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} />

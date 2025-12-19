@@ -269,7 +269,7 @@ const StoreStockComponent: React.FC = () => {
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Brand</TableCell>
-                  <TableCell>MRP</TableCell>
+                  {/* <TableCell>MRP</TableCell> */}
                   <TableCell>Opening</TableCell>
                   <TableCell>Received</TableCell>
                   <TableCell>Closing</TableCell>
@@ -295,7 +295,7 @@ const StoreStockComponent: React.FC = () => {
                     <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
                     <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
                     <TableCell>{row.productId?.companyId?.brandName}</TableCell>
-                    <TableCell>{row.productId.productMRP}</TableCell>
+                    {/* <TableCell>{row.productId.productMRP}</TableCell> */}
                     <TableCell>{row.openingStock}</TableCell>
                     <TableCell>{row.rcvdStoreQty}</TableCell>
                     <TableCell>{row.closingStock}</TableCell>

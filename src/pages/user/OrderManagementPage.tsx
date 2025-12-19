@@ -18,27 +18,27 @@ const getStatusColor = (status: Order['status']) => {
   }
 };
 
-const calculateTotalAmount = (order: Order) => {
-  return order.products.reduce((total: number, product: Product) => {
-    const productTotal = product.price * product.quantity;
-    const gstAmount = productTotal * (product.gst / 100);
-    return total + productTotal + gstAmount;
-  }, 0);
-};
+// const calculateTotalAmount = (order: Order) => {
+//   return order.products.reduce((total: number, product: Product) => {
+//     // const productTotal = product.price * product.quantity;
+//     // const gstAmount = productTotal * (product.gst / 100);
+//     // return total + productTotal + gstAmount;
+//   }, 0);
+// };
 
 const ProductRow: React.FC<{ product: Product }> = ({ product }) => {
-  const productTotal = product.price * product.quantity;
-  const gstAmount = productTotal * (product.gst / 100);
-  const totalPrice = productTotal + gstAmount;
+  // const productTotal = product.price * product.quantity;
+  // const gstAmount = productTotal * (product.gst / 100);
+  // const totalPrice = productTotal + gstAmount;
 
   return (
     <tr className="hover:bg-gray-50 border-b border-gray-100">
       <td className="p-4 text-sm font-medium text-gray-900">{product.name}</td>
       <td className="p-4 text-sm text-gray-600">{product.category}</td>
-      <td className="p-4 text-center text-sm font-bold text-blue-600">{product.quantity}</td>
+      {/* <td className="p-4 text-center text-sm font-bold text-blue-600">{product.quantity}</td> */}
       <td className="p-4 text-right text-sm text-gray-700">₹{product.price.toLocaleString('en-IN')}</td>
       <td className="p-4 text-right text-sm text-gray-700">{product.gst}%</td>
-      <td className="p-4 text-right text-sm font-extrabold text-green-700">₹{totalPrice.toLocaleString('en-IN')}</td>
+      {/* <td className="p-4 text-right text-sm font-extrabold text-green-700">₹{totalPrice.toLocaleString('en-IN')}</td> */}
     </tr>
   );
 };

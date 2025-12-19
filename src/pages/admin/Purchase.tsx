@@ -277,7 +277,7 @@ const Purchase: React.FC = () => {
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Brand</TableCell>
-                  <TableCell>MRP</TableCell>
+                  {/* <TableCell>MRP</TableCell> */}
                   <TableCell>Received</TableCell>
                   <TableCell>Current</TableCell>
                   <TableCell>Send Qty</TableCell>
@@ -301,7 +301,7 @@ const Purchase: React.FC = () => {
                     <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
                     <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
                     <TableCell>{row.productId?.companyId?.brandName}</TableCell>
-                    <TableCell>{row.productId.productMRP}</TableCell>
+                    {/* <TableCell>{row.productId.productMRP}</TableCell> */}
                     <TableCell>{row.rcvdPurchaseQty}</TableCell>
                     <TableCell>{row.currentPurchaseQty}</TableCell>
 
