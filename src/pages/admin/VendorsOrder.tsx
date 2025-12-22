@@ -41,38 +41,40 @@ function VendorsOrder() {
       <h2 className="text-xl font-semibold mb-4 px-4 pt-3">Vendor Orders</h2>
 
       {/* FILTERS */}
-      <div className="grid grid-cols-2 gap-4 mb-4 px-4">
-        <TextField
-          size="small"
-          type="date"
-          label="From Date"
-          InputLabelProps={{ shrink: true }}
-          value={filters.fromDate}
-          onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 px-4">
+        <div className="grid grid-cols-2 gap-4 mb-4 px-4">
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            InputLabelProps={{ shrink: true }}
+            value={filters.fromDate}
+            onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
+          />
 
-        <TextField
-          size="small"
-          type="date"
-          label="To Date"
-          InputLabelProps={{ shrink: true }}
-          value={filters.toDate}
-          onChange={e => setFilters({ ...filters, toDate: e.target.value })}
-        />
-      </div>
-      <div className="grid grid-cols-1 gap-4 mb-4 px-4">
-        <TextField
-          size="small"
-          select
-          label="Payment Status"
-          value={filters.paymentStatus}
-          onChange={e => setFilters({ ...filters, paymentStatus: e.target.value })}
-        >
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="Pending">Pending</MenuItem>
-          <MenuItem value="Paid">Paid</MenuItem>
-          <MenuItem value="Partial">Partial</MenuItem>
-        </TextField>
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            InputLabelProps={{ shrink: true }}
+            value={filters.toDate}
+            onChange={e => setFilters({ ...filters, toDate: e.target.value })}
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-4 mb-4 px-4">
+          <TextField
+            size="small"
+            select
+            label="Payment Status"
+            value={filters.paymentStatus}
+            onChange={e => setFilters({ ...filters, paymentStatus: e.target.value })}
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Paid">Paid</MenuItem>
+            <MenuItem value="Partial">Partial</MenuItem>
+          </TextField>
+        </div>
       </div>
 
       {/* TABLE */}

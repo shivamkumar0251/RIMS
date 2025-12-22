@@ -211,12 +211,11 @@ export default function ProductTable() {
   useEffect(() => {
     const rate = Number(form.perUnitRate || 0);
     const gst = Number(form.gstPct || 0);
-
     const taxable = (rate * gst) / 100;
 
     setForm((prev) => ({
       ...prev,
-      taxableValue: Number((taxable).toFixed(2)),
+      taxableValue: Number((taxable + rate).toFixed(2)),
     }));
   }, [form.perUnitRate, form.gstPct]);
 
@@ -452,10 +451,9 @@ export default function ProductTable() {
                   <TableCell>Category</TableCell>
                   <TableCell>Vendor</TableCell>
                   <TableCell>Company</TableCell>
-                  {/* <TableCell>Qty</TableCell> */}
                   <TableCell>Per Unit Rate</TableCell>
+                  <TableCell>GST%</TableCell>
                   <TableCell>Taxable Rate</TableCell>
-                  {/* <TableCell>Total</TableCell> */}
                   <TableCell>Stock Alert</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -474,10 +472,9 @@ export default function ProductTable() {
                       <TableCell>{typeof p.categoryId === "object" ? (p.categoryId).categoryName : p.categoryId}</TableCell>
                       <TableCell>{typeof p.vendorsId === "object" ? (p.vendorsId).vendor_name : p.vendorsId}</TableCell>
                       <TableCell>{typeof p.companyId === "object" ? (p.companyId).brandName : p.companyId}</TableCell>
-                      {/* <TableCell>{p.quantity}</TableCell> */}
                       <TableCell>{p.perUnitRate}</TableCell>
+                      <TableCell>{p.gstPct}</TableCell>
                       <TableCell>{p.taxableValue}</TableCell>
-                      {/* <TableCell>{p.totalMRP}</TableCell> */}
                       <TableCell>{p.stockAlert}</TableCell>
                       <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell align="right">
@@ -650,7 +647,7 @@ export default function ProductTable() {
                     <MenuItem value="Pending">Pending</MenuItem>
                   </Select>
                 </FormControl>
-{/* 
+                {/* 
                 <TextField
                   label="Quantity"
                   type="number"
@@ -669,19 +666,17 @@ export default function ProductTable() {
 
                 <TextField label="Taxable Value" value={form.taxableValue ?? 0} InputProps={{ readOnly: true }} />
                 {/* <TextField label="Total MRP" value={form.totalMRP ?? 0} InputProps={{ readOnly: true }} /> */}
-
                 {/* <TextField label="Product MRP" type="number" value={form.productMRP ?? 0} onChange={(e) => setForm({ ...form, productMRP: Number(e.target.value) })} /> */}
                 <TextField label="Stock Alert" type="number" value={form.stockAlert ?? 0} onChange={(e) => setForm({ ...form, stockAlert: Number(e.target.value) })} />
+                {/* <TextField label="Per Unit Rate (editable)" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} /> */}
 
-                <TextField label="Per Unit Rate (editable)" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} />
-
-                <TextField
+                {/* <TextField
                   label="Created At (Post date)"
                   type="date"
                   InputLabelProps={{ shrink: true }}
                   value={form.createdAt ? new Date(form.createdAt).toISOString().slice(0, 10) : ""}
                   onChange={(e) => setForm({ ...form, createdAt: new Date(e.target.value).toISOString() })}
-                />
+                /> */}
               </div>
 
               <div className="flex gap-3 justify-end mt-4">

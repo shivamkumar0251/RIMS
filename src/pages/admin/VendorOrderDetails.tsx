@@ -46,10 +46,10 @@ function VendorOrderDetails() {
         : { sendToPurchaseQty: 0, remarks: "" }
     }));
   };
-
+  const filterOrder = order?.products.filter(o=>o.productId)
   const allSelected =
-    order?.products?.length
-      ? order.products.every(p => !!selected[p.productId._id])
+    filterOrder?.length
+      ? filterOrder?.every(p => !!selected[p.productId?._id])
       : false;
 
   const toggleSelectAll = () => {
@@ -59,8 +59,8 @@ function VendorOrderDetails() {
       setSelected({});
     } else {
       const next: Record<string, any> = {};
-      order.products.forEach(p => {
-        next[p.productId._id] = {
+      filterOrder?.forEach(p => {
+        next[p.productId?._id] = {
           sendToPurchaseQty: 0,
           remarks: ""
         };
@@ -185,12 +185,11 @@ function VendorOrderDetails() {
 
             {/* ---------- TABLE BODY ---------- */}
             <TableBody>
-              {order.products.map(row => {
-                const product = row.productId;
-
+              {filterOrder?.map(row => {
+                const product = row?.productId;
                 return (
                   <TableRow
-                    key={row._id}
+                    key={row?._id}
                     hover
                     sx={{
                       "& td": { py: 1.5 }
@@ -198,13 +197,13 @@ function VendorOrderDetails() {
                   >
                     <TableCell>
                       <Checkbox
-                        checked={!!selected[product._id]}
-                        onChange={() => toggleSelect(product._id)}
+                        checked={!!selected[product?._id]}
+                        onChange={() => toggleSelect(product?._id)}
                       />
                     </TableCell>
 
                     <TableCell>
-                      {product.productName} ({product.packSize})
+                      {product ? `${product?.productName} (${product?.packSize}) ` : "-"}
                     </TableCell>
 
                     <TableCell>
@@ -219,21 +218,21 @@ function VendorOrderDetails() {
                       {product?.companyId?.brandName || "-"}
                     </TableCell>
 
-                    <TableCell>{row.orderQty}</TableCell>
+                    <TableCell>{row?.orderQty}</TableCell>
 
                     <TableCell>
                       <TextField
                         type="number"
                         size="small"
                         placeholder="Qty"
-                        disabled={!selected[product._id]}
+                        disabled={!selected[product?._id]}
                         sx={{ width: 90 }}
-                        value={selected[product._id]?.sendToPurchaseQty || ""}
+                        value={selected[product?._id]?.sendToPurchaseQty || ""}
                         onChange={e =>
                           setSelected(prev => ({
                             ...prev,
-                            [product._id]: {
-                              ...prev[product._id],
+                            [product?._id]: {
+                              ...prev[product?._id],
                               sendToPurchaseQty: e.target.value
                             }
                           }))
@@ -245,14 +244,14 @@ function VendorOrderDetails() {
                       <TextField
                         size="small"
                         placeholder="Remarks"
-                        disabled={!selected[product._id]}
+                        disabled={!selected[product?._id]}
                         sx={{ minWidth: 160 }}
-                        value={selected[product._id]?.remarks || ""}
+                        value={selected[product?._id]?.remarks || ""}
                         onChange={e =>
                           setSelected(prev => ({
                             ...prev,
-                            [product._id]: {
-                              ...prev[product._id],
+                            [product?._id]: {
+                              ...prev[product?._id],
                               remarks: e.target.value
                             }
                           }))

@@ -74,7 +74,7 @@ function VendorList() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [page, setPage] = useState(0);
-    const [limit, setLimit] = useState(5);
+    const [limit, setLimit] = useState(10);
     const [openDialog, setOpenDialog] = useState(false);
     const [editingVendor, setEditingVendor] = useState<any>(null);
     const [formData, setFormData] = useState<VendorForm>({

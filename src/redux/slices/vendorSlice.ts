@@ -112,7 +112,7 @@ export const getVendors = createAsyncThunk<
   { rejectValue: { message: string } }
 >(
   'vendor/getVendors',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 10, fromDate = '', toDate = '' }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_VENDOR_DATA}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 

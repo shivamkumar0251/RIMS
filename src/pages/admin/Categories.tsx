@@ -21,10 +21,9 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import dayjs, { Dayjs } from "dayjs"; // Import Dayjs and Dayjs type
+import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
-// import PaginationComponent from "../../components/common/Pagination";
 import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
@@ -36,10 +35,9 @@ import {
   getCategories,
   selectCategoryState,
   updateCategory,
-  updateSubCategory
+  updateSubCategory,
 } from "../../redux/slices/categorySlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-// import * as XLSX from "xlsx";
 
 type DateRangeValue = [Dayjs | null, Dayjs | null];
 
@@ -148,7 +146,7 @@ export default function ProductCategories() {
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRangeValue>([null, null]);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
@@ -166,13 +164,13 @@ export default function ProductCategories() {
   const totalCount = allCategoriesData?.total ?? allCategoriesData?.count ?? 0;
 
   // Keep local `page` in sync with backend's `currentPage` when the list updates.
-  useEffect(() => {
-    const backendPage = allCategoriesData?.currentPage ?? null;
-    if (backendPage && backendPage !== page) {
-      setPage(backendPage);
-    }
-    // only run when backend pagination metadata changes
-  }, [allCategoriesData?.currentPage, page]);
+  // useEffect(() => {
+  //   const backendPage = allCategoriesData?.currentPage ?? null;
+  //   if (backendPage && backendPage !== page) {
+  //     setPage(backendPage);
+  //   }
+  //   // only run when backend pagination metadata changes
+  // }, [allCategoriesData?.currentPage, page]);
   const displayedCategories = uiCategories; // server returns paginated list
 
   const handleAddCategory = () => {
@@ -559,7 +557,7 @@ export default function ProductCategories() {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(1); // reset to first page
               }}
-              rowsPerPageOptions={[5, 10, 25, 50]}
+              rowsPerPageOptions={[10, 25, 50, 100]}
             />
           </TableContainer>
 

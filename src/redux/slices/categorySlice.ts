@@ -38,10 +38,11 @@ export interface BulkCategoryExcelResponse {
 }
 
 // GET categories
-interface GetCategoriesResponse {
+export interface GetCategoriesResponse {
   success: boolean;
   total: number;
   currentPage: number;
+  limit: number;
   totalPages: number;
   count: number;
   data: Category[];
@@ -67,7 +68,7 @@ export const getCategories = createAsyncThunk<
   { rejectValue: { message: string } }
 >(
   'category/getCategories',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 10, fromDate = '', toDate = '' }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_CATEGORIES}?search=${search}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
