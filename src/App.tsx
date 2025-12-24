@@ -2,11 +2,11 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
-import ForgetPassword from './pages/auth/Forgetpassword';
-import ResetPassword from "./pages/auth/Resetpassword";
+import ForgetPassword from './pages/auth/ForgetPassword';
+import ResetPassword from "./pages/auth/ResetPassword";
 
 const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
-const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
+const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/auth/Login"));
 const LazyAboutPage = lazy(() => import("./pages/About"));
@@ -34,9 +34,10 @@ import UserProducts from "./pages/user/UserProducts";
 import UserPage from "./pages/user/UserProfile";
 import { ProtectedRoute, PublicRoute } from "./routes/ProtectedRoute";
 import VendorList from "./pages/admin/VendorList";
-import VendorsOrder from "./pages/admin/VendorsOrder";
+import VendorsOrder from "./pages/admin/VendorOrders";
 import Purchase from "./pages/admin/Purchase";
 import VendorOrderDetails from "./pages/admin/VendorOrderDetails";
+import RestaurantSetup from "./pages/admin/RestaurantSetup";
 function App() {
   return (
     <>
@@ -68,6 +69,7 @@ function App() {
             <Route path="/admin/setting" element={<AccountSetting />} />
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/consumables" element={<Consumables />} />
+            <Route path="/admin/restaurant-setup" element={<RestaurantSetup />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

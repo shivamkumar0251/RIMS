@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AdminSidebar } from "./Adminsidebar";
+import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 
 interface LayoutProps {

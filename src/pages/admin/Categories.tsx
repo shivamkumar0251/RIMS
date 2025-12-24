@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
 import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
@@ -320,9 +320,8 @@ export default function ProductCategories() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-xl font-semibold mb-6">Product Categories Management 🏷️</h1>
-
+      <div>
+        
         {error && (
           <Typography color="error" className="mb-4">
             {error}
@@ -330,98 +329,116 @@ export default function ProductCategories() {
         )}
 
 
-        <div>
-          <Card className="mb-6 shadow-md">
-            <CardContent className="flex flex-col md:flex-row gap-4 justify-between items-center">
-              <Box className="flex flex-col sm:flex-row gap-4 w-full md:w-auto mt-1">
-                <TextField
-                  size="small"
-                  placeholder="Search category/subcategory..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><FiSearch size={18} className="text-gray-500" /></InputAdornment> }}
-                  className="w-full sm:w-64"
-                />
+        {/* Combined Tool Bar */}
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4  border border-gray-100 shadow-sm">
+          {/* Filters Area */}
+          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <TextField
+              size="small"
+              placeholder="Search category/subcategory..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              InputProps={{ 
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FiSearch size={18} className="text-gray-400" />
+                  </InputAdornment>
+                ) 
+              }}
+              className="w-full sm:w-64"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
+            />
 
-                <TextField
-                  type="date"
-                  size="small"
-                  label="From"
-                  InputLabelProps={{ shrink: true }}
-                  value={dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : ""}
-                  onChange={(e) => {
-                    setDateRange([
-                      e.target.value ? dayjs(e.target.value) : null,
-                      dateRange[1],
-                    ]);
-                    setPage(1);
-                  }}
-                  className="w-full sm:w-40"
-                />
+            <Box className="flex items-center gap-2">
+              <TextField
+                type="date"
+                size="small"
+                label="From"
+                InputLabelProps={{ shrink: true }}
+                value={dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : ""}
+                onChange={(e) => {
+                  setDateRange([
+                    e.target.value ? dayjs(e.target.value) : null,
+                    dateRange[1],
+                  ]);
+                  setPage(1);
+                }}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
 
-                <TextField
-                  type="date"
-                  size="small"
-                  label="To"
-                  InputLabelProps={{ shrink: true }}
-                  value={dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : ""}
-                  onChange={(e) => {
-                    setDateRange([
-                      dateRange[0],
-                      e.target.value ? dayjs(e.target.value) : null,
-                    ]);
-                    setPage(1);
-                  }}
-                  className="w-full sm:w-40"
-                />
-              </Box>
+              <TextField
+                type="date"
+                size="small"
+                label="To"
+                InputLabelProps={{ shrink: true }}
+                value={dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : ""}
+                onChange={(e) => {
+                  setDateRange([
+                    dateRange[0],
+                    e.target.value ? dayjs(e.target.value) : null,
+                  ]);
+                  setPage(1);
+                }}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
+            </Box>
 
-              <div className="flex gap-3 w-full md:w-auto justify-end">
-                <Button
-                  variant="outlined"
-                  startIcon={<FiDownload />}
-                  onClick={handleDownloadTemplate}
-                >
-                  <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
-                    Download Template
-                  </Typography>
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  style={{ display: 'none' }}
-                  onChange={handleFileChange}
-                />
-                <Button
-                  size="small"
-                  startIcon={<FiUpload size={13} />}
-                  variant="outlined"
-                  color="inherit"
-                  className="normal-case"
-                  disabled={loading || ioLoading}
-                  onClick={handleImportClick}
-                >
-                  <Typography sx={{ fontSize: { xs: "10px", sm: "14px", md: "16px" } }}>Import</Typography>
-                </Button>
-                <Button
-                  startIcon={<FiPlus />}
-                  variant="contained"
-                  className="!bg-green-600 hover:!bg-green-700 normal-case"
-                  onClick={handleAddCategory}
-                  disabled={loading || ioLoading}
-                >
-                  <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
-                    Add Category
-                  </Typography>
+            <Button 
+              size="small" 
+              variant="text" 
+              startIcon={<FiRefreshCw />} 
+              onClick={() => { setSearchTerm(""); setDateRange([null, null]); setPage(1); }}
+              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
+            >
+              Reset
+            </Button>
+          </Box>
 
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Actions Area */}
+          <Box className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <Button
+              variant="outlined"
+              startIcon={<FiDownload />}
+              onClick={handleDownloadTemplate}
+              size="small"
+              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Template
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <Button
+              size="small"
+              startIcon={<FiDownload />}
+              variant="outlined"
+              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50"
+              disabled={loading || ioLoading}
+              onClick={handleImportClick}
+            >
+              Import
+            </Button>
+            <Button
+              startIcon={<FiPlus />}
+              variant="contained"
+              size="small"
+              // className="!bg-blue-600 hover:!bg-blue-700 normal-case shadow-none"
+              onClick={handleAddCategory}
+              disabled={loading || ioLoading}
+            >
+              Add Category
+            </Button>
+          </Box>
+        </Box>
 
           {/* --- Table --- */}
 
@@ -584,8 +601,6 @@ export default function ProductCategories() {
               <Button onClick={handleSaveSubCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
             </DialogActions>
           </Dialog>
-        </div>
-
       </div>
     </AdminLayout>
   );

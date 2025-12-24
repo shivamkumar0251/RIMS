@@ -1,9 +1,16 @@
 import {
+  Box,
   Button,
   Checkbox,
   CircularProgress,
-  MenuItem,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
   Paper,
+  Popover,
   Table,
   TableBody,
   TableCell,
@@ -11,11 +18,12 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TextField
+  TextField,
+  Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
-import React, { useEffect, useState } from "react";
-import { FiSend } from "react-icons/fi";
+import React, { useEffect, useState, useMemo } from "react";
+import { FiSend, FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
 
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
@@ -23,22 +31,19 @@ import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
   addConsumableStock,
   getConsumableStocks,
-  selectConsumableStockState
+  selectConsumableStockState,
 } from "../../redux/slices/consumableStockSlice";
 
 import {
   getCategories,
-  selectCategories
+  selectCategories,
 } from "../../redux/slices/categorySlice";
 
-import {
-  getCompanies,
-  selectCompanies
-} from "../../redux/slices/companySlice";
+import { getCompanies } from "../../redux/slices/companySlice";
 
 import {
   getVendorNameList,
-  selectVendorNames
+  selectVendorNames,
 } from "../../redux/slices/vendorSlice";
 
 import type { ConsumableStockPostData } from "../../redux/slices/consumableStockSlice";
@@ -46,11 +51,12 @@ import type { ConsumableStockPostData } from "../../redux/slices/consumableStock
 const Consumables: React.FC = () => {
   const dispatch = useAppDispatch();
 
-  const { loading, consumableStocks, allConsumableStocksData } =
-    useAppSelector(selectConsumableStockState);
+  const { loading, consumableStocks, allConsumableStocksData } = useAppSelector(
+    selectConsumableStockState
+  );
 
   const categories = useAppSelector(selectCategories);
-  const companies = useAppSelector(selectCompanies);
+
   const vendors = useAppSelector(selectVendorNames);
 
   // ---------------- Filters ----------------
@@ -70,6 +76,12 @@ const Consumables: React.FC = () => {
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
   const [wastageMap, setWastageMap] = useState<Record<string, number>>({});
 
+  // ---------------- Popover States ----------------
+  const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
+  const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
+  const [catSearch, setCatSearch] = useState("");
+  const [vendorSearch, setVendorSearch] = useState("");
+
   // ---------------- Fetch master data ----------------
   useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
@@ -88,10 +100,20 @@ const Consumables: React.FC = () => {
         vendorId,
         companyId,
         fromDate,
-        toDate
+        toDate,
       })
     );
-  }, [dispatch, page, search, limit, categoryId, vendorId, companyId, fromDate, toDate]);
+  }, [
+    dispatch,
+    page,
+    search,
+    limit,
+    categoryId,
+    vendorId,
+    companyId,
+    fromDate,
+    toDate,
+  ]);
 
   // ---------------- Selection logic ----------------
   const toggleRow = (id: string) => {
@@ -108,12 +130,12 @@ const Consumables: React.FC = () => {
     }
   };
 
-  // ---------------- Submit to backend ----------------
+  // ---------------- Submit ----------------
   const handleSubmit = () => {
     const payload: ConsumableStockPostData[] = selected.map((productId) => ({
       productId,
       transfersToUsage: usageMap[productId] || 0,
-      transfersToWastage: wastageMap[productId] || 0
+      transfersToWastage: wastageMap[productId] || 0,
     }));
 
     if (!payload.length) return;
@@ -124,102 +146,117 @@ const Consumables: React.FC = () => {
     setWastageMap({});
   };
 
+  const handleResetFilters = () => {
+    setSearch("");
+    setCategoryId("");
+    setVendorId("");
+    setCompanyId("");
+    setFromDate("");
+    setToDate("");
+    setPage(0);
+  };
+
+  // ---------------- Filter Search Logic ----------------
+  const filteredCats = useMemo(
+    () =>
+      categories.filter((c) =>
+        (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())
+      ),
+    [categories, catSearch]
+  );
+
+  const filteredVendors = useMemo(
+    () =>
+      vendors.filter((v) =>
+        (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())
+      ),
+    [vendors, vendorSearch]
+  );
+
   // ---------------- Render ----------------
   return (
     <AdminLayout>
-      <div className="p-4 space-y-4">
-        {/* ---------------- Filters ---------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <TextField
-            label="Search"
-            size="small"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <TextField
-            select
-            size="small"
-            label="Category"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            {categories.map((c) => (
-              <MenuItem key={c._id} value={c._id}>
-                {c.categoryName}
-              </MenuItem>
-            ))}
-          </TextField>
+      <div>
+        {/* Unified Tool Bar */}
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
+          {/* Filters Area */}
+          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <TextField
+              placeholder="Search product..."
+              size="small"
+              value={search}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FiSearch className="text-gray-400" />
+                  </InputAdornment>
+                ),
+              }}
+              className="w-full sm:w-64"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "#fcfcfc" } }}
+            />
 
-          <TextField
-            select
-            size="small"
-            label="Vendor"
-            value={vendorId}
-            onChange={(e) => setVendorId(e.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            {vendors.map((v) => (
-              <MenuItem key={v._id} value={v._id}>
-                {v.vendor_name}
-              </MenuItem>
-            ))}
-          </TextField>
+            <Box className="flex items-center gap-2">
+              <TextField
+                type="date"
+                size="small"
+                label="From"
+                InputLabelProps={{ shrink: true }}
+                value={fromDate}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
+              <TextField
+                type="date"
+                size="small"
+                label="To"
+                InputLabelProps={{ shrink: true }}
+                value={toDate}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
+            </Box>
 
-          <TextField
-            select
-            size="small"
-            label="Company"
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            {companies.map((c) => (
-              <MenuItem key={c._id} value={c._id}>
-                {c.brandName}
-              </MenuItem>
-            ))}
-          </TextField>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<FiRefreshCw />}
+              onClick={handleResetFilters}
+              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
+            >
+              Reset
+            </Button>
+          </Box>
 
-          <TextField
-            size="small"
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-          />
+          {/* Action Area */}
+          <Box className="w-full md:w-auto flex justify-end">
+            <Button
+              variant="contained"
+              startIcon={<FiSend />}
+              disabled={
+                selected.length === 0 ||
+                selected.some((id) => !(usageMap[id] || wastageMap[id]))
+              }
+              onClick={handleSubmit}
+              size="small"
+            >
+              Post Usage / Wastage
+            </Button>
+          </Box>
+        </Box>
 
-          <TextField
-            size="small"
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-          />
-        </div>
-        {/* ---------------- Submit ---------------- */}
-        <div className="flex justify-end">
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<FiSend />}
-            disabled={!selected.length}
-            onClick={handleSubmit}
-          >
-            Post to Usage / Wastage
-          </Button>
-        </div>
-
-        {/* ---------------- Table ---------------- */}
-        <Paper>
+        {/* Clean Table */}
+        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
           <TableContainer>
-            <Table size="small">
-              <TableHead className="bg-gray-100">
+            <Table>
+              <TableHead className="bg-gray-50">
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox
+                      color="primary"
                       checked={
                         selected.length === consumableStocks.length &&
                         consumableStocks.length > 0
@@ -227,98 +264,348 @@ const Consumables: React.FC = () => {
                       onChange={toggleAll}
                     />
                   </TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell>Company</TableCell>
-                  <TableCell>Unit</TableCell>
-                  <TableCell>Opening</TableCell>
-                  <TableCell>Received</TableCell>
-                  <TableCell>Usage</TableCell>
-                  <TableCell>Wastage</TableCell>
-                  <TableCell>Closing</TableCell>
-                  <TableCell>Date</TableCell>
+                  <TableCell className="font-bold">Product</TableCell>
+                  <TableCell className="font-bold">
+                    <Box className="flex items-center gap-2">
+                      Category
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setCatAnchor(e.currentTarget)}
+                      >
+                        <FiFilter
+                          size={14}
+                          className={
+                            categoryId ? "text-blue-600" : "text-gray-400"
+                          }
+                        />
+                      </IconButton>
+                    </Box>
+                    <Popover
+                      open={Boolean(catAnchor)}
+                      anchorEl={catAnchor}
+                      onClose={() => setCatAnchor(null)}
+                      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                      PaperProps={{
+                        sx: {
+                          minWidth: 240,
+                          shadow: 4,
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          mt: 1,
+                        },
+                      }}
+                    >
+                      <Box className="p-2 border-b bg-gray-50">
+                        <TextField
+                          placeholder="Search Category..."
+                          size="small"
+                          fullWidth
+                          variant="outlined"
+                          value={catSearch}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setCatSearch(e.target.value)
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <FiSearch
+                                size={14}
+                                className="text-gray-400 mr-2"
+                              />
+                            ),
+                            sx: { bgcolor: "white" },
+                          }}
+                        />
+                      </Box>
+                      <List sx={{ maxHeight: 300, overflow: "auto", py: 0 }}>
+                        <ListItem disablePadding>
+                          <ListItemButton
+                            onClick={() => {
+                              setCategoryId("");
+                              setCatAnchor(null);
+                            }}
+                            selected={!categoryId}
+                          >
+                            <ListItemText
+                              primary="All Categories"
+                              primaryTypographyProps={{ fontSize: "0.875rem" }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                        {filteredCats.map((c) => (
+                          <ListItem key={c._id} disablePadding>
+                            <ListItemButton
+                              onClick={() => {
+                                setCategoryId(c._id);
+                                setCatAnchor(null);
+                              }}
+                              selected={categoryId === c._id}
+                            >
+                              <ListItemText
+                                primary={c.categoryName}
+                                primaryTypographyProps={{
+                                  fontSize: "0.875rem",
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Popover>
+                  </TableCell>
+                  <TableCell className="font-bold">
+                    <Box className="flex items-center gap-2">
+                      Vendor
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setVendorAnchor(e.currentTarget)}
+                      >
+                        <FiFilter
+                          size={14}
+                          className={
+                            vendorId ? "text-blue-600" : "text-gray-400"
+                          }
+                        />
+                      </IconButton>
+                    </Box>
+                    <Popover
+                      open={Boolean(vendorAnchor)}
+                      anchorEl={vendorAnchor}
+                      onClose={() => setVendorAnchor(null)}
+                      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                      PaperProps={{
+                        sx: {
+                          minWidth: 260,
+                          shadow: 4,
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          mt: 1,
+                        },
+                      }}
+                    >
+                      <Box className="p-2 border-b bg-gray-50">
+                        <TextField
+                          placeholder="Search Vendor..."
+                          size="small"
+                          fullWidth
+                          variant="outlined"
+                          value={vendorSearch}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setVendorSearch(e.target.value)
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <FiSearch
+                                size={14}
+                                className="text-gray-400 mr-2"
+                              />
+                            ),
+                            sx: { bgcolor: "white" },
+                          }}
+                        />
+                      </Box>
+                      <List sx={{ maxHeight: 300, overflow: "auto", py: 0 }}>
+                        <ListItem disablePadding>
+                          <ListItemButton
+                            onClick={() => {
+                              setVendorId("");
+                              setVendorAnchor(null);
+                            }}
+                            selected={!vendorId}
+                          >
+                            <ListItemText
+                              primary="All Vendors"
+                              primaryTypographyProps={{ fontSize: "0.875rem" }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                        {filteredVendors.map((v) => (
+                          <ListItem key={v._id} disablePadding>
+                            <ListItemButton
+                              onClick={() => {
+                                setVendorId(v._id);
+                                setVendorAnchor(null);
+                              }}
+                              selected={vendorId === v._id}
+                            >
+                              <ListItemText
+                                primary={v.vendor_name}
+                                primaryTypographyProps={{
+                                  fontSize: "0.875rem",
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Popover>
+                  </TableCell>
+                  <TableCell className="font-bold">Opening</TableCell>
+                  <TableCell className="font-bold">Received</TableCell>
+                  <TableCell className="font-bold" style={{ width: 120 }}>
+                    Usage
+                  </TableCell>
+                  <TableCell className="font-bold" style={{ width: 120 }}>
+                    Wastage
+                  </TableCell>
+                  <TableCell className="font-bold">Closing</TableCell>
+                  <TableCell className="font-bold">Date</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {loading && (
+                {loading ? (
                   <TableRow>
-                    <TableCell colSpan={13} align="center">
-                      <CircularProgress size={24} />
+                    <TableCell colSpan={10} align="center" className="py-10">
+                      <CircularProgress size={30} />
+                      <Typography className="mt-2 text-gray-500 text-sm">
+                        Loading stocks...
+                      </Typography>
                     </TableCell>
                   </TableRow>
+                ) : (
+                  consumableStocks.map((row) => {
+                    const pid = row.productId?._id;
+                    const isSelected = selected.includes(pid);
+
+                    return (
+                      <TableRow key={row._id} hover selected={isSelected}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            color="primary"
+                            checked={isSelected}
+                            onChange={() => toggleRow(pid)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" className="font-medium">
+                            {row.productId?.productName}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            className="text-gray-500"
+                          >
+                            {row.productId?.packSize} | {row.productId?.unit}
+                          </Typography>
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {row.productId?.categoryId?.categoryName || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {row.productId?.vendorsId?.vendor_name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            className="text-gray-400 italic"
+                          >
+                            {row.productId?.companyId?.brandName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{row?.openingStock}</TableCell>
+                        <TableCell>{row?.rcvdKitchenQty}</TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={usageMap[pid] || ""}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => {
+                              const val = Number(e.target.value);
+                              setUsageMap((prev) => ({ ...prev, [pid]: val }));
+                              if (val > 0 || (wastageMap[pid] || 0) > 0) {
+                                if (!selected.includes(pid))
+                                  setSelected((prev) => [...prev, pid]);
+                              } else {
+                                setSelected((prev) =>
+                                  prev.filter((id) => id !== pid)
+                                );
+                              }
+                            }}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                py: 0.5,
+                                px: 1,
+                                textAlign: "center",
+                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                                  {
+                                    display: "none",
+                                  },
+                                "&": {
+                                  MozAppearance: "textfield",
+                                },
+                              },
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={wastageMap[pid] || ""}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => {
+                              const val = Number(e.target.value);
+                              setWastageMap((prev) => ({
+                                ...prev,
+                                [pid]: val,
+                              }));
+                              if (val > 0 || (usageMap[pid] || 0) > 0) {
+                                if (!selected.includes(pid))
+                                  setSelected((prev) => [...prev, pid]);
+                              } else {
+                                setSelected((prev) =>
+                                  prev.filter((id) => id !== pid)
+                                );
+                              }
+                            }}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                py: 0.5,
+                                px: 1,
+                                textAlign: "center",
+                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                                  {
+                                    display: "none",
+                                  },
+                                "&": {
+                                  MozAppearance: "textfield",
+                                },
+                              },
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {row.closingStock}
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-xs">
+                          {dayjs(row.createdAt).format("DD/MM/YYYY")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
-
-                {consumableStocks.map((row) => {
-                  const pid = row.productId?._id;
-
-                  return (
-                    <TableRow key={row._id} hover>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selected.includes(pid)}
-                          onChange={() => toggleRow(pid)}
-                        />
-                      </TableCell>
-                      <TableCell>{row.productId?.productName} ({row.productId?.packSize})</TableCell>
-                      <TableCell>{row.productId?.categoryId?.categoryName}</TableCell>
-                      <TableCell>{row.productId?.vendorsId?.vendor_name}</TableCell>
-                      <TableCell>{row.productId?.companyId?.brandName}</TableCell>
-                      <TableCell>{row.productId?.unit}</TableCell>
-                      <TableCell>{row?.openingStock}</TableCell>
-                      <TableCell>{row?.rcvdKitchenQty}</TableCell>
-
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={usageMap[pid] || ""}
-                          onChange={(e) =>
-                            setUsageMap({
-                              ...usageMap,
-                              [pid]: Number(e.target.value)
-                            })
-                          }
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={wastageMap[pid] || ""}
-                          onChange={(e) =>
-                            setWastageMap({
-                              ...wastageMap,
-                              [pid]: Number(e.target.value)
-                            })
-                          }
-                        />
-                      </TableCell>
-
-                      <TableCell>{row.closingStock}</TableCell>
-                      <TableCell>
-                        {dayjs(row.createdAt).format("DD/MM/YYYY")}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {/* ---------------- Pagination ---------------- */}
           <TablePagination
             component="div"
             count={allConsumableStocksData?.pagination.total || 0}
             page={page}
-            onPageChange={(_, p) => setPage(p)}
+            onPageChange={(
+              _: React.MouseEvent<HTMLButtonElement> | null,
+              p: number
+            ) => setPage(p)}
             rowsPerPage={limit}
-            onRowsPerPageChange={(e) => {
+            onRowsPerPageChange={(
+              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+            ) => {
               setLimit(parseInt(e.target.value, 10));
               setPage(0);
             }}
+            className="border-t bg-gray-50"
           />
         </Paper>
       </div>

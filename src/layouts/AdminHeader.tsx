@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSearch, FaBars, FaPrint } from 'react-icons/fa';
+import { FaBars, FaPrint } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -22,6 +22,7 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     '/storeStock': 'Store Stock',
     '/admin/kitchenStock': 'Kitchen Stock',
     '/admin/consumables': 'Consumables',
+    '/admin/restaurant-setup': 'Restaurant Setup',
     '/admin/setting': 'Setting',
 
 
@@ -57,14 +58,14 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       {/* Right Section */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 ml-auto">
         {/* Search Box */}
-        <div className="relative">
+        {/* <div className="relative">
           <FaSearch className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm sm:text-base" />
           <input
             type="text"
             placeholder="Q ENGINE"
             className="bg-gray-700 text-white placeholder-gray-400 rounded-lg py-1.5 sm:py-2 pl-7 sm:pl-8 md:pl-10 pr-2 sm:pr-3 md:pr-4 w-28 sm:w-36 md:w-48 lg:w-64 text-xs sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
+        </div> */}
 
         {/* Print Button */}
         <button

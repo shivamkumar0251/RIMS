@@ -7,9 +7,14 @@ import {
   Drawer,
   FormControl,
   IconButton,
+  InputAdornment,
   InputLabel,
+  List,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Paper,
+  Popover,
   Select,
   Table,
   TableBody,
@@ -22,14 +27,15 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
-import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw, FiFilter } from "react-icons/fi";
 import * as XLSX from "xlsx";
+import dayjs from "dayjs";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
-// Product slice thunks & selectors (from your message)
-import type { BulkProductExcelResponse, CategoryRef, GetProductsResponse, ProductInterface } from "../../redux/slices/productSlice";
+// Product slice thunks & selectors
+import type { BulkProductExcelResponse, GetProductsResponse, ProductInterface } from "../../redux/slices/productSlice";
 import {
   addProduct,
   addProductBulkExcel,
@@ -39,7 +45,7 @@ import {
   updateProduct,
 } from "../../redux/slices/productSlice";
 
-// Category, Company, Vendor slices (selectors & thunks you mentioned)
+// Category, Company, Vendor slices
 import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
 import { addVendor, getVendorNameList, selectVendorNames, type GetVendorData, type VendorFormType } from "../../redux/slices/vendorSlice";
@@ -61,14 +67,22 @@ export default function ProductTable() {
 
   // UI state
   const [searchName, setSearchName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [vendorId, setVendorId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [page, setPage] = useState(0); 
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Popover States
+  const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
+  const [companyAnchor, setCompanyAnchor] = useState<null | HTMLElement>(null);
+  const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
+  
+  const [catSearch, setCatSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
+  const [vendorSearch, setVendorSearch] = useState("");
 
   // Drawer form state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -80,21 +94,17 @@ export default function ProductTable() {
     productName: "",
     packSize: "",
     unit: "",
-    // quantity: 0,
     shape: "",
     colour: "",
     printStatus: "",
     productImage: "",
     gstPct: 0,
-    // productMRP: 0,
     taxableValue: 0,
     perUnitRate: 0,
-    // totalMRP: 0,
     stockAlert: 0,
     createdAt: new Date().toISOString(),
   });
 
-  // loading flags
   const loading = productState.loading;
 
   // === fetch lookup data on mount ===
@@ -106,23 +116,18 @@ export default function ProductTable() {
 
   // === fetch products when filters change ===
   useEffect(() => {
-    fetchProducts();
-  }, [page, rowsPerPage, searchName, selectedCategory, selectedVendor, selectedCompany, fromDate, toDate]);
-
-  function fetchProducts() {
     dispatch(getProducts({
       search: searchName || undefined,
       page: page + 1,
       limit: rowsPerPage,
       fromDate: fromDate || '',
       toDate: toDate || '',
-      category: selectedCategory || '',
-      vendor: selectedVendor || '',
-      company: selectedCompany || '',
+      category: categoryId || '',
+      vendor: vendorId || '',
+      company: companyId || '',
     }));
-  }
+  }, [dispatch, page, rowsPerPage, searchName, categoryId, vendorId, companyId, fromDate, toDate]);
 
-  // === XLSX Template download ===
   const handleDownloadTemplate = () => {
     const sample = [
       {
@@ -148,14 +153,12 @@ export default function ProductTable() {
     XLSX.writeFile(wb, "Products_Template.xlsx");
   };
 
-  // === Excel import handler (auto-upload on select) ===
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const formData = new FormData();
     formData.append("file", file);
-    // if franchiseId required, append it (you used previously)
     const franchiseId = localStorage.getItem("franchiseId");
     if (franchiseId) formData.append("franchiseId", franchiseId);
 
@@ -164,17 +167,13 @@ export default function ProductTable() {
 
     if (payload?.success) {
       alert(`Inserted: ${payload?.insertedCount || 0}`);
-      fetchProducts();
       e.currentTarget.value = "";
     } else {
       alert("Bulk upload failed");
-      fetchProducts();
       e.currentTarget.value = "";
     }
-
   };
 
-  // === open drawer to add ===
   const openAddDrawer = () => {
     setEditingProduct(null);
     setForm({
@@ -184,30 +183,25 @@ export default function ProductTable() {
       productName: "",
       packSize: "",
       unit: "",
-      // quantity: 0,
       shape: "",
       colour: "",
       printStatus: "",
       productImage: "",
       gstPct: 0,
-      // productMRP: 0,
       taxableValue: 0,
       perUnitRate: 0,
-      // totalMRP: 0,
       stockAlert: 0,
       createdAt: new Date().toISOString(),
     });
     setDrawerOpen(true);
   };
 
-  // === open drawer to edit (or fill when clicking product from autocomplete) ===
   const openEditDrawer = (p: ProductInterface) => {
     setEditingProduct(p);
     setForm({ ...p });
     setDrawerOpen(true);
   };
 
-  // === Auto-calc taxable and total whenever quantity/perUnitRate/gstPct change ===
   useEffect(() => {
     const rate = Number(form.perUnitRate || 0);
     const gst = Number(form.gstPct || 0);
@@ -219,17 +213,13 @@ export default function ProductTable() {
     }));
   }, [form.perUnitRate, form.gstPct]);
 
-  // === Save product (add or update) ===
   const handleSaveProduct = async () => {
-    // validate minimal fields
-
     if (!form.productName || !form.categoryId || !form.companyId || !form.vendorsId) {
       alert("Please fill Product Name, Category, Vendor and Company");
       return;
     }
 
     const payload: ProductInterface = {
-      // if editingProduct exists, copy _id
       _id: editingProduct?._id || "",
       categoryId: form.categoryId,
       vendorsId: form.vendorsId,
@@ -237,16 +227,13 @@ export default function ProductTable() {
       productName: String(form.productName || ""),
       packSize: String(form.packSize || ""),
       unit: String(form.unit || ""),
-      // quantity: Number(form.quantity || 0),
       shape: String(form.shape || ""),
       colour: String(form.colour || ""),
       printStatus: String(form.printStatus || ""),
       productImage: form.productImage,
       gstPct: Number(form.gstPct || 0),
-      // productMRP: Number(form.productMRP || 0),
       taxableValue: Number(form.taxableValue || 0),
       perUnitRate: Number(form.perUnitRate || 0),
-      // totalMRP: Number(form.totalMRP || 0),
       stockAlert: Number(form.stockAlert || 0),
       createdAt: form.createdAt || new Date().toISOString(),
     };
@@ -260,27 +247,47 @@ export default function ProductTable() {
     }
 
     setDrawerOpen(false);
-    fetchProducts();
   };
 
-  // === Delete product ===
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     await dispatch(deleteProduct(id));
-    fetchProducts();
   };
 
-  // === Helpers for dropdown options ===
-  const categoryOptions = (categories || []).map((c: CategoryRef) => ({ label: c.categoryName || "", id: c._id }));
-  const companyOptions = (companies || []).map((c) => ({ label: c?.brandName || "", id: c._id }));
-  const vendorOptions = (vendors || []).map((v) => ({ label: v?.vendor_name || "", id: (v)._id }));
+  const handleResetFilters = () => {
+    setSearchName("");
+    setCategoryId("");
+    setCompanyId("");
+    setVendorId("");
+    setFromDate("");
+    setToDate("");
+    setPage(0);
+  };
 
-  // Autocomplete product names for quick fill
+  // Filter Logic
+  const filteredCats = useMemo(() => 
+    categories.filter((c: any) => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
+    [categories, catSearch]
+  );
+
+  const filteredVendors = useMemo(() => 
+    vendors.filter((v: any) => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
+    [vendors, vendorSearch]
+  );
+
+  const filteredCompanies = useMemo(() => 
+    companies.filter((c: any) => (c.brandName || "").toLowerCase().includes(companySearch.toLowerCase())),
+    [companies, companySearch]
+  );
+
+  // Dropdown options for Drawer
+  const categoryOptions = categories.map((c: any) => ({ label: c.categoryName || "", id: c._id }));
+  const companyOptions = companies.map((c: any) => ({ label: c.brandName || "", id: c._id }));
+  const vendorOptions = vendors.map((v: any) => ({ label: v.vendor_name || "", id: v._id }));
+
   const productNames = useMemo(() => (products || []).map((p: ProductInterface) => p.productName), [products]);
 
-  // === Vendor Drawer State ===
   const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
-
   const [vendorForm, setVendorForm] = useState<VendorFormType>({
     vendor_name: "",
     vendor_mobileNo: "",
@@ -306,182 +313,208 @@ export default function ProductTable() {
       alert("Vendor name is required");
       return;
     }
-
     const res = await dispatch(addVendor(vendorForm));
-    const payload = res.payload as GetVendorData;
-
-    if (payload?._id) {
+    if ((res.payload as GetVendorData)?._id) {
       alert("Vendor added");
-
-      // refresh vendor list
       dispatch(getVendorNameList());
-
       setVendorDrawerOpen(false);
-
-      // reset form
       setVendorForm({
-        vendor_name: "",
-        vendor_mobileNo: "",
-        vendor_address: "",
-        vendor_state: "",
-        vendor_country: "",
-        vendor_pinCode: "",
-        vendor_bankName: "",
-        vendor_accountNumber: "",
-        vendor_ifscCode: "",
-        vendor_paymentTerms: "",
-        vendor_preferredPaymentMode: "",
-        vendor_creditLimit: 0,
-        vendor_outstandingBalance: 0,
-        vendor_gstType: "",
-        vendor_registrationType: "",
-        vendor_gstNumber: "",
-        vendor_openingBalance: 0,
+        vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
+        vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
+        vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
+        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
+        vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
       });
-    } else {
-      alert("Failed to add vendor");
     }
   };
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h2 className="text-xl font-semibold">Products</h2>
-        <div className="flex justify-between items-center mb-4">
-
-          <div className="flex gap-2">
-            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate}>
-              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
-                Template
-              </Typography>
-            </Button>
-
-            <input
-              id="product-excel"
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: "none" }}
-              onChange={handleExcelUpload}
-            />
-            <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()}>
-              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
-                Import Excel
-              </Typography>
-            </Button>
-
-            <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer}>
-              <Typography sx={{ fontSize: { xs: "12px", sm: "14px", md: "16px" } }}>
-                Add Product
-              </Typography>
-            </Button>
-          </div>
-        </div>
-
-        {/* filters row */}
-        <Paper className="p-4 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div>
+        {/* Combined Tool Bar */}
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
+          {/* Filters Area */}
+          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <TextField
+              placeholder="Search products..."
               size="small"
-              placeholder="Search product by name..."
               value={searchName}
               onChange={(e) => { setSearchName(e.target.value); setPage(0); }}
-              InputProps={{ startAdornment: <FiSearch style={{ marginRight: 8 }} /> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FiSearch className="text-gray-400" />
+                  </InputAdornment>
+                ),
+              }}
+              className="w-full sm:w-64"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
             />
+            
+            <Box className="flex items-center gap-2">
+              <TextField
+                type="date"
+                size="small"
+                label="From"
+                InputLabelProps={{ shrink: true }}
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
+              <TextField
+                type="date"
+                size="small"
+                label="To"
+                InputLabelProps={{ shrink: true }}
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+                className="w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              />
+            </Box>
 
-            <TextField
-              select
-              size="small"
-              value={selectedCategory ?? ""}
-              onChange={(e) => { setSelectedCategory(e.target.value || null); setPage(0); }}
-              label="Category"
+            <Button 
+              size="small" 
+              variant="text" 
+              startIcon={<FiRefreshCw />} 
+              onClick={handleResetFilters}
+              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
             >
-              <MenuItem value="">All</MenuItem>
-              {categoryOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
-            </TextField>
+              Reset
+            </Button>
+          </Box>
 
-            <TextField
-              select
-              size="small"
-              value={selectedVendor ?? ""}
-              onChange={(e) => { setSelectedVendor(e.target.value || null); setPage(0); }}
-              label="Vendor"
-            >
-              <MenuItem value="">All</MenuItem>
-              {vendorOptions.map((v) => <MenuItem key={v.id} value={v.id}>{v.label}</MenuItem>)}
-            </TextField>
+          {/* Actions Area */}
+          <Box className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
+              Template
+            </Button>
+            <input id="product-excel" type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleExcelUpload} />
+            <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
+              Import
+            </Button>
+            <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="!bg-blue-600 hover:!bg-blue-700 normal-case shadow-none">
+              Add Product
+            </Button>
+          </Box>
+        </Box>
 
-            <TextField
-              select
-              size="small"
-              value={selectedCompany ?? ""}
-              onChange={(e) => { setSelectedCompany(e.target.value || null); setPage(0); }}
-              label="Company"
-            >
-              <MenuItem value="">All</MenuItem>
-              {companyOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
-            </TextField>
-
-            <TextField
-              size="small"
-              type="date"
-              label="From"
-              InputLabelProps={{ shrink: true }}
-              value={fromDate}
-              onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
-            />
-
-            <TextField
-              size="small"
-              type="date"
-              label="To"
-              InputLabelProps={{ shrink: true }}
-              value={toDate}
-              onChange={(e) => { setToDate(e.target.value); setPage(0); }}
-            />
-          </div>
-        </Paper>
-
-        {/* table */}
-        <Paper>
+        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow className="bg-gray-100">
-                  <TableCell>Product</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell>Company</TableCell>
-                  <TableCell>Per Unit Rate</TableCell>
-                  <TableCell>GST%</TableCell>
-                  <TableCell>Taxable Rate</TableCell>
-                  <TableCell>Stock Alert</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+              <TableHead className="bg-gray-50">
+                <TableRow>
+                  <TableCell className="font-bold">Product Details</TableCell>
+                  <TableCell className="font-bold">
+                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
+                      Category
+                      <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
+                    </Box>
+                    <Popover open={Boolean(catAnchor)} anchorEl={catAnchor} onClose={() => setCatAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                      <Box className="p-2 border-b bg-gray-50">
+                        <TextField placeholder="Search Category..." size="small" fullWidth variant="outlined" value={catSearch} onChange={(e) => setCatSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
+                      </Box>
+                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                        <ListItemButton onClick={() => { setCategoryId(""); setCatAnchor(null); }} selected={!categoryId}>
+                          <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                        </ListItemButton>
+                        {filteredCats.map((c: any) => (
+                          <ListItemButton key={c._id} onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} selected={categoryId === c._id}>
+                            <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Popover>
+                  </TableCell>
+                  <TableCell className="font-bold">
+                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setVendorAnchor(e.currentTarget)}>
+                      Vendor
+                      <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
+                    </Box>
+                    <Popover open={Boolean(vendorAnchor)} anchorEl={vendorAnchor} onClose={() => setVendorAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                      <Box className="p-2 border-b bg-gray-50">
+                        <TextField placeholder="Search Vendor..." size="small" fullWidth variant="outlined" value={vendorSearch} onChange={(e) => setVendorSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
+                      </Box>
+                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                        <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
+                          <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                        </ListItemButton>
+                        {filteredVendors.map((v: any) => (
+                          <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
+                            <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Popover>
+                  </TableCell>
+                  <TableCell className="font-bold">
+                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCompanyAnchor(e.currentTarget)}>
+                      Brand
+                      <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
+                    </Box>
+                    <Popover open={Boolean(companyAnchor)} anchorEl={companyAnchor} onClose={() => setCompanyAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                      <Box className="p-2 border-b bg-gray-50">
+                        <TextField placeholder="Search Brand..." size="small" fullWidth variant="outlined" value={companySearch} onChange={(e) => setCompanySearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
+                      </Box>
+                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                        <ListItemButton onClick={() => { setCompanyId(""); setCompanyAnchor(null); }} selected={!companyId}>
+                          <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                        </ListItemButton>
+                        {filteredCompanies.map((c: any) => (
+                          <ListItemButton key={c._id} onClick={() => { setCompanyId(c._id); setCompanyAnchor(null); }} selected={companyId === c._id}>
+                            <ListItemText primary={c.brandName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Popover>
+                  </TableCell>
+                  <TableCell className="font-bold text-center">Rate</TableCell>
+                  <TableCell className="font-bold text-center">GST%</TableCell>
+                  <TableCell className="font-bold text-center">Taxable</TableCell>
+                  <TableCell className="font-bold text-center">Alert</TableCell>
+                  <TableCell className="font-bold">Created</TableCell>
+                  <TableCell align="right" className="font-bold">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={11} align="center"><CircularProgress /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} align="center" className="py-10"><CircularProgress size={30} /></TableCell></TableRow>
                 ) : (products || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={11} align="center">No products</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} align="center" className="py-10 text-gray-500 text-sm">No products found.</TableCell></TableRow>
                 ) : (
                   (products || []).map((p: ProductInterface) => (
-                    <TableRow key={p._id}>
-                      <TableCell>{p.productName}</TableCell>
-                      <TableCell>{typeof p.categoryId === "object" ? (p.categoryId).categoryName : p.categoryId}</TableCell>
-                      <TableCell>{typeof p.vendorsId === "object" ? (p.vendorsId).vendor_name : p.vendorsId}</TableCell>
-                      <TableCell>{typeof p.companyId === "object" ? (p.companyId).brandName : p.companyId}</TableCell>
-                      <TableCell>{p.perUnitRate}</TableCell>
-                      <TableCell>{p.gstPct}</TableCell>
-                      <TableCell>{p.taxableValue}</TableCell>
-                      <TableCell>{p.stockAlert}</TableCell>
-                      <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                    <TableRow key={p._id} hover>
+                      <TableCell>
+                        <Typography variant="body2" className="font-medium">{p.productName}</Typography>
+                        <Typography variant="caption" className="text-gray-500">{p.packSize} | {p.unit}</Typography>
+                      </TableCell>
+                      <TableCell className="text-gray-600 capitalize">
+                        {p.categoryId && typeof p.categoryId === "object" ? p.categoryId.categoryName : (p.categoryId || "N/A")}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {p.vendorsId && typeof p.vendorsId === "object" ? p.vendorsId.vendor_name : (p.vendorsId || "N/A")}
+                      </TableCell>
+                      <TableCell className="text-gray-600 italic">
+                        {p.companyId && typeof p.companyId === "object" ? p.companyId.brandName : (p.companyId || "N/A")}
+                      </TableCell>
+                      <TableCell className="text-center font-medium">₹{p.perUnitRate}</TableCell>
+                      <TableCell className="text-center text-gray-600">{p.gstPct}%</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">₹{p.taxableValue}</TableCell>
+                      <TableCell className="text-center">
+                        <Box className="bg-orange-50 text-orange-700 rounded px-2 py-0.5 inline-block text-xs font-bold">
+                          {p.stockAlert}
+                        </Box>
+                      </TableCell>
+                      <TableCell className="text-gray-500 text-xs">
+                        {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
+                      </TableCell>
                       <TableCell align="right">
-                        <div className="flex gap-2 justify-end">
-                          <IconButton onClick={() => openEditDrawer(p)}><FiEdit /></IconButton>
-                          <IconButton onClick={() => handleDeleteProduct(p._id)}><FiTrash2 /></IconButton>
-                        </div>
+                        <Box className="flex gap-1 justify-end">
+                          <IconButton onClick={() => openEditDrawer(p)} size="small" className="text-blue-600"><FiEdit size={16} /></IconButton>
+                          <IconButton onClick={() => handleDeleteProduct(p._id)} size="small" className="text-red-500"><FiTrash2 size={16} /></IconButton>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -497,34 +530,31 @@ export default function ProductTable() {
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            className="border-t bg-gray-50"
           />
         </Paper>
 
         {/* right drawer form */}
         <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          <Box sx={{ width: 720, p: 3 }}>
-            <div className="flex items-center justify-between mb-4">
-              <Typography variant="h6">{editingProduct ? "Edit Product" : "Add Product"}</Typography>
-              <div className="flex gap-2">
-                {/* quick add category / vendor / company */}
-                <Button size="small" onClick={async () => { const name = prompt("New category name"); if (name) { await dispatch(addCategory({ categoryName: name })); dispatch(getCategories({ page: 1, limit: 1000 })); } }}>+ Category</Button>
-                <Button size="small" onClick={() => setVendorDrawerOpen(true)}>
-                  + Vendor
-                </Button>
-                <Button size="small" onClick={async () => { const name = prompt("New company brand"); if (name) { await dispatch(addCompany({ brandName: name })); dispatch(getCompanies({ page: 1, limit: 1000 })); } }}>+ Company</Button>
-              </div>
-            </div>
+          <Box sx={{ width: { xs: '100vw', sm: 600 }, p: 4 }}>
+            <Box className="flex items-center justify-between mb-6">
+              <Typography variant="h6" className="font-bold">{editingProduct ? "Edit Product" : "Add New Product"}</Typography>
+              <Box className="flex gap-2">
+                <Button size="small" variant="outlined" onClick={async () => { const name = prompt("New category name"); if (name) { await dispatch(addCategory({ categoryName: name })); dispatch(getCategories({ page: 1, limit: 1000 })); } }}>+ Category</Button>
+                <Button size="small" variant="outlined" onClick={() => setVendorDrawerOpen(true)}>+ Vendor</Button>
+                <Button size="small" variant="outlined" onClick={async () => { const name = prompt("New company brand"); if (name) { await dispatch(addCompany({ brandName: name })); dispatch(getCompanies({ page: 1, limit: 1000 })); } }}>+ Brand</Button>
+              </Box>
+            </Box>
 
-            <Divider className="mb-4" />
+            <Divider className="mb-6" />
 
-            <div className="space-y-3">
-              {/* product name autocomplete (click to populate) */}
+            <div className="space-y-4">
               <Autocomplete
                 freeSolo
+                size="small"
                 options={productNames}
                 value={form.productName || ""}
                 onChange={(_, val) => {
-                  // when user picks from options, try find full product and fill form
                   const matched = products.find((x: ProductInterface) => x.productName === val);
                   if (matched) {
                     setForm({ ...matched });
@@ -533,363 +563,85 @@ export default function ProductTable() {
                     setForm(prev => ({ ...prev, productName: val as string }));
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Product Name" />}
+                renderInput={(params) => <TextField {...params} label="Fast Product Search" placeholder="Type to find and fill..." />}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <TextField
-                  label="Product Name"
-                  value={form.productName || ""}
-                  onChange={(e) => setForm({ ...form, productName: e.target.value })}
-                />
-                <TextField
-                  select
-                  label="Category"
-                  value={form.categoryId?._id || ""}
-                  onChange={(e) => {
-                    const selected = categoryOptions.find(
-                      (c) => c.id === e.target.value
-                    );
-                    setForm({
-                      ...form,
-                      categoryId: {
-                        _id: e.target.value,
-                        categoryName: selected?.label || "",
-                      },
-                    });
-                  }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {categoryOptions.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.label}
-                    </MenuItem>
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField fullWidth size="small" label="Product Name" value={form.productName || ""} onChange={(e) => setForm({ ...form, productName: e.target.value })} />
+                
+                <TextField select fullWidth size="small" label="Category" value={form.categoryId?._id || ""} onChange={(e) => {
+                  const s = categoryOptions.find((c) => c.id === e.target.value);
+                  setForm({ ...form, categoryId: { _id: e.target.value, categoryName: s?.label || "" } });
+                }}>
+                  <MenuItem value="">Select Category</MenuItem>
+                  {categoryOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
                 </TextField>
 
-                <TextField
-                  select
-                  label="Vendor"
-                  value={form.vendorsId?._id || ""}
-                  onChange={(e) => {
-                    const selected = vendorOptions.find(
-                      (v) => v.id === e.target.value
-                    );
-
-                    setForm({
-                      ...form,
-                      vendorsId: {
-                        _id: e.target.value,
-                        vendor_name: selected?.label || "",
-                      },
-                    });
-                  }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {vendorOptions.map((v) => (
-                    <MenuItem key={v.id} value={v.id}>
-                      {v.label}
-                    </MenuItem>
-                  ))}
+                <TextField select fullWidth size="small" label="Vendor" value={form.vendorsId?._id || ""} onChange={(e) => {
+                  const s = vendorOptions.find((v) => v.id === e.target.value);
+                  setForm({ ...form, vendorsId: { _id: e.target.value, vendor_name: s?.label || "" } });
+                }}>
+                  <MenuItem value="">Select Vendor</MenuItem>
+                  {vendorOptions.map((v) => <MenuItem key={v.id} value={v.id}>{v.label}</MenuItem>)}
                 </TextField>
 
-
-                <TextField
-                  select
-                  label="Company"
-                  value={form.companyId?._id || ""}
-                  onChange={(e) => {
-                    const selected = companyOptions.find(
-                      (c) => c.id === e.target.value
-                    );
-
-                    setForm({
-                      ...form,
-                      companyId: {
-                        _id: e.target.value,
-                        brandName: selected?.label || "",
-                      },
-                    });
-                  }}
-                >
-                  <MenuItem value="">Select</MenuItem>
-                  {companyOptions.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.label}
-                    </MenuItem>
-                  ))}
+                <TextField select fullWidth size="small" label="Brand" value={form.companyId?._id || ""} onChange={(e) => {
+                  const s = companyOptions.find((c) => c.id === e.target.value);
+                  setForm({ ...form, companyId: { _id: e.target.value, brandName: s?.label || "" } });
+                }}>
+                  <MenuItem value="">Select Brand</MenuItem>
+                  {companyOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
                 </TextField>
 
-
-                <TextField
-                  label="Pack Size"
-                  value={form.packSize || ""}
-                  onChange={(e) => setForm({ ...form, packSize: e.target.value })}
-                />
-
-                <TextField label="Unit" value={form.unit || ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                <TextField label="Shape" value={form.shape || ""} onChange={(e) => setForm({ ...form, shape: e.target.value })} />
-                <TextField label="Colour" value={form.colour || ""} onChange={(e) => setForm({ ...form, colour: e.target.value })} />
-                {/* <TextField label="Print Status" value={form.printStatus || ""} onChange={(e) => setForm({ ...form, printStatus: e.target.value })} /> */}
-                <FormControl fullWidth>
-                  {/* THIS is the label that was missing */}
+                <TextField fullWidth size="small" label="Pack Size" value={form.packSize || ""} onChange={(e) => setForm({ ...form, packSize: e.target.value })} />
+                <TextField fullWidth size="small" label="Unit" value={form.unit || ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+                <TextField fullWidth size="small" label="Shape" value={form.shape || ""} onChange={(e) => setForm({ ...form, shape: e.target.value })} />
+                <TextField fullWidth size="small" label="Colour" value={form.colour || ""} onChange={(e) => setForm({ ...form, colour: e.target.value })} />
+                
+                <FormControl fullWidth size="small">
                   <InputLabel id="print-status-label">Print Status</InputLabel>
-
-                  <Select
-                    labelId="print-status-label" // Links the InputLabel to the Select
-                    id="print-status-select"
-                    value={form.printStatus || ""}
-                    label="Print Status" // This prop is needed for the shrinking/floating effect
-                    onChange={(e) => setForm({ ...form, printStatus: e.target.value })}
-                  >
+                  <Select labelId="print-status-label" value={form.printStatus || ""} label="Print Status" onChange={(e) => setForm({ ...form, printStatus: e.target.value })}>
                     <MenuItem value="Printed">Printed</MenuItem>
                     <MenuItem value="Not Printed">Not Printed</MenuItem>
                     <MenuItem value="Pending">Pending</MenuItem>
                   </Select>
                 </FormControl>
-                {/* 
-                <TextField
-                  label="Quantity"
-                  type="number"
-                  value={form.quantity ?? 0}
-                  onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
-                /> */}
 
-                <TextField
-                  label="Per Unit Rate"
-                  type="number"
-                  value={form.perUnitRate ?? 0}
-                  onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })}
-                />
-
-                <TextField label="GST %" type="number" value={form.gstPct ?? 0} onChange={(e) => setForm({ ...form, gstPct: Number(e.target.value) })} />
-
-                <TextField label="Taxable Value" value={form.taxableValue ?? 0} InputProps={{ readOnly: true }} />
-                {/* <TextField label="Total MRP" value={form.totalMRP ?? 0} InputProps={{ readOnly: true }} /> */}
-                {/* <TextField label="Product MRP" type="number" value={form.productMRP ?? 0} onChange={(e) => setForm({ ...form, productMRP: Number(e.target.value) })} /> */}
-                <TextField label="Stock Alert" type="number" value={form.stockAlert ?? 0} onChange={(e) => setForm({ ...form, stockAlert: Number(e.target.value) })} />
-                {/* <TextField label="Per Unit Rate (editable)" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} /> */}
-
-                {/* <TextField
-                  label="Created At (Post date)"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  value={form.createdAt ? new Date(form.createdAt).toISOString().slice(0, 10) : ""}
-                  onChange={(e) => setForm({ ...form, createdAt: new Date(e.target.value).toISOString() })}
-                /> */}
+                <TextField fullWidth size="small" label="Per Unit Rate" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} />
+                <TextField fullWidth size="small" label="GST %" type="number" value={form.gstPct ?? 0} onChange={(e) => setForm({ ...form, gstPct: Number(e.target.value) })} />
+                <TextField fullWidth size="small" label="Taxable Value" value={form.taxableValue ?? 0} InputProps={{ readOnly: true }} />
+                <TextField fullWidth size="small" label="Stock Alert" type="number" value={form.stockAlert ?? 0} onChange={(e) => setForm({ ...form, stockAlert: Number(e.target.value) })} />
               </div>
 
-              <div className="flex gap-3 justify-end mt-4">
-                <Button variant="outlined" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                <Button variant="contained" onClick={handleSaveProduct}>Save</Button>
-              </div>
+              <Box className="flex gap-3 justify-end mt-8">
+                <Button variant="outlined" onClick={() => setDrawerOpen(false)} className="normal-case">Cancel</Button>
+                <Button variant="contained" onClick={handleSaveProduct} className="!bg-blue-600 hover:!bg-blue-700 normal-case px-8">Save Product</Button>
+              </Box>
             </div>
           </Box>
         </Drawer>
-        {/* ================== VENDOR DRAWER ================== */}
+
+        {/* VENDOR DRAWER */}
         <Drawer anchor="right" open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)}>
-          <Box sx={{ width: 450, p: 3 }}>
-            <Typography variant="h6" className="mb-3">Add Vendor</Typography>
-            <Divider className="mb-4" />
+          <Box sx={{ width: { xs: '100vw', sm: 450 }, p: 4 }}>
+            <Typography variant="h6" className="font-bold mb-6">Quick Add Vendor</Typography>
+            <Divider className="mb-6" />
 
-            <div className="flex flex-col gap-3">
-
-              {/* Vendor Name */}
-              <TextField
-                fullWidth
-                label="Vendor Name"
-                value={vendorForm.vendor_name}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_name: e.target.value })}
-              />
-
-              {/* Mobile No */}
-              <TextField
-                fullWidth
-                label="Mobile Number"
-                value={vendorForm.vendor_mobileNo}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_mobileNo: e.target.value })}
-              />
-
-              {/* Address */}
-              <TextField
-                fullWidth
-                label="Address"
-                value={vendorForm.vendor_address}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_address: e.target.value })}
-              />
-
-              {/* State */}
-              <TextField
-                fullWidth
-                label="State"
-                value={vendorForm.vendor_state}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_state: e.target.value })}
-              />
-
-              {/* Country */}
-              <TextField
-                fullWidth
-                label="Country"
-                value={vendorForm.vendor_country}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_country: e.target.value })}
-              />
-
-              {/* Pin Code */}
-              <TextField
-                fullWidth
-                label="Pin Code"
-                value={vendorForm.vendor_pinCode}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_pinCode: e.target.value })}
-              />
-
-              {/* Bank Name */}
-              <TextField
-                fullWidth
-                label="Bank Name"
-                value={vendorForm.vendor_bankName}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_bankName: e.target.value })}
-              />
-
-              {/* Account Number */}
-              <TextField
-                fullWidth
-                label="Account Number"
-                value={vendorForm.vendor_accountNumber}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_accountNumber: e.target.value })}
-              />
-
-              {/* IFSC Code */}
-              <TextField
-                fullWidth
-                label="IFSC Code"
-                value={vendorForm.vendor_ifscCode}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_ifscCode: e.target.value })}
-              />
-
-              {/* Payment Terms */}
-              <FormControl fullWidth>
-                <InputLabel>Payment Terms</InputLabel>
-                <Select
-                  label="Payment Terms"
-                  value={vendorForm.vendor_paymentTerms}
-                  onChange={(e) =>
-                    setVendorForm({ ...vendorForm, vendor_paymentTerms: e.target.value })
-                  }
-                >
-                  {["Net 15", "Net 30", "On Delivery"].map((option) => (
-                    <MenuItem key={option} value={option}>{option}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Preferred Payment Mode */}
-              <FormControl fullWidth>
-                <InputLabel>Preferred Payment Mode</InputLabel>
-                <Select
-                  label="Preferred Payment Mode"
-                  value={vendorForm.vendor_preferredPaymentMode}
-                  onChange={(e) =>
-                    setVendorForm({ ...vendorForm, vendor_preferredPaymentMode: e.target.value })
-                  }
-                >
-                  {["Cash", "Bank Transfer", "UPI", "Cheque"].map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option.replace("_", " ").toUpperCase()}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Credit Limit */}
-              <TextField
-                fullWidth
-                label="Credit Limit"
-                type="number"
-                value={vendorForm.vendor_creditLimit}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_creditLimit: Number(e.target.value) })}
-              />
-
-              {/* Outstanding Balance */}
-              <TextField
-                fullWidth
-                label="Outstanding Balance"
-                type="number"
-                value={vendorForm.vendor_outstandingBalance}
-                onChange={(e) =>
-                  setVendorForm({ ...vendorForm, vendor_outstandingBalance: Number(e.target.value) })
-                }
-              />
-
-              {/* GST Type */}
-              <FormControl fullWidth>
-                <InputLabel>GST Type</InputLabel>
-                <Select
-                  label="GST Type"
-                  value={vendorForm.vendor_gstType}
-                  onChange={(e) =>
-                    setVendorForm({ ...vendorForm, vendor_gstType: e.target.value })
-                  }
-                >
-                  {["Cgst Sgst", "Igst", "Non Gst", "Exempt"].map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option.toUpperCase().replace("_", " + ")}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Registration Type */}
-              <FormControl fullWidth>
-                <InputLabel>Registration Type</InputLabel>
-                <Select
-                  label="Registration Type"
-                  value={vendorForm.vendor_registrationType}
-                  onChange={(e) =>
-                    setVendorForm({ ...vendorForm, vendor_registrationType: e.target.value })
-                  }
-                >
-                  {["Composition", "Registered", "UnRegistered"].map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* GST Number */}
-              <TextField
-                fullWidth
-                label="GST Number"
-                value={vendorForm.vendor_gstNumber}
-                onChange={(e) => setVendorForm({ ...vendorForm, vendor_gstNumber: e.target.value })}
-              />
-
-              {/* Opening Balance */}
-              <TextField
-                fullWidth
-                label="Opening Balance"
-                type="number"
-                value={vendorForm.vendor_openingBalance}
-                onChange={(e) =>
-                  setVendorForm({ ...vendorForm, vendor_openingBalance: Number(e.target.value) })
-                }
-              />
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 mt-4">
-                <Button variant="outlined" onClick={() => setVendorDrawerOpen(false)}>
-                  Cancel
-                </Button>
-
-                <Button variant="contained" onClick={handleSaveVendor}>
-                  Save Vendor
-                </Button>
-              </div>
+            <div className="space-y-4">
+              <TextField fullWidth size="small" label="Vendor Name" value={vendorForm.vendor_name} onChange={(e) => setVendorForm({ ...vendorForm, vendor_name: e.target.value })} />
+              <TextField fullWidth size="small" label="Mobile Number" value={vendorForm.vendor_mobileNo} onChange={(e) => setVendorForm({ ...vendorForm, vendor_mobileNo: e.target.value })} />
+              <TextField fullWidth size="small" label="Address" value={vendorForm.vendor_address} onChange={(e) => setVendorForm({ ...vendorForm, vendor_address: e.target.value })} />
+              <TextField fullWidth size="small" label="State" value={vendorForm.vendor_state} onChange={(e) => setVendorForm({ ...vendorForm, vendor_state: e.target.value })} />
+              <TextField fullWidth size="small" label="Country" value={vendorForm.vendor_country} onChange={(e) => setVendorForm({ ...vendorForm, vendor_country: e.target.value })} />
+              <TextField fullWidth size="small" label="Pin Code" value={vendorForm.vendor_pinCode} onChange={(e) => setVendorForm({ ...vendorForm, vendor_pinCode: e.target.value })} />
+              
+              <Box className="flex gap-3 justify-end mt-8">
+                <Button variant="outlined" onClick={() => setVendorDrawerOpen(false)} size="small">Cancel</Button>
+                <Button variant="contained" onClick={handleSaveVendor} size="small" className="!bg-blue-600">Save Vendor</Button>
+              </Box>
             </div>
           </Box>
         </Drawer>
-
-
       </div>
     </AdminLayout>
   );

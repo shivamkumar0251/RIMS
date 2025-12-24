@@ -12,14 +12,16 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectTo = "/login", }) => {
- const dispatch = useDispatch<AppDispatch>();
-  const { data, loading } = useSelector((state: RootState) => state.checkToken);
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  allowedRoles,
+  redirectTo = "/login",
+}) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { data, loading, error } = useSelector((state: RootState) => state.checkToken);
   const location = useLocation();
+  const token = getCookie("token");
 
   useEffect(() => {
-    const token = getCookie("token");
-
     // if no token, clear Redux data to force logout
     if (!token) {
       dispatch(clearToken());
@@ -27,38 +29,53 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, re
     }
 
     // if token exists but user data missing (like on refresh)
-    if (token && !data) {
+    if (token && !data && !loading && !error) {
       dispatch(checkToken(token));
     }
-  }, [dispatch, data]);
+  }, [dispatch, data, token, loading, error]);
 
-  if (loading) return <MainSpinner />;
+  // While checking token, show spinner if token exists but no data yet
+  if (token && !data && (loading || !error)) {
+    return <MainSpinner />;
+  }
 
   // ✅ If no valid token or role not allowed, redirect
   if (!data || !allowedRoles.includes(data.role)) {
     return <Navigate to={redirectTo} replace state={{ from: location }} />;
   }
- 
+
   return <Outlet />;
 };
+
 interface PublicRouteProps {
   redirectTo?: string;
 }
-export const PublicRoute: React.FC<PublicRouteProps> = ({ redirectTo = "/userdashboard" }) => {
+
+export const PublicRoute: React.FC<PublicRouteProps> = ({
+  redirectTo = "/userdashboard",
+}) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { data, loading } = useSelector((state: RootState) => state.checkToken);
+  const { data, loading, error } = useSelector((state: RootState) => state.checkToken);
+  const location = useLocation();
+  const token = getCookie("token");
 
   useEffect(() => {
-    const token = getCookie("token");
-    if (token) {
+    if (token && !data && !loading && !error) {
       dispatch(checkToken(token));
     }
-  }, [dispatch]);
+  }, [dispatch, token, data, loading, error]);
 
-  if (loading) return <MainSpinner />;
+  // While checking token, show spinner if token exists but no data yet
+  if (token && !data && (loading || !error)) {
+    return <MainSpinner />;
+  }
 
-  // If already logged in, redirect to dashboard
+  // If already logged in, redirect to dashboard or the original location
   if (data) {
+    const from = (location.state as any)?.from?.pathname;
+    if (from) {
+      return <Navigate to={from} replace />;
+    }
     // optional: role-based redirect
     if (data.role === "admin") return <Navigate to="/admin-dashboard" replace />;
     if (data.role === "user") return <Navigate to="/userdashboard" replace />;
