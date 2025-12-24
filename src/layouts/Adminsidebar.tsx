@@ -63,6 +63,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
   const menuItems: MenuItem[] = [
     { icon: <FaHome />, name: "Dashboard", to: "/admin-dashboard" },
+    { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
     { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
     {
       icon: <PiOvenDuotone />,
@@ -76,7 +77,6 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     },
     { icon: <MdBrandingWatermark />, name: "Brand List", to: "/admin/company" },
     { icon: <FaShop />, name: "Vendor List", to: "/admin/vendorList" },
-    { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
 
     { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },
     { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
