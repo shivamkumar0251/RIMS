@@ -1,16 +1,10 @@
 import {
   Box,
   Button,
-  Checkbox,
   CircularProgress,
-  IconButton,
   InputAdornment,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
+  MenuItem,
   Paper,
-  Popover,
   Table,
   TableBody,
   TableCell,
@@ -20,33 +14,31 @@ import {
   TableRow,
   TextField,
   Typography,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSend, FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFileText, FiDownload } from "react-icons/fi";
+import { toast } from "react-hot-toast";
 
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import {
-  addConsumableStock,
   getConsumableStocks,
   selectConsumableStockState,
 } from "../../redux/slices/consumableStockSlice";
 
-import {
-  getCategories,
-  selectCategories,
-} from "../../redux/slices/categorySlice";
-
-import { getCompanies } from "../../redux/slices/companySlice";
-
-import {
-  getVendorNameList,
-  selectVendorNames,
-} from "../../redux/slices/vendorSlice";
-
-import type { ConsumableStockPostData } from "../../redux/slices/consumableStockSlice";
+// Note: This is a read-only consumption log screen
+// It displays consumption history from Kitchen Consumption screen
 
 const Consumables: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -55,39 +47,19 @@ const Consumables: React.FC = () => {
     selectConsumableStockState
   );
 
-  const categories = useAppSelector(selectCategories);
-
-  const vendors = useAppSelector(selectVendorNames);
-
   // ---------------- Filters ----------------
-  const [categoryId, setCategoryId] = useState("");
-  const [vendorId, setVendorId] = useState("");
-  const [companyId, setCompanyId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [search, setSearch] = useState("");
+  const [purposeFilter, setPurposeFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
 
   // ---------------- Pagination ----------------
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
 
-  // ---------------- Selection & Inputs ----------------
-  const [selected, setSelected] = useState<string[]>([]);
-  const [usageMap, setUsageMap] = useState<Record<string, number>>({});
-  const [wastageMap, setWastageMap] = useState<Record<string, number>>({});
-
-  // ---------------- Popover States ----------------
-  const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
-  const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
-  const [catSearch, setCatSearch] = useState("");
-  const [vendorSearch, setVendorSearch] = useState("");
-
-  // ---------------- Fetch master data ----------------
-  useEffect(() => {
-    dispatch(getCategories({ page: 1, limit: 1000 }));
-    dispatch(getCompanies({ page: 1, limit: 1000 }));
-    dispatch(getVendorNameList());
-  }, [dispatch]);
+  // ---------------- Report Modal ----------------
+  const [reportOpen, setReportOpen] = useState(false);
 
   // ---------------- Fetch consumables ----------------
   useEffect(() => {
@@ -96,9 +68,6 @@ const Consumables: React.FC = () => {
         page: page + 1,
         limit,
         search,
-        categoryId,
-        vendorId,
-        companyId,
         fromDate,
         toDate,
       })
@@ -108,76 +77,236 @@ const Consumables: React.FC = () => {
     page,
     search,
     limit,
-    categoryId,
-    vendorId,
-    companyId,
     fromDate,
     toDate,
   ]);
 
-  // ---------------- Selection logic ----------------
-  const toggleRow = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleAll = () => {
-    if (selected.length === consumableStocks.length) {
-      setSelected([]);
-    } else {
-      setSelected(consumableStocks.map((s) => s.productId._id));
-    }
-  };
-
-  // ---------------- Submit ----------------
-  const handleSubmit = () => {
-    const payload: ConsumableStockPostData[] = selected.map((productId) => ({
-      productId,
-      transfersToUsage: usageMap[productId] || 0,
-      transfersToWastage: wastageMap[productId] || 0,
-    }));
-
-    if (!payload.length) return;
-
-    dispatch(addConsumableStock(payload));
-    setSelected([]);
-    setUsageMap({});
-    setWastageMap({});
-  };
-
   const handleResetFilters = () => {
     setSearch("");
-    setCategoryId("");
-    setVendorId("");
-    setCompanyId("");
+    setPurposeFilter("");
+    setUserFilter("");
     setFromDate("");
     setToDate("");
     setPage(0);
   };
 
-  // ---------------- Filter Search Logic ----------------
-  const filteredCats = useMemo(
-    () =>
-      categories.filter((c) =>
-        (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())
-      ),
-    [categories, catSearch]
-  );
+  // Filter data client-side for purpose and user
+  const filteredData = useMemo(() => {
+    return consumableStocks.filter((row) => {
+      const isWastage = (row.transfersToWastage || 0) > 0;
+      const purpose = isWastage ? "Wastage" : "Usage";
 
-  const filteredVendors = useMemo(
-    () =>
-      vendors.filter((v) =>
-        (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())
-      ),
-    [vendors, vendorSearch]
-  );
+      // Purpose filter
+      if (purposeFilter && purpose !== purposeFilter) {
+        return false;
+      }
+
+      // User filter (placeholder - add when user field is available)
+      if (userFilter && !("Admin".toLowerCase().includes(userFilter.toLowerCase()))) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [consumableStocks, purposeFilter, userFilter]);
+
+  // Calculate summary statistics
+  const reportSummary = useMemo(() => {
+    let totalConsumed = 0;
+    let totalWastage = 0;
+    let totalUsage = 0;
+    const productBreakdown: Record<string, { name: string; consumed: number; wastage: number; usage: number }> = {};
+
+    filteredData.forEach((row) => {
+      const isWastage = (row.transfersToWastage || 0) > 0;
+      const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
+
+      totalConsumed += consumedQty || 0;
+
+      if (isWastage) {
+        totalWastage += consumedQty || 0;
+      } else {
+        totalUsage += consumedQty || 0;
+      }
+
+      // Product breakdown
+      const productId = row.productId?._id;
+      const productName = row.productId?.productName || "Unknown";
+
+      if (productId) {
+        if (!productBreakdown[productId]) {
+          productBreakdown[productId] = {
+            name: productName,
+            consumed: 0,
+            wastage: 0,
+            usage: 0,
+          };
+        }
+
+        productBreakdown[productId].consumed += consumedQty || 0;
+        if (isWastage) {
+          productBreakdown[productId].wastage += consumedQty || 0;
+        } else {
+          productBreakdown[productId].usage += consumedQty || 0;
+        }
+      }
+    });
+
+    return {
+      totalConsumed,
+      totalWastage,
+      totalUsage,
+      productBreakdown: Object.values(productBreakdown),
+      recordCount: filteredData.length,
+    };
+  }, [filteredData]);
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    const headers = ["Date", "Product", "Category", "Consumed Qty", "Unit", "Purpose", "User", "Remarks"];
+    const rows = filteredData.map((row) => {
+      const isWastage = (row.transfersToWastage || 0) > 0;
+      const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
+      const purpose = isWastage ? "Wastage" : "Usage";
+
+      return [
+        dayjs(row.createdAt).format("DD/MM/YYYY HH:mm"),
+        row.productId?.productName || "",
+        row.productId?.categoryId?.categoryName || "N/A",
+        consumedQty || 0,
+        row.productId?.unit || "N/A",
+        purpose,
+        "Admin",
+        "-",
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(",")),
+      "",
+      "Summary",
+      `Total Records,${reportSummary.recordCount}`,
+      `Total Consumed,${reportSummary.totalConsumed}`,
+      `Total Usage,${reportSummary.totalUsage}`,
+      `Total Wastage,${reportSummary.totalWastage}`,
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `consumption_report_${dayjs().format("YYYY-MM-DD")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("CSV report downloaded successfully!");
+  };
+
+  // Export to PDF using jsPDF
+  const handleExportPDF = () => {
+    try {
+      // Dynamically import jsPDF and autoTable
+      Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]).then(([jsPDFModule, autoTableModule]) => {
+        const { jsPDF } = jsPDFModule;
+        const autoTable = autoTableModule.default;
+
+        const doc = new jsPDF();
+
+        // Title
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Consumption Report', 14, 20);
+
+        // Generated date
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${dayjs().format("DD/MM/YYYY HH:mm")}`, 14, 28);
+
+        // Filters Applied
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Filters Applied:', 14, 38);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Date Range: ${fromDate || "All"} to ${toDate || "All"}`, 14, 44);
+        doc.text(`Search: ${search || "None"}`, 14, 50);
+        doc.text(`Purpose: ${purposeFilter || "All"}`, 14, 56);
+        doc.text(`User: ${userFilter || "All"}`, 14, 62);
+
+        // Summary Statistics
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Summary Statistics:', 14, 72);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total Records: ${reportSummary.recordCount}`, 14, 78);
+        doc.text(`Total Consumed: ${reportSummary.totalConsumed}`, 14, 84);
+        doc.text(`Total Usage: ${reportSummary.totalUsage}`, 70, 78);
+        doc.text(`Total Wastage: ${reportSummary.totalWastage}`, 70, 84);
+
+        // Consumption Records Table
+        const tableData = filteredData.map((row) => {
+          const isWastage = (row.transfersToWastage || 0) > 0;
+          const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
+          const purpose = isWastage ? "Wastage" : "Usage";
+
+          return [
+            dayjs(row.createdAt).format("DD/MM/YY HH:mm"),
+            row.productId?.productName || "",
+            row.productId?.categoryId?.categoryName || "N/A",
+            consumedQty || 0,
+            row.productId?.unit || "N/A",
+            purpose,
+            "Admin",
+            "-"
+          ];
+        });
+
+        // Use autoTable
+        autoTable(doc, {
+          startY: 92,
+          head: [['Date', 'Product', 'Category', 'Qty', 'Unit', 'Purpose', 'User', 'Remarks']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: [66, 139, 202], fontSize: 9 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 28 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 15, halign: 'center' },
+            4: { cellWidth: 15 },
+            5: { cellWidth: 20 },
+            6: { cellWidth: 20 },
+            7: { cellWidth: 20 }
+          },
+          margin: { top: 92 }
+        });
+
+        // Save PDF
+        doc.save(`consumption_report_${dayjs().format("YYYY-MM-DD")}.pdf`);
+        toast.success("PDF report downloaded successfully!");
+      }).catch((error) => {
+        console.error("Error loading PDF libraries:", error);
+        toast.error("Failed to load PDF library. Please try again.");
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
+  };
 
   // ---------------- Render ----------------
   return (
     <AdminLayout>
       <div>
-        {/* Unified Tool Bar */}
+        {/* Filter Bar */}
         <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
           {/* Filters Area */}
           <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -185,7 +314,10 @@ const Consumables: React.FC = () => {
               placeholder="Search product..."
               size="small"
               value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -205,7 +337,7 @@ const Consumables: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
                 value={fromDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-                className="w-64"
+                className="w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
               <TextField
@@ -215,10 +347,33 @@ const Consumables: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
                 value={toDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-                className="w-64"
+                className="w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
             </Box>
+
+            <TextField
+              select
+              size="small"
+              label="Purpose"
+              value={purposeFilter}
+              onChange={(e) => setPurposeFilter(e.target.value)}
+              className="w-40"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="Usage">Usage</MenuItem>
+              <MenuItem value="Wastage">Wastage</MenuItem>
+            </TextField>
+
+            <TextField
+              size="small"
+              placeholder="Filter by user..."
+              value={userFilter}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserFilter(e.target.value)}
+              className="w-48"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+            />
 
             <Button
               size="small"
@@ -231,250 +386,90 @@ const Consumables: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Action Area */}
+          {/* Generate Report Button */}
           <Box className="w-full md:w-auto flex justify-end">
             <Button
               variant="contained"
-              startIcon={<FiSend />}
-              disabled={
-                selected.length === 0 ||
-                selected.some((id) => !(usageMap[id] || wastageMap[id]))
-              }
-              onClick={handleSubmit}
-              size="small"
+              startIcon={<FiFileText />}
+              onClick={() => setReportOpen(true)}
+              className="bg-green-600 hover:bg-green-700 normal-case"
             >
-              Post Usage / Wastage
+              Generate Report
             </Button>
           </Box>
         </Box>
 
-        {/* Clean Table */}
+        {/* Summary Cards */}
+        <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <Card className="shadow-sm">
+            <CardContent>
+              <Typography variant="caption" className="text-gray-500">Total Records</Typography>
+              <Typography variant="h5" className="font-bold text-blue-600">{reportSummary.recordCount}</Typography>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardContent>
+              <Typography variant="caption" className="text-gray-500">Total Consumed</Typography>
+              <Typography variant="h5" className="font-bold text-purple-600">{reportSummary.totalConsumed}</Typography>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardContent>
+              <Typography variant="caption" className="text-gray-500">Total Usage</Typography>
+              <Typography variant="h5" className="font-bold text-green-600">{reportSummary.totalUsage}</Typography>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardContent>
+              <Typography variant="caption" className="text-gray-500">Total Wastage</Typography>
+              <Typography variant="h5" className="font-bold text-red-600">{reportSummary.totalWastage}</Typography>
+            </CardContent>
+          </Card>
+        </Box>
+
+        {/* Read-Only Table */}
         <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
           <TableContainer>
             <Table>
               <TableHead className="bg-gray-50">
                 <TableRow>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      color="primary"
-                      checked={
-                        selected.length === consumableStocks.length &&
-                        consumableStocks.length > 0
-                      }
-                      onChange={toggleAll}
-                    />
-                  </TableCell>
-                  <TableCell className="font-bold">Product</TableCell>
-                  <TableCell className="font-bold">
-                    <Box className="flex items-center gap-2">
-                      Category
-                      <IconButton
-                        size="small"
-                        onClick={(e) => setCatAnchor(e.currentTarget)}
-                      >
-                        <FiFilter
-                          size={14}
-                          className={
-                            categoryId ? "text-blue-600" : "text-gray-400"
-                          }
-                        />
-                      </IconButton>
-                    </Box>
-                    <Popover
-                      open={Boolean(catAnchor)}
-                      anchorEl={catAnchor}
-                      onClose={() => setCatAnchor(null)}
-                      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                      PaperProps={{
-                        sx: {
-                          minWidth: 240,
-                          shadow: 4,
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          mt: 1,
-                        },
-                      }}
-                    >
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField
-                          placeholder="Search Category..."
-                          size="small"
-                          fullWidth
-                          variant="outlined"
-                          value={catSearch}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setCatSearch(e.target.value)
-                          }
-                          InputProps={{
-                            startAdornment: (
-                              <FiSearch
-                                size={14}
-                                className="text-gray-400 mr-2"
-                              />
-                            ),
-                            sx: { bgcolor: "white" },
-                          }}
-                        />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: "auto", py: 0 }}>
-                        <ListItem disablePadding>
-                          <ListItemButton
-                            onClick={() => {
-                              setCategoryId("");
-                              setCatAnchor(null);
-                            }}
-                            selected={!categoryId}
-                          >
-                            <ListItemText
-                              primary="All Categories"
-                              primaryTypographyProps={{ fontSize: "0.875rem" }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                        {filteredCats.map((c) => (
-                          <ListItem key={c._id} disablePadding>
-                            <ListItemButton
-                              onClick={() => {
-                                setCategoryId(c._id);
-                                setCatAnchor(null);
-                              }}
-                              selected={categoryId === c._id}
-                            >
-                              <ListItemText
-                                primary={c.categoryName}
-                                primaryTypographyProps={{
-                                  fontSize: "0.875rem",
-                                }}
-                              />
-                            </ListItemButton>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="font-bold">
-                    <Box className="flex items-center gap-2">
-                      Vendor
-                      <IconButton
-                        size="small"
-                        onClick={(e) => setVendorAnchor(e.currentTarget)}
-                      >
-                        <FiFilter
-                          size={14}
-                          className={
-                            vendorId ? "text-blue-600" : "text-gray-400"
-                          }
-                        />
-                      </IconButton>
-                    </Box>
-                    <Popover
-                      open={Boolean(vendorAnchor)}
-                      anchorEl={vendorAnchor}
-                      onClose={() => setVendorAnchor(null)}
-                      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                      PaperProps={{
-                        sx: {
-                          minWidth: 260,
-                          shadow: 4,
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          mt: 1,
-                        },
-                      }}
-                    >
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField
-                          placeholder="Search Vendor..."
-                          size="small"
-                          fullWidth
-                          variant="outlined"
-                          value={vendorSearch}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setVendorSearch(e.target.value)
-                          }
-                          InputProps={{
-                            startAdornment: (
-                              <FiSearch
-                                size={14}
-                                className="text-gray-400 mr-2"
-                              />
-                            ),
-                            sx: { bgcolor: "white" },
-                          }}
-                        />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: "auto", py: 0 }}>
-                        <ListItem disablePadding>
-                          <ListItemButton
-                            onClick={() => {
-                              setVendorId("");
-                              setVendorAnchor(null);
-                            }}
-                            selected={!vendorId}
-                          >
-                            <ListItemText
-                              primary="All Vendors"
-                              primaryTypographyProps={{ fontSize: "0.875rem" }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                        {filteredVendors.map((v) => (
-                          <ListItem key={v._id} disablePadding>
-                            <ListItemButton
-                              onClick={() => {
-                                setVendorId(v._id);
-                                setVendorAnchor(null);
-                              }}
-                              selected={vendorId === v._id}
-                            >
-                              <ListItemText
-                                primary={v.vendor_name}
-                                primaryTypographyProps={{
-                                  fontSize: "0.875rem",
-                                }}
-                              />
-                            </ListItemButton>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="font-bold">Opening</TableCell>
-                  <TableCell className="font-bold">Received</TableCell>
-                  <TableCell className="font-bold" style={{ width: 120 }}>
-                    Usage
-                  </TableCell>
-                  <TableCell className="font-bold" style={{ width: 120 }}>
-                    Wastage
-                  </TableCell>
-                  <TableCell className="font-bold">Closing</TableCell>
                   <TableCell className="font-bold">Date</TableCell>
+                  <TableCell className="font-bold">Product</TableCell>
+                  <TableCell className="font-bold">Category</TableCell>
+                  <TableCell className="font-bold text-center">Consumed Qty</TableCell>
+                  <TableCell className="font-bold">Unit</TableCell>
+                  <TableCell className="font-bold">Purpose</TableCell>
+                  <TableCell className="font-bold">User</TableCell>
+                  <TableCell className="font-bold">Remarks</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" className="py-10">
+                    <TableCell colSpan={8} align="center" className="py-10">
                       <CircularProgress size={30} />
                       <Typography className="mt-2 text-gray-500 text-sm">
-                        Loading stocks...
+                        Loading consumption logs...
                       </Typography>
                     </TableCell>
                   </TableRow>
+                ) : filteredData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
+                      No consumption records found.
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  consumableStocks.map((row) => {
-                    const pid = row.productId?._id;
-                    const isSelected = selected.includes(pid);
+                  filteredData.map((row) => {
+                    const isWastage = (row.transfersToWastage || 0) > 0;
+                    const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
+                    const purpose = isWastage ? "Wastage" : "Usage";
 
                     return (
-                      <TableRow key={row._id} hover selected={isSelected}>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            color="primary"
-                            checked={isSelected}
-                            onChange={() => toggleRow(pid)}
-                          />
+                      <TableRow key={row._id} hover>
+                        <TableCell className="text-gray-600">
+                          {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" className="font-medium">
@@ -484,103 +479,31 @@ const Consumables: React.FC = () => {
                             variant="caption"
                             className="text-gray-500"
                           >
-                            {row.productId?.packSize} | {row.productId?.unit}
+                            {row.productId?.packSize}
                           </Typography>
                         </TableCell>
                         <TableCell className="capitalize">
                           {row.productId?.categoryId?.categoryName || "N/A"}
                         </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {row.productId?.vendorsId?.vendor_name}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            className="text-gray-400 italic"
-                          >
-                            {row.productId?.companyId?.brandName}
-                          </Typography>
+                        <TableCell className="text-center font-bold text-blue-600">
+                          {consumedQty || 0}
                         </TableCell>
-                        <TableCell>{row?.openingStock}</TableCell>
-                        <TableCell>{row?.rcvdKitchenQty}</TableCell>
+                        <TableCell className="text-gray-600">
+                          {row.productId?.unit || "N/A"}
+                        </TableCell>
                         <TableCell>
-                          <TextField
+                          <Chip
+                            label={purpose}
                             size="small"
-                            type="number"
-                            value={usageMap[pid] || ""}
-                            onChange={(
-                              e: React.ChangeEvent<HTMLInputElement>
-                            ) => {
-                              const val = Number(e.target.value);
-                              setUsageMap((prev) => ({ ...prev, [pid]: val }));
-                              if (val > 0 || (wastageMap[pid] || 0) > 0) {
-                                if (!selected.includes(pid))
-                                  setSelected((prev) => [...prev, pid]);
-                              } else {
-                                setSelected((prev) =>
-                                  prev.filter((id) => id !== pid)
-                                );
-                              }
-                            }}
-                            sx={{
-                              "& .MuiInputBase-input": {
-                                py: 0.5,
-                                px: 1,
-                                textAlign: "center",
-                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                                  {
-                                    display: "none",
-                                  },
-                                "&": {
-                                  MozAppearance: "textfield",
-                                },
-                              },
-                            }}
+                            color={isWastage ? "error" : "success"}
+                            variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={wastageMap[pid] || ""}
-                            onChange={(
-                              e: React.ChangeEvent<HTMLInputElement>
-                            ) => {
-                              const val = Number(e.target.value);
-                              setWastageMap((prev) => ({
-                                ...prev,
-                                [pid]: val,
-                              }));
-                              if (val > 0 || (usageMap[pid] || 0) > 0) {
-                                if (!selected.includes(pid))
-                                  setSelected((prev) => [...prev, pid]);
-                              } else {
-                                setSelected((prev) =>
-                                  prev.filter((id) => id !== pid)
-                                );
-                              }
-                            }}
-                            sx={{
-                              "& .MuiInputBase-input": {
-                                py: 0.5,
-                                px: 1,
-                                textAlign: "center",
-                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
-                                  {
-                                    display: "none",
-                                  },
-                                "&": {
-                                  MozAppearance: "textfield",
-                                },
-                              },
-                            }}
-                          />
+                        <TableCell className="text-gray-600">
+                          Admin
                         </TableCell>
-                        <TableCell className="font-bold">
-                          {row.closingStock}
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-xs">
-                          {dayjs(row.createdAt).format("DD/MM/YYYY")}
+                        <TableCell className="text-gray-500 text-sm max-w-xs truncate">
+                          -
                         </TableCell>
                       </TableRow>
                     );
@@ -608,6 +531,161 @@ const Consumables: React.FC = () => {
             className="border-t bg-gray-50"
           />
         </Paper>
+
+        {/* Info Box */}
+        <Box className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <Typography variant="body2" className="text-blue-800">
+            <strong>Note:</strong> This is a read-only consumption log. Records are automatically created when items are consumed from the Kitchen Consumption screen.
+          </Typography>
+        </Box>
+
+        {/* Report Modal */}
+        <Dialog
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle className="bg-gray-50 border-b">
+            <Box className="flex items-center justify-between">
+              <Typography variant="h6" className="font-bold">Consumption Report</Typography>
+              <Typography variant="caption" className="text-gray-500">
+                Generated on {dayjs().format("DD/MM/YYYY HH:mm")}
+              </Typography>
+            </Box>
+          </DialogTitle>
+
+          <DialogContent className="mt-4">
+            {/* Filters Applied */}
+            <Box className="mb-4 p-3 bg-gray-50 rounded">
+              <Typography variant="subtitle2" className="font-bold mb-2">Filters Applied:</Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" className="text-gray-600">
+                    <strong>Date Range:</strong> {fromDate || "All"} to {toDate || "All"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" className="text-gray-600">
+                    <strong>Search:</strong> {search || "None"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" className="text-gray-600">
+                    <strong>Purpose:</strong> {purposeFilter || "All"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" className="text-gray-600">
+                    <strong>User:</strong> {userFilter || "All"}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Divider className="my-4" />
+
+            {/* Summary Statistics */}
+            <Typography variant="subtitle2" className="font-bold mb-3">Summary Statistics:</Typography>
+            <Grid container spacing={2} className="mb-4">
+              <Grid item xs={6} md={3}>
+                <Card className="bg-blue-50">
+                  <CardContent className="text-center">
+                    <Typography variant="caption" className="text-gray-600">Records</Typography>
+                    <Typography variant="h6" className="font-bold text-blue-600">
+                      {reportSummary.recordCount}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Card className="bg-purple-50">
+                  <CardContent className="text-center">
+                    <Typography variant="caption" className="text-gray-600">Total Consumed</Typography>
+                    <Typography variant="h6" className="font-bold text-purple-600">
+                      {reportSummary.totalConsumed}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Card className="bg-green-50">
+                  <CardContent className="text-center">
+                    <Typography variant="caption" className="text-gray-600">Usage</Typography>
+                    <Typography variant="h6" className="font-bold text-green-600">
+                      {reportSummary.totalUsage}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Card className="bg-red-50">
+                  <CardContent className="text-center">
+                    <Typography variant="caption" className="text-gray-600">Wastage</Typography>
+                    <Typography variant="h6" className="font-bold text-red-600">
+                      {reportSummary.totalWastage}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Divider className="my-4" />
+
+            {/* Product Breakdown */}
+            <Typography variant="subtitle2" className="font-bold mb-3">Product Breakdown:</Typography>
+            <TableContainer component={Paper} variant="outlined" className="max-h-64">
+              <Table size="small">
+                <TableHead className="bg-gray-50">
+                  <TableRow>
+                    <TableCell className="font-bold">Product</TableCell>
+                    <TableCell className="font-bold text-right">Consumed</TableCell>
+                    <TableCell className="font-bold text-right">Usage</TableCell>
+                    <TableCell className="font-bold text-right">Wastage</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportSummary.productBreakdown.map((product, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell className="text-right font-bold">{product.consumed}</TableCell>
+                      <TableCell className="text-right text-green-600">{product.usage}</TableCell>
+                      <TableCell className="text-right text-red-600">{product.wastage}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </DialogContent>
+
+          <DialogActions className="bg-gray-50 border-t p-4">
+            <Button
+              onClick={() => setReportOpen(false)}
+              variant="outlined"
+              className="normal-case"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={handleExportCSV}
+              startIcon={<FiDownload />}
+              variant="outlined"
+              color="success"
+              className="normal-case"
+            >
+              Export CSV
+            </Button>
+            <Button
+              onClick={handleExportPDF}
+              startIcon={<FiDownload />}
+              variant="contained"
+              color="primary"
+              className="normal-case"
+            >
+              Export PDF
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </AdminLayout>
   );

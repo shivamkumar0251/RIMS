@@ -7,8 +7,6 @@ import type { ProductInterface } from './productSlice';
 
 // ---------------- Types ----------------
 
-
-
 export interface VendorOrderProduct {
   _id: string;
   productId: ProductInterface;
@@ -23,6 +21,7 @@ export interface VendorOrder {
   totalAmount: number;
   totalClosingAmount: number;
   paymentStatus: string;
+  status: string; // Added status field (Draft / Sent / Delivered)
   totelOrderQty: number;
   orderDate: string;
   orderNumber: string;
@@ -93,16 +92,16 @@ export const getVendorOrders = createAsyncThunk<
 // UPDATE VENDOR ORDER
 export const updateVendorOrder = createAsyncThunk<
   VendorOrder,
-  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; },
+  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; status?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/updateVendorOrder',
-  async ({ vendorOrderId, products, }, thunkAPI) => {
+  async ({ vendorOrderId, products, status }, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.UPDATE_VENDOR_ORDER(vendorOrderId),
         method: 'PUT',
-        data: { products, },
+        data: { products, status },
       });
 
       if (response.status === 200) {
@@ -111,6 +110,36 @@ export const updateVendorOrder = createAsyncThunk<
 
       return thunkAPI.rejectWithValue({
         message: (response.data as { message?: string })?.message || 'Update failed',
+      });
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || 'Server error',
+      });
+    }
+  }
+);
+
+// DELETE VENDOR ORDER
+export const deleteVendorOrder = createAsyncThunk<
+  { vendorOrderId: string },
+  string,
+  { rejectValue: { message: string } }
+>(
+  'vendorOrder/deleteVendorOrder',
+  async (vendorOrderId, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}/${vendorOrderId}`,
+        method: 'DELETE',
+      });
+
+      if (response.status === 200) {
+        return { vendorOrderId };
+      }
+
+      return thunkAPI.rejectWithValue({
+        message: (response.data as { message?: string })?.message || 'Delete failed',
       });
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
@@ -150,13 +179,29 @@ const vendorOrderSlice = createSlice({
       })
       .addCase(updateVendorOrder.fulfilled, (state, action) => {
         state.loading = false;
-        state.vendorOrders = state.vendorOrders.map((order) =>
+        state.vendorOrders = state.vendorOrders.map((order: VendorOrder) =>
           order._id === action.payload._id ? action.payload : order
         );
       })
       .addCase(updateVendorOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Update vendor order failed';
+      })
+
+      // DELETE
+      .addCase(deleteVendorOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteVendorOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendorOrders = state.vendorOrders.filter(
+          (order: VendorOrder) => order._id !== action.payload.vendorOrderId
+        );
+      })
+      .addCase(deleteVendorOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Delete failed';
       });
   },
 });

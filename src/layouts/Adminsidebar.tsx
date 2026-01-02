@@ -9,11 +9,12 @@ import {
   FaHome,
   FaProductHunt,
   FaShoppingBag,
+  FaShoppingCart,
   FaSignOutAlt,
   FaTh,
   FaTimes,
 } from "react-icons/fa";
-import { FaKitchenSet, FaShop } from "react-icons/fa6";
+import { FaShop } from "react-icons/fa6";
 import { MdBrandingWatermark } from "react-icons/md";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
@@ -22,6 +23,7 @@ import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
 import { PiOvenDuotone } from "react-icons/pi";
 import { BiSolidPurchaseTag } from "react-icons/bi";
+import { FiSend } from "react-icons/fi";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -70,6 +72,28 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       name: "Vendor Orders",
       to: "/admin/vendorsOrder",
     },
+    { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },
+    { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
+    {
+      icon: <FiSend size={20} />,
+      name: "Kitchen Issue",
+      to: "/admin/kitchen-issue",
+    },
+    {
+      icon: <FaShoppingCart size={20} />,
+      name: "Kitchen Store",
+      to: "/admin/kitchenStock",
+    },
+    {
+      icon: <PiOvenDuotone size={20} />,
+      name: "Kitchen Consumption",
+      to: "/admin/kitchen-consumption",
+    },
+    {
+      icon: <SiMaterialdesignicons />,
+      name: "Consumables",
+      to: "/admin/consumables",
+    },
     {
       icon: <FaProductHunt />,
       name: "Product Categories",
@@ -78,18 +102,6 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     { icon: <MdBrandingWatermark />, name: "Brand List", to: "/admin/company" },
     { icon: <FaShop />, name: "Vendor List", to: "/admin/vendorList" },
 
-    { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },
-    { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
-    {
-      icon: <FaKitchenSet />,
-      name: "Kitchen Stock",
-      to: "/admin/kitchenStock",
-    },
-    {
-      icon: <SiMaterialdesignicons />,
-      name: "Consumables",
-      to: "/admin/consumables",
-    },
     { icon: <FaTh />, name: "Restaurant Setup", to: "/admin/restaurant-setup" },
     // { icon: <SiHiveBlockchain />, name: "Assets", to: "/assets" },
   ];
@@ -108,11 +120,9 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
-      className={`bg-gray-800 text-white ${
-        collapsed ? "w-20" : "w-64"
-      } h-screen p-3 sm:p-4 flex flex-col justify-between overflow-hidden
-        fixed inset-y-0 left-0 transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+      className={`bg-gray-800 text-white ${collapsed ? "w-20" : "w-64"
+        } h-screen p-3 sm:p-4 flex flex-col justify-between overflow-hidden
+        fixed inset-y-0 left-0 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
         } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50`}
     >
       {/* FULL HEIGHT CONTAINER */}
@@ -150,9 +160,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                       <div>
                         <button
                           onClick={() => toggleExpand(item.name)}
-                          className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200 ${
-                            isActive ? "bg-gray-700" : "hover:bg-gray-700"
-                          }`}
+                          className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200 ${isActive ? "bg-gray-700" : "hover:bg-gray-700"
+                            }`}
                         >
                           <div className="flex items-center">
                             <span className="text-xl">{item.icon}</span>
@@ -178,11 +187,10 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                                   <Link
                                     to={subPath}
                                     className={`block p-2 rounded-lg text-sm transition-colors duration-200 
-                                    ${
-                                      isSubActive
+                                    ${isSubActive
                                         ? "bg-blue-600/40 text-white"
                                         : "text-gray-300 hover:bg-gray-600"
-                                    }`}
+                                      }`}
                                   >
                                     {sub}
                                   </Link>
@@ -195,9 +203,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                     ) : (
                       <Link
                         to={item.to}
-                        className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${
-                          isActive ? "bg-gray-700" : "hover:bg-gray-700"
-                        }`}
+                        className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${isActive ? "bg-gray-700" : "hover:bg-gray-700"
+                          }`}
                       >
                         <span className="text-xl">{item.icon}</span>
                         {!collapsed && (
@@ -216,9 +223,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         <div className="pt-2 border-t border-gray-700 mt-2">
           <Link
             to="/admin/setting"
-            className={`flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 transition-colors duration-200 mb-2 ${
-              location.pathname === "/admin/setting" ? "bg-gray-700" : ""
-            }`}
+            className={`flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 transition-colors duration-200 mb-2 ${location.pathname === "/admin/setting" ? "bg-gray-700" : ""
+              }`}
           >
             <FaCog className="text-lg" />
             {!collapsed && (
@@ -243,9 +249,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
               onClick={() =>
                 collapsed ? null : setIsProfileOpen(!isProfileOpen)
               }
-              className={`group flex items-center w-full p-3 rounded-xl bg-gray-700/50 border transition-all duration-300 ${
-                isProfileOpen ? "border-blue-500" : "border-transparent"
-              }`}
+              className={`group flex items-center w-full p-3 rounded-xl bg-gray-700/50 border transition-all duration-300 ${isProfileOpen ? "border-blue-500" : "border-transparent"
+                }`}
             >
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold mr-3 ring-2 ring-gray-600 group-hover:ring-blue-400 transition-all duration-300">
                 {getInitials("Admin")}
@@ -259,9 +264,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                     <p className="text-xs text-gray-400 capitalize">Admin</p>
                   </div>
                   <FaChevronDown
-                    className={`text-gray-400 group-hover:text-white transition-all duration-300 ${
-                      isProfileOpen ? "rotate-180" : ""
-                    }`}
+                    className={`text-gray-400 group-hover:text-white transition-all duration-300 ${isProfileOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </>
               )}

@@ -25,6 +25,8 @@ import KitchenStock from "./pages/admin/KitchenStock";
 import OrderManagementPage from "./pages/admin/Ordermanagement";
 import ProductTable from "./pages/admin/ProductTable";
 import StoreStockComponent from "./pages/admin/StoreStock";
+import KitchenIssue from "./pages/admin/KitchenIssue";
+import KitchenConsumption from "./pages/admin/KitchenConsumption";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
@@ -58,6 +60,7 @@ function App() {
             <Route path="/userRegistrationForm" element={<UserRegistrationForm />} />
             <Route path="/admin/orders" element={<OrderManagementPage />} />
             <Route path="/storeStock" element={<StoreStockComponent />} />
+            <Route path="/admin/kitchen-issue" element={<KitchenIssue />} />
             <Route path="/admin/categories" element={<ProductCategories />} />
             <Route path="/admin/company" element={<CompanyBrand />} />
             <Route path="/admin/vendorList" element={<VendorList />} />
@@ -68,6 +71,7 @@ function App() {
             {/* <Route path="/assets" element={<InventoryTabs />} /> */}
             <Route path="/admin/setting" element={<AccountSetting />} />
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
+            <Route path="/admin/kitchen-consumption" element={<KitchenConsumption />} />
             <Route path="/admin/consumables" element={<Consumables />} />
             <Route path="/admin/restaurant-setup" element={<RestaurantSetup />} />
             <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />

@@ -1,25 +1,34 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
+  Box,
   Button,
-  Checkbox,
+  Card,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Grid,
   Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
-  TextField
+  Typography
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
   getVendorOrders,
-  selectVendorOrderState,
-  updateVendorOrder
+  selectVendorOrderState
 } from "../../redux/slices/vendorOrderSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+
 function VendorOrderDetails() {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
@@ -28,7 +37,10 @@ function VendorOrderDetails() {
 
   const order = vendorOrders.find(o => o._id === id);
 
-  const [selected, setSelected] = useState<Record<string, any>>({});
+  // Pagination State
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [openConfirm, setOpenConfirm] = useState(false);
 
   // ---------------- Fetch ----------------
   useEffect(() => {
@@ -37,234 +49,215 @@ function VendorOrderDetails() {
     }
   }, [order, dispatch]);
 
-  // ---------------- Select Logic ----------------
-  const toggleSelect = (productId: string) => {
-    setSelected(prev => ({
-      ...prev,
-      [productId]: prev[productId]
-        ? undefined
-        : { sendToPurchaseQty: 0, remarks: "" }
-    }));
-  };
-  const filterOrder = order?.products.filter(o=>o.productId)
-  const allSelected =
-    filterOrder?.length
-      ? filterOrder?.every(p => !!selected[p.productId?._id])
-      : false;
-
-  const toggleSelectAll = () => {
-    if (!order) return;
-
-    if (allSelected) {
-      setSelected({});
-    } else {
-      const next: Record<string, any> = {};
-      filterOrder?.forEach(p => {
-        next[p.productId?._id] = {
-          sendToPurchaseQty: 0,
-          remarks: ""
-        };
-      });
-      setSelected(next);
-    }
+  const handleSendClick = () => {
+    setOpenConfirm(true);
   };
 
-  const hasSelection = Object.values(selected).some(Boolean);
+  const handleConfirmSend = () => {
+    setOpenConfirm(false);
+    navigate("/admin/purchase", { state: { vendorOrder: order } });
+  };
 
-  // ---------------- Submit ----------------
-  const handleSubmit = () => {
-    const payload = Object.entries(selected)
-      .filter(([, v]) => v)
-      .map(([productId, v]) => ({
-        productId,
-        sendToPurchaseQty: Number(v.sendToPurchaseQty),
-        remarks: v.remarks
-      }));
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+  };
 
-    dispatch(
-      updateVendorOrder({
-        vendorOrderId: id!,
-        products: payload
-      })
-    );
-
-    // ✅ Redirect to purchase page
-    navigate("/admin/purchase");
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   if (!order) return null;
+
+  const filterOrder = order?.products.filter(o => o.productId);
+  const vendorName = filterOrder?.[0]?.productId?.vendorsId?.vendor_name || "N/A";
+  
+  // Slice for Pagination
+  const paginatedProducts = filterOrder?.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   // ---------------- UI ----------------
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <Box className="flex items-center gap-3 p-4">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
-          sx={{
-            textTransform: "none",
-            fontWeight: 500
-          }}
+          className="normal-case font-medium text-gray-600 hover:text-blue-600"
         >
           Back
         </Button>
 
-        <h2 className="text-xl font-semibold">
-          Order #{order.orderNumber}
-        </h2>
-      </div>
+        <Typography variant="h6" className="font-bold text-gray-800">
+          Order Details - #{order.orderNumber}
+        </Typography>
+      </Box>
 
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Products</h3>
+      <Box >
+        {/* Vendor Summary Card */}
+        <Card className="p-6 rounded-2xl border border-gray-100 shadow-md bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
+                Vendor Name
+              </Typography>
+              <Typography variant="h6" className="text-blue-700 font-bold">
+                {vendorName}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
+                Order Date
+              </Typography>
+              <Typography variant="body1" className="text-gray-800 font-medium">
+                {new Date(order.orderDate).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric"
+                })}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
+                Total Amount
+              </Typography>
+              <Typography variant="body1" className="text-gray-800 font-bold">
+                ₹{order.totalAmount?.toLocaleString()}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
+                Status
+              </Typography>
+              <Box className="mt-1">
+                <Chip 
+                  label={order.status || "Draft"} 
+                  color={(order.status?.toLowerCase() === 'delivered' ? 'success' : order.status?.toLowerCase() === 'sent' ? 'info' : 'warning') as any}
+                  size="small"
+                  className="font-bold text-xs"
+                />
+              </Box>
+            </Grid>
+          </Grid>
+          {(!order.status || order.status.toLowerCase() === "draft") && (
+            <Button
+              variant="contained"
+              onClick={handleSendClick}
+              className="normal-case px-6 py-2 font-bold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg"
+            >
+              Send to Purchase Order
+            </Button>
+          )}
+        </Card>
 
-        <Button
-          variant="contained"
-          disabled={!hasSelection}
-          onClick={handleSubmit}
-          sx={{
-            textTransform: "none",
-            px: 3,
-            py: 1,
-            fontWeight: 600,
-            borderRadius: 2,
-            boxShadow: "0px 4px 10px rgba(0,0,0,0.15)"
-          }}
-        >
-          Send to Purchase
-        </Button>
-      </div>
+        {/* Table Card */}
+        <Paper className="shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+          <TableContainer>
+            <Table>
+              {/* ---------- TABLE HEAD ---------- */}
+              <TableHead className="bg-gray-50/50">
+                <TableRow>
+                  {[
+                    "Product",
+                    "Category",
+                    "Brand",
+                    "Order Qty",
+                    "Unit"
+                  ].map(header => (
+                    <TableCell
+                      key={header}
+                      className="font-bold text-gray-600"
+                    >
+                      {header}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
 
-      {/* Table Card */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0px 4px 12px rgba(0,0,0,0.08)",
-          overflow: "hidden"
+              {/* ---------- TABLE BODY ---------- */}
+              <TableBody>
+                {paginatedProducts?.map(row => {
+                  const product = row?.productId;
+                  return (
+                    <TableRow
+                      key={row?._id}
+                      hover
+                      className="transition-colors hover:bg-blue-50/30"
+                    >
+                      <TableCell className="font-medium text-gray-800">
+                        {product ? `${product?.productName} (${product?.packSize})` : "-"}
+                      </TableCell>
+
+                      <TableCell className="text-gray-600">
+                        {product?.categoryId?.categoryName || "-"}
+                      </TableCell>
+
+                      <TableCell className="text-gray-600">
+                        {product?.companyId?.brandName || "-"}
+                      </TableCell>
+
+                      <TableCell className="font-semibold text-gray-700">
+                        {row?.orderQty}
+                      </TableCell>
+
+                      <TableCell className="text-gray-500">
+                        {product?.unit || "-"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={filterOrder?.length || 0}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+      </Box>
+
+      {/* Confirmation Modal */}
+      <Dialog
+        open={openConfirm}
+        onClose={() => setOpenConfirm(false)}
+        PaperProps={{
+          className: "rounded-2xl p-2",
+          sx: { width: '100%', maxWidth: '500px' }
         }}
       >
-        <TableContainer component={Paper}>
-          <Table>
-            {/* ---------- TABLE HEAD ---------- */}
-            <TableHead sx={{ backgroundColor: "#f5f7fa" }}>
-              <TableRow>
-                <TableCell>
-                  <Checkbox
-                    checked={allSelected}
-                    indeterminate={
-                      !allSelected && Object.keys(selected).length > 0
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                </TableCell>
-
-                {[
-                  "Product",
-                  "Category",
-                  "Vendor",
-                  "Company",
-                  "Order Qty",
-                  "Send Qty",
-                  "Remarks"
-                ].map(header => (
-                  <TableCell
-                    key={header}
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: 14,
-                      color: "#344054"
-                    }}
-                  >
-                    {header}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-
-            {/* ---------- TABLE BODY ---------- */}
-            <TableBody>
-              {filterOrder?.map(row => {
-                const product = row?.productId;
-                return (
-                  <TableRow
-                    key={row?._id}
-                    hover
-                    sx={{
-                      "& td": { py: 1.5 }
-                    }}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={!!selected[product?._id]}
-                        onChange={() => toggleSelect(product?._id)}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      {product ? `${product?.productName} (${product?.packSize}) ` : "-"}
-                    </TableCell>
-
-                    <TableCell>
-                      {product?.categoryId?.categoryName || "-"}
-                    </TableCell>
-
-                    <TableCell>
-                      {product?.vendorsId?.vendor_name || "-"}
-                    </TableCell>
-
-                    <TableCell>
-                      {product?.companyId?.brandName || "-"}
-                    </TableCell>
-
-                    <TableCell>{row?.orderQty}</TableCell>
-
-                    <TableCell>
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="Qty"
-                        disabled={!selected[product?._id]}
-                        sx={{ width: 90 }}
-                        value={selected[product?._id]?.sendToPurchaseQty || ""}
-                        onChange={e =>
-                          setSelected(prev => ({
-                            ...prev,
-                            [product?._id]: {
-                              ...prev[product?._id],
-                              sendToPurchaseQty: e.target.value
-                            }
-                          }))
-                        }
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        placeholder="Remarks"
-                        disabled={!selected[product?._id]}
-                        sx={{ minWidth: 160 }}
-                        value={selected[product?._id]?.remarks || ""}
-                        onChange={e =>
-                          setSelected(prev => ({
-                            ...prev,
-                            [product?._id]: {
-                              ...prev[product?._id],
-                              remarks: e.target.value
-                            }
-                          }))
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </div>
+        <DialogTitle className="font-bold text-gray-800">
+          Confirm Purchase Order
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText className="text-gray-600 text-lg">
+            Are you sure you want to send this Purchase Order to <strong>{vendorName}</strong>? <br />
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="p-4 gap-3">
+          <Button 
+            onClick={() => setOpenConfirm(false)}
+            variant="outlined"
+            className="normal-case text-gray-600 border-gray-300 hover:bg-gray-50 font-medium px-6"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmSend}
+            variant="contained"
+            className="normal-case bg-blue-600 hover:bg-blue-700 shadow-none rounded-lg text-white font-semibold px-6"
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AdminLayout>
   );
 }

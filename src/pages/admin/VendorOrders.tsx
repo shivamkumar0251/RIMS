@@ -2,6 +2,12 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
   MenuItem,
   Paper,
   Table,
@@ -9,69 +15,111 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiEye, FiPrinter, FiRefreshCw, FiXCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
   getVendorOrders,
+  deleteVendorOrder,
   selectVendorOrderState
 } from "../../redux/slices/vendorOrderSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import { toast } from "react-hot-toast";
 
 const VendorsOrder: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { vendorOrders } = useAppSelector(selectVendorOrderState);
+  const { vendorOrders, allVendorOrdersData, loading } = useAppSelector(selectVendorOrderState);
 
   const [filters, setFilters] = useState({
     fromDate: "",
     toDate: "",
-    paymentStatus: ""
+    status: ""
   });
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     dispatch(getVendorOrders({
-      page: 1,
-      limit: 100, // Show more by default
+      page: page + 1,
+      limit: rowsPerPage,
       ...filters
     }));
-  }, [filters, dispatch]);
+  }, [filters, dispatch, page, rowsPerPage]);
 
   const handleResetFilters = () => {
     setFilters({
       fromDate: "",
       toDate: "",
-      paymentStatus: ""
+      status: ""
     });
+    setPage(0);
+  };
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    orderId: ""
+  });
+
+  const handleDeleteOrder = (id: string) => {
+    setDeleteModal({ open: true, orderId: id });
+  };
+
+  const confirmCancelOrder = async () => {
+    try {
+      await dispatch(deleteVendorOrder(deleteModal.orderId)).unwrap();
+      toast.success("Order cancelled successfully");
+      setDeleteModal({ open: false, orderId: "" });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to cancel order");
+    }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'success';
-      case 'Pending': return 'error';
-      case 'Partial': return 'warning';
+    switch (status?.toLowerCase()) {
+      case 'delivered': return 'success';
+      case 'sent': return 'info';
+      case 'draft': return 'warning';
+      case 'pending': return 'error';
       default: return 'default';
     }
   };
 
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
   return (
     <AdminLayout>
-      <div>
-        <Box className="flex flex-wrap items-center gap-4 p-4 border border-gray-100 shadow-sm">
+      <Box className="bg-[#f8f9fa] min-h-screen">
+
+        {/* Filters Section */}
+        <Box className="bg-white p-4 border border-gray-100 shadow-sm flex flex-wrap items-center gap-4">
           <TextField
             type="date"
             size="small"
             label="From"
             InputLabelProps={{ shrink: true }}
             value={filters.fromDate}
-            onChange={e => setFilters({ ...filters, fromDate: e.target.value })}
-            className="w-full sm:w-64"
+            onChange={e => {
+              setFilters({ ...filters, fromDate: e.target.value });
+              setPage(0);
+            }}
+            sx={{ width: 200 }}
           />
 
           <TextField
@@ -80,75 +128,118 @@ const VendorsOrder: React.FC = () => {
             label="To"
             InputLabelProps={{ shrink: true }}
             value={filters.toDate}
-            onChange={e => setFilters({ ...filters, toDate: e.target.value })}
-            className="w-full sm:w-64"
+            onChange={e => {
+              setFilters({ ...filters, toDate: e.target.value });
+              setPage(0);
+            }}
+            sx={{ width: 200 }}
           />
 
           <TextField
             size="small"
             select
-            label="Payment Status"
-            value={filters.paymentStatus}
-            onChange={e => setFilters({ ...filters, paymentStatus: e.target.value })}
-            className="w-full sm:w-44"
+            label="Status"
+            value={filters.status}
+            onChange={e => {
+              setFilters({ ...filters, status: e.target.value });
+              setPage(0);
+            }}
+            sx={{ width: 180 }}
           >
             <MenuItem value="">All Status</MenuItem>
-            <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Paid">Paid</MenuItem>
-            <MenuItem value="Partial">Partial</MenuItem>
+            <MenuItem value="Draft">Draft</MenuItem>
+            <MenuItem value="Sent">Sent</MenuItem>
+            <MenuItem value="Delivered">Delivered</MenuItem>
           </TextField>
 
           <Button 
-            size="small" 
-            variant="text" 
-            startIcon={<FiRefreshCw />} 
+            size="medium" 
+            variant="outlined" 
+            startIcon={<FiRefreshCw className={loading ? "animate-spin" : ""} />} 
             onClick={handleResetFilters}
-            className="text-blue-600 normal-case"
+            className="normal-case border-blue-100 text-blue-600 hover:bg-blue-50 font-semibold"
           >
-            Reset
+            RESET
           </Button>
         </Box>
 
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
+        {/* Table Section */}
+        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-200">
           <TableContainer>
             <Table>
               <TableHead className="bg-gray-50">
                 <TableRow>
-                  <TableCell className="font-bold">Order No</TableCell>
-                  <TableCell className="font-bold">Order Date</TableCell>
-                  <TableCell className="font-bold">Total Qty</TableCell>
-                  <TableCell className="font-bold">Total Amount</TableCell>
-                  <TableCell className="font-bold">Payment Status</TableCell>
+                  <TableCell className="font-bold text-gray-700 py-4">Order ID</TableCell>
+                  <TableCell className="font-bold text-gray-700">Vendor Name</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700">Total Items</TableCell>
+                  <TableCell className="font-bold text-gray-700">Order Date</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700">Status</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700 pr-10">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {vendorOrders.length === 0 ? (
+                {loading && (
+                    <TableRow>
+                        <TableCell colSpan={6} align="center" className="py-10">
+                            <Typography className="text-gray-500">Loading orders...</Typography>
+                        </TableCell>
+                    </TableRow>
+                )}
+                {!loading && vendorOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" className="py-10 text-gray-500">
-                      No vendor orders found.
+                    <TableCell colSpan={6} align="center" className="py-20">
+                      <Typography className="text-gray-400">No vendor orders found.</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  vendorOrders.map(order => (
+                  !loading && vendorOrders.map(order => (
                     <TableRow
                       key={order._id}
                       hover
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
+                      className="transition-colors hover:bg-gray-50"
                     >
-                      <TableCell className="font-medium text-blue-600">#{order.orderNumber}</TableCell>
-                      <TableCell>{dayjs(order.orderDate).format("DD/MM/YYYY")}</TableCell>
-                      <TableCell>{order.totelOrderQty}</TableCell>
-                      <TableCell className="font-bold">₹{order.totalAmount.toLocaleString()}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-semibold text-gray-900">
+                        #{order.orderNumber}
+                      </TableCell>
+                      <TableCell className="text-gray-700">
+                        {order.products?.[0]?.productId?.vendorsId?.vendor_name || (
+                          <span className="text-gray-400 italic">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell align="center" className="text-gray-700">
+                        {order.totelOrderQty}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {dayjs(order.orderDate).format("DD MMM, YYYY")}
+                      </TableCell>
+                      <TableCell align="center">
                         <Chip 
-                          label={order.paymentStatus} 
-                          color={getStatusColor(order.paymentStatus) as any}
+                          label={order.status || "Draft"} 
+                          color={getStatusColor(order.status || "Draft") as any}
                           size="small"
-                          variant="outlined"
-                          className="font-medium"
+                          className="font-semibold px-2"
                         />
+                      </TableCell>
+                      <TableCell align="center" className="pr-4">
+                        <Box className="flex items-center justify-center gap-2">
+                            <Button
+                                size="small"
+                                startIcon={<FiEye size={16} />}
+                                onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
+                                className="normal-case text-gray-600 hover:bg-gray-100 font-medium whitespace-nowrap"
+                            >
+                                View
+                            </Button>
+                            <Button
+                                size="small"
+                                startIcon={<FiXCircle size={16} />}
+                                onClick={() => handleDeleteOrder(order._id)}
+                                className="normal-case text-red-500 hover:bg-red-50 font-medium whitespace-nowrap"
+                            >
+                                Cancel
+                            </Button>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -156,8 +247,53 @@ const VendorsOrder: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={allVendorOrdersData?.total || 0}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            className="border-t border-gray-100"
+          />
         </Paper>
-      </div>
+      </Box>
+
+      {/* Cancel Order Confirmation Modal */}
+      <Dialog
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, orderId: "" })}
+        PaperProps={{
+          className: "rounded-2xl p-2",
+          sx: { width: '100%', maxWidth: '400px' }
+        }}
+      >
+        <DialogTitle className="flex items-center gap-2 font-bold text-gray-800">
+          <FiXCircle className="text-red-500" size={24} />
+          Cancel Order
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText className="text-gray-600">
+            Are you sure you want to cancel this vendor order? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="p-4 gap-2">
+          <Button 
+            onClick={() => setDeleteModal({ open: false, orderId: "" })}
+            className="normal-case text-gray-500 hover:bg-gray-100"
+          >
+            No, Keep it
+          </Button>
+          <Button 
+            onClick={confirmCancelOrder}
+            variant="contained"
+            className="normal-case bg-red-500 hover:bg-red-600 shadow-none rounded-lg text-white font-semibold"
+          >
+            Yes, Cancel Order
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AdminLayout>
   );
 };

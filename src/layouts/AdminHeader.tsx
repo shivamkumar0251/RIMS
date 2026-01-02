@@ -20,10 +20,13 @@ export const AdminHeader: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     '/admin/vendorsOrder': 'Vendors Order',
     '/admin/purchase': 'Purchase',
     '/storeStock': 'Store Stock',
-    '/admin/kitchenStock': 'Kitchen Stock',
+    '/admin/kitchenStock': 'Kitchen Store',
     '/admin/consumables': 'Consumables',
     '/admin/restaurant-setup': 'Restaurant Setup',
     '/admin/setting': 'Setting',
+    '/admin/vendors-orders': 'Vendor Order Details',
+    '/admin/kitchen-issue': 'Kitchen Issue',
+    '/admin/kitchen-consumption': 'Kitchen Consumption',
 
 
     // '/assets': 'Assets',

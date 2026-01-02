@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   IconButton,
@@ -24,11 +23,10 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSend, FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 import {
-  addStoreStock,
   getStoreStocks,
   selectStoreStockState
 } from "../../redux/slices/storeStockSlice";
@@ -36,9 +34,6 @@ import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { getVendorNameList, selectVendorNames } from "../../redux/slices/vendorSlice";
-
-import type { StoreStock, StoreStockPostData } from "../../redux/slices/storeStockSlice";
 
 const StoreStockComponent: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -48,11 +43,9 @@ const StoreStockComponent: React.FC = () => {
 
   const categories = useAppSelector(selectCategories);
   const brands = useAppSelector(selectCompanies);
-  const vendors = useAppSelector(selectVendorNames);
 
   // ---------------- Filters ----------------
   const [categoryId, setCategoryId] = useState("");
-  const [vendorId, setVendorId] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -62,24 +55,17 @@ const StoreStockComponent: React.FC = () => {
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
 
-  // ---------------- Selection & Inputs ----------------
-  const [selected, setSelected] = useState<string[]>([]);
-  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
-
   // ---------------- Popover States ----------------
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
-  const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
   const [brandAnchor, setBrandAnchor] = useState<null | HTMLElement>(null);
   
   const [catSearch, setCatSearch] = useState("");
-  const [vendorSearch, setVendorSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
 
   // ---------------- Load Dropdowns ----------------
   useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
-    dispatch(getVendorNameList());
   }, [dispatch]);
 
   // ---------------- Load Store Stocks ----------------
@@ -90,28 +76,12 @@ const StoreStockComponent: React.FC = () => {
         limit,
         search,
         categoryId,
-        vendorId,
         companyId,
         fromDate,
         toDate
       })
     );
-  }, [dispatch, page, limit, search, categoryId, vendorId, companyId, fromDate, toDate]);
-
-  // ---------------- Selection Logic ----------------
-  const toggleRow = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleAll = () => {
-    if (selected.length === storeStocks.length) {
-      setSelected([]);
-    } else {
-      setSelected(storeStocks.map((s) => s.productId._id));
-    }
-  };
+  }, [dispatch, page, limit, search, categoryId, companyId, fromDate, toDate]);
 
   // ---------------- Stock Alert ----------------
   const getStockStatus = (qty: number, alert: number) => {
@@ -120,28 +90,9 @@ const StoreStockComponent: React.FC = () => {
     return <Chip label="In Stock" color="success" size="small" />;
   };
 
-  // ---------------- Bulk Send ----------------
-  const handleSendToKitchen = () => {
-    const payload: StoreStockPostData[] = selected
-      .filter(id => (qtyMap[id] || 0) > 0)
-      .map(id => ({
-        productId: id,
-        qty: qtyMap[id]
-      }));
-
-    if (!payload.length) return;
-
-    dispatch(addStoreStock(payload)).then(() => {
-      setSelected([]);
-      setQtyMap({});
-      dispatch(getStoreStocks({ page: page + 1, limit }));
-    });
-  };
-
   const handleResetFilters = () => {
     setSearch("");
     setCategoryId("");
-    setVendorId("");
     setCompanyId("");
     setFromDate("");
     setToDate("");
@@ -152,11 +103,6 @@ const StoreStockComponent: React.FC = () => {
   const filteredCats = useMemo(() => 
     categories.filter(c => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
     [categories, catSearch]
-  );
-
-  const filteredVendors = useMemo(() => 
-    vendors.filter(v => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
-    [vendors, vendorSearch]
   );
 
   const filteredBrands = useMemo(() => 
@@ -214,17 +160,6 @@ const StoreStockComponent: React.FC = () => {
           >
             Reset
           </Button>
-
-          <Box className="ml-auto">
-            <Button
-              variant="contained"
-              startIcon={<FiSend />}
-              disabled={selected.length === 0 || selected.some(id => !(qtyMap[id]))}
-              onClick={handleSendToKitchen}
-            >
-              Send to Kitchen Store
-            </Button>
-          </Box>
         </Box>
 
         {/* Clean Table */}
@@ -233,16 +168,6 @@ const StoreStockComponent: React.FC = () => {
             <Table>
               <TableHead className="bg-gray-50">
                 <TableRow>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      color="primary"
-                      checked={
-                        selected.length === storeStocks.length &&
-                        storeStocks.length > 0
-                      }
-                      onChange={toggleAll}
-                    />
-                  </TableCell>
                   <TableCell className="font-bold">Product</TableCell>
                   <TableCell className="font-bold">
                     <Box className="flex items-center gap-2">
@@ -288,56 +213,6 @@ const StoreStockComponent: React.FC = () => {
                               selected={categoryId === c._id}
                             >
                               <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                            </ListItemButton>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="font-bold">
-                    <Box className="flex items-center gap-2">
-                      Vendor
-                      <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
-                        <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
-                      </IconButton>
-                    </Box>
-                    <Popover
-                      open={Boolean(vendorAnchor)}
-                      anchorEl={vendorAnchor}
-                      onClose={() => setVendorAnchor(null)}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                    >
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField
-                          placeholder="Search Vendor..."
-                          size="small"
-                          fullWidth
-                          variant="outlined"
-                          value={vendorSearch}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVendorSearch(e.target.value)}
-                          InputProps={{
-                            startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />,
-                            sx: { bgcolor: 'white' }
-                          }}
-                        />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                        <ListItem disablePadding>
-                          <ListItemButton 
-                            onClick={() => { setVendorId(""); setVendorAnchor(null); }} 
-                            selected={!vendorId}
-                          >
-                            <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                          </ListItemButton>
-                        </ListItem>
-                        {filteredVendors.map((v) => (
-                          <ListItem key={v._id} disablePadding>
-                            <ListItemButton 
-                              onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} 
-                              selected={vendorId === v._id}
-                            >
-                              <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
                             </ListItemButton>
                           </ListItem>
                         ))}
@@ -394,83 +269,44 @@ const StoreStockComponent: React.FC = () => {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">Opening</TableCell>
-                  <TableCell className="font-bold">Received</TableCell>
-                  <TableCell className="font-bold">Closing</TableCell>
-                  <TableCell className="font-bold">Status</TableCell>
-                  <TableCell className="font-bold" style={{ width: 140 }}>Qty → Kitchen</TableCell>
-                  <TableCell className="font-bold">Date</TableCell>
+                  <TableCell className="font-bold">Unit</TableCell>
+                  <TableCell className="font-bold text-center">Available Qty</TableCell>
+                  <TableCell className="font-bold text-center">Status</TableCell>
+                  <TableCell className="font-bold">Last Inward Date</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={11} align="center" className="py-10">
+                    <TableCell colSpan={7} align="center" className="py-10">
                       <CircularProgress size={30} />
                       <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                     </TableCell>
                   </TableRow>
+                ) : storeStocks.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
+                      No products found.
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  storeStocks.map((row) => {
-                    const pid = row.productId?._id;
-                    const isSelected = selected.includes(pid);
-
-                    return (
-                      <TableRow key={row._id} hover selected={isSelected}>
-                        <TableCell padding="checkbox">
-                          <Checkbox 
-                            color="primary" 
-                            checked={isSelected} 
-                            onChange={() => toggleRow(pid)} 
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
-                          <Typography variant="caption" className="text-gray-500">{row.productId?.packSize} | {row.productId?.unit}</Typography>
-                        </TableCell>
-                        <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600">{row.productId?.vendorsId?.vendor_name}</TableCell>
-                        <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName}</TableCell>
-                        <TableCell>{row.openingStock}</TableCell>
-                        <TableCell>{row.rcvdStoreQty}</TableCell>
-                        <TableCell className="font-bold">{row.closingStock}</TableCell>
-                        <TableCell>
-                          {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={qtyMap[pid] || ""}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              const val = Number(e.target.value);
-                              setQtyMap(prev => ({ ...prev, [pid]: val }));
-                              if (val > 0) {
-                                if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
-                              } else {
-                                setSelected(prev => prev.filter(id => id !== pid));
-                              }
-                            }}
-                            sx={{ 
-                              "& .MuiInputBase-input": { 
-                                py: 0.5, 
-                                px: 1, 
-                                textAlign: 'center',
-                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                                  display: "none",
-                                },
-                                "&": {
-                                  MozAppearance: "textfield",
-                                },
-                              } 
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
-                      </TableRow>
-                    );
-                  })
+                  storeStocks.map((row) => (
+                    <TableRow key={row._id} hover>
+                      <TableCell>
+                        <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
+                        <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
+                      </TableCell>
+                      <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                      <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
+                      <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
+                      <TableCell className="text-center">
+                        {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
+                      </TableCell>
+                      <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>

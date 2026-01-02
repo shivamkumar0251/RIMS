@@ -1,3 +1,4 @@
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Box,
   Button,
@@ -22,16 +23,11 @@ import {
   Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
-import React, { useEffect, useState, useMemo } from "react";
-import { FiSend, FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
+import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
+import { FiFilter, FiRefreshCw, FiSearch, FiSend } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
-
-import {
-  addBulkPurchases,
-  getPurchases,
-  selectPurchaseState
-} from "../../redux/slices/purchaseSlice";
-import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 import {
   getCategories,
@@ -44,22 +40,182 @@ import {
 } from "../../redux/slices/companySlice";
 
 import {
+  addBulkPurchases,
+  getPurchases,
+  selectPurchaseState
+} from "../../redux/slices/purchaseSlice";
+import type { PurchasePostData } from "../../redux/slices/purchaseSlice";
+
+import {
+  addStoreStock
+} from "../../redux/slices/storeStockSlice";
+
+import {
   getVendorNameList,
   selectVendorNames
 } from "../../redux/slices/vendorSlice";
 
-import type { PurchaseItem, PurchasePostData } from "../../redux/slices/purchaseSlice";
+import {
+  updateVendorOrder
+} from "../../redux/slices/vendorOrderSlice";
+
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
 const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const { purchases, loading, allPurchasesData } =
-    useAppSelector(selectPurchaseState);
+  // Check if we are in "Receive Mode" (coming from Vendor Order Details)
+  const vendorOrder = location.state?.vendorOrder;
 
+  // ---------------- Shared State ----------------
+  const { purchases, loading, allPurchasesData } = useAppSelector(selectPurchaseState);
   const categories = useAppSelector(selectCategories);
   const brands = useAppSelector(selectCompanies);
   const vendors = useAppSelector(selectVendorNames);
 
+  // ==================================================================================
+  //                              MODE: RECEIVE VENDOR ORDER
+  // ==================================================================================
+
+  // State for receipt data
+  const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string }>>({});
+
+  // Initialize receipt data when vendorOrder is present
+  useEffect(() => {
+    if (vendorOrder) {
+      const initialData: Record<string, { receivedQty: number; damagedQty: number; remarks: string }> = {};
+      vendorOrder.products.forEach((p: any) => {
+        if (p.productId && p.sendToPurchaseQty > 0) {
+          initialData[p.productId._id] = {
+            receivedQty: p.sendToPurchaseQty,
+            damagedQty: 0,
+            remarks: ""
+          };
+        }
+      });
+      setReceiptData(initialData);
+    }
+  }, [vendorOrder]);
+
+  const handleReceiptChange = (productId: string, field: 'receivedQty' | 'damagedQty' | 'remarks', value: any) => {
+    setReceiptData(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [field]: value
+      }
+    }));
+  };
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleConfirmReceipt = async () => {
+    if (!vendorOrder) {
+      console.error("No vendor order found");
+      toast.error("No vendor order data found");
+      return;
+    }
+
+    console.log("Starting receipt confirmation...");
+    console.log("Vendor Order:", vendorOrder);
+    console.log("Receipt Data:", receiptData);
+
+    setIsProcessing(true);
+
+    // Validate
+    const errors: string[] = [];
+    const validItems: any[] = [];
+    const storeStockPayload: any[] = [];
+
+    // Filter products that were actually sent to purchase
+    const productsToReceive = vendorOrder.products.filter((p: any) => receiptData[p.productId?._id]);
+
+    console.log("Products to receive:", productsToReceive);
+
+    if (productsToReceive.length === 0) {
+      toast.error("No products to receive");
+      setIsProcessing(false);
+      return;
+    }
+
+    productsToReceive.forEach((p: any) => {
+      const pid = p.productId._id;
+      const data = receiptData[pid];
+      const orderedQty = p.sendToPurchaseQty || p.orderQty;
+      const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
+
+      console.log(`Product ${p.productId.productName}:`, {
+        orderedQty,
+        receivedQty: data.receivedQty,
+        damagedQty: data.damagedQty,
+        acceptedQty,
+        remarks: data.remarks
+      });
+
+      if (data.damagedQty > 0 && !data.remarks.trim()) {
+        errors.push(`Remarks required for ${p.productId.productName} (Damaged Qty > 0)`);
+      }
+      if (data.receivedQty < orderedQty && !data.remarks.trim()) {
+        errors.push(`Remarks required for ${p.productId.productName} (Received < Ordered)`);
+      }
+
+      validItems.push({
+        ...p,
+        ...data,
+        acceptedQty
+      });
+
+      storeStockPayload.push({
+        productId: pid,
+        qty: acceptedQty
+      });
+    });
+
+    if (errors.length > 0) {
+      console.error("Validation errors:", errors);
+      errors.forEach(e => toast.error(e));
+      setIsProcessing(false);
+      return;
+    }
+
+    console.log("Store Stock Payload:", storeStockPayload);
+
+    try {
+      // 1. Add to Store Stock
+      if (storeStockPayload.length > 0) {
+        console.log("Adding to store stock...");
+        const result = await dispatch(addStoreStock(storeStockPayload)).unwrap();
+        console.log("Store stock updated:", result);
+      }
+
+      // 2. Mark Vendor Order as Received
+      console.log("Updating vendor order status...");
+      const updateResult = await dispatch(updateVendorOrder({
+        vendorOrderId: vendorOrder._id,
+        status: 'Received'
+      })).unwrap();
+      console.log("Vendor order updated:", updateResult);
+
+      toast.success("Order received and stock updated successfully!");
+
+      // Small delay before navigation to ensure toast is visible
+      setTimeout(() => {
+        navigate('/admin/vendorsOrder');
+      }, 500);
+
+    } catch (error: any) {
+      console.error("Error processing receipt:", error);
+      toast.error(error.message || "Failed to process receipt");
+      setIsProcessing(false);
+    }
+  };
+
+
+  // ==================================================================================
+  //                              MODE: PURCHASE LIST
+  // ==================================================================================
   // ---------------- Filters ----------------
   const [categoryId, setCategoryId] = useState("");
   const [vendorId, setVendorId] = useState("");
@@ -80,32 +236,36 @@ const Purchase: React.FC = () => {
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
   const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
   const [brandAnchor, setBrandAnchor] = useState<null | HTMLElement>(null);
-  
+
   const [catSearch, setCatSearch] = useState("");
   const [vendorSearch, setVendorSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
 
-  // ---------------- Initial Load ----------------
+  // ---------------- Initial Load (Only if not receiving) ----------------
   useEffect(() => {
-    dispatch(getCategories({ page: 1, limit: 1000 }));
-    dispatch(getCompanies({ page: 1, limit: 1000 }));
-    dispatch(getVendorNameList());
-  }, [dispatch]);
+    if (!vendorOrder) {
+      dispatch(getCategories({ page: 1, limit: 1000 }));
+      dispatch(getCompanies({ page: 1, limit: 1000 }));
+      dispatch(getVendorNameList());
+    }
+  }, [dispatch, vendorOrder]);
 
   useEffect(() => {
-    dispatch(
-      getPurchases({
-        page: page + 1,
-        limit,
-        search,
-        categoryId,
-        vendorId,
-        companyId,
-        fromDate,
-        toDate
-      })
-    );
-  }, [dispatch, page, limit, search, categoryId, vendorId, companyId, fromDate, toDate]);
+    if (!vendorOrder) {
+      dispatch(
+        getPurchases({
+          page: page + 1,
+          limit,
+          search,
+          categoryId,
+          vendorId,
+          companyId,
+          fromDate,
+          toDate
+        })
+      );
+    }
+  }, [dispatch, page, limit, search, categoryId, vendorId, companyId, fromDate, toDate, vendorOrder]);
 
   // ---------------- Selection Logic ----------------
   const toggleRow = (id: string) => {
@@ -151,22 +311,131 @@ const Purchase: React.FC = () => {
   };
 
   // ---------------- Filter Search Logic ----------------
-  const filteredCats = useMemo(() => 
+  const filteredCats = useMemo(() =>
     categories.filter(c => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
     [categories, catSearch]
   );
 
-  const filteredVendors = useMemo(() => 
+  const filteredVendors = useMemo(() =>
     vendors.filter(v => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
     [vendors, vendorSearch]
   );
 
-  const filteredBrands = useMemo(() => 
+  const filteredBrands = useMemo(() =>
     brands.filter(b => (b.brandName || "").toLowerCase().includes(brandSearch.toLowerCase())),
     [brands, brandSearch]
   );
 
-  // ---------------- UI ----------------
+  // ==================================================================================
+  //                                    RENDER
+  // ==================================================================================
+  if (vendorOrder) {
+    // ---------------- RECEIVE VIEW ----------------
+    return (
+      <AdminLayout>
+        <Box className="flex items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
+            className="normal-case font-medium text-gray-600 hover:text-blue-600"
+          >
+            Back
+          </Button>
+          <Typography variant="h6" className="font-bold text-gray-800">
+            Receive Purchase Order - #{vendorOrder.orderNumber}
+          </Typography>
+          <Box className="ml-auto">
+            <Button
+              variant="contained"
+              onClick={handleConfirmReceipt}
+              disabled={isProcessing}
+              className="bg-blue-600"
+            >
+              {isProcessing ? "Processing..." : "Confirm Receipt"}
+            </Button>
+          </Box>
+        </Box>
+
+        <Box className="p-4">
+          <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
+            <TableContainer>
+              <Table>
+                <TableHead className="bg-gray-50">
+                  <TableRow>
+                    <TableCell className="font-bold">Product</TableCell>
+                    <TableCell className="font-bold">Ordered Qty</TableCell>
+                    <TableCell className="font-bold">Unit</TableCell>
+                    <TableCell className="font-bold">Received Qty</TableCell>
+                    <TableCell className="font-bold">Damaged Qty</TableCell>
+                    <TableCell className="font-bold">Accepted Qty</TableCell>
+                    <TableCell className="font-bold">Remarks</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {vendorOrder.products
+                    .filter((p: any) => p.sendToPurchaseQty > 0)
+                    .map((row: any) => {
+                      const pid = row.productId?._id;
+                      const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
+                      const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
+
+                      return (
+                        <TableRow key={row._id} hover>
+                          <TableCell>
+                            <Box>
+                              <Typography variant="body2" className="font-medium text-gray-800">
+                                {row.productId?.productName}
+                              </Typography>
+                              <Typography variant="caption" className="text-gray-500">
+                                {row.productId?.brandName} | {row.productId?.categoryName}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>{row.sendToPurchaseQty}</TableCell>
+                          <TableCell>{row.productId?.unit}</TableCell>
+                          <TableCell>
+                            <TextField
+                              type="number"
+                              size="small"
+                              sx={{ width: 100 }}
+                              value={data.receivedQty}
+                              onChange={(e) => handleReceiptChange(pid, 'receivedQty', Number(e.target.value))}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              type="number"
+                              size="small"
+                              sx={{ width: 100 }}
+                              value={data.damagedQty}
+                              onChange={(e) => handleReceiptChange(pid, 'damagedQty', Number(e.target.value))}
+                            />
+                          </TableCell>
+                          <TableCell className="font-bold text-blue-600">
+                            {acceptedQty}
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              placeholder="Add remarks..."
+                              value={data.remarks || ""}
+                              onChange={(e) => handleReceiptChange(pid, 'remarks', e.target.value)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Box>
+      </AdminLayout>
+    );
+  }
+
+  // ---------------- DEFAULT LIST VIEW ----------------
   return (
     <AdminLayout>
       <div>
@@ -186,7 +455,7 @@ const Purchase: React.FC = () => {
             }}
             className="w-full sm:w-64"
           />
-          
+
           <TextField
             type="date"
             size="small"
@@ -207,10 +476,10 @@ const Purchase: React.FC = () => {
             className="w-full sm:w-64"
           />
 
-          <Button 
-            size="small" 
-            variant="text" 
-            startIcon={<FiRefreshCw />} 
+          <Button
+            size="small"
+            variant="text"
+            startIcon={<FiRefreshCw />}
             onClick={handleResetFilters}
             className="text-blue-600 normal-case"
           >
@@ -276,8 +545,8 @@ const Purchase: React.FC = () => {
                       </Box>
                       <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
                         <ListItem disablePadding>
-                          <ListItemButton 
-                            onClick={() => { setCategoryId(""); setCatAnchor(null); }} 
+                          <ListItemButton
+                            onClick={() => { setCategoryId(""); setCatAnchor(null); }}
                             selected={!categoryId}
                           >
                             <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -285,8 +554,8 @@ const Purchase: React.FC = () => {
                         </ListItem>
                         {filteredCats.map((c) => (
                           <ListItem key={c._id} disablePadding>
-                            <ListItemButton 
-                              onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} 
+                            <ListItemButton
+                              onClick={() => { setCategoryId(c._id); setCatAnchor(null); }}
                               selected={categoryId === c._id}
                             >
                               <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -326,8 +595,8 @@ const Purchase: React.FC = () => {
                       </Box>
                       <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
                         <ListItem disablePadding>
-                          <ListItemButton 
-                            onClick={() => { setVendorId(""); setVendorAnchor(null); }} 
+                          <ListItemButton
+                            onClick={() => { setVendorId(""); setVendorAnchor(null); }}
                             selected={!vendorId}
                           >
                             <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -335,8 +604,8 @@ const Purchase: React.FC = () => {
                         </ListItem>
                         {filteredVendors.map((v) => (
                           <ListItem key={v._id} disablePadding>
-                            <ListItemButton 
-                              onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} 
+                            <ListItemButton
+                              onClick={() => { setVendorId(v._id); setVendorAnchor(null); }}
                               selected={vendorId === v._id}
                             >
                               <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -376,8 +645,8 @@ const Purchase: React.FC = () => {
                       </Box>
                       <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
                         <ListItem disablePadding>
-                          <ListItemButton 
-                            onClick={() => { setCompanyId(""); setBrandAnchor(null); }} 
+                          <ListItemButton
+                            onClick={() => { setCompanyId(""); setBrandAnchor(null); }}
                             selected={!companyId}
                           >
                             <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -385,8 +654,8 @@ const Purchase: React.FC = () => {
                         </ListItem>
                         {filteredBrands.map((b) => (
                           <ListItem key={b._id} disablePadding>
-                            <ListItemButton 
-                              onClick={() => { setCompanyId(b._id); setBrandAnchor(null); }} 
+                            <ListItemButton
+                              onClick={() => { setCompanyId(b._id); setBrandAnchor(null); }}
                               selected={companyId === b._id}
                             >
                               <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
@@ -419,10 +688,10 @@ const Purchase: React.FC = () => {
                     return (
                       <TableRow key={row._id} hover selected={isSelected}>
                         <TableCell padding="checkbox">
-                          <Checkbox 
-                            color="primary" 
-                            checked={isSelected} 
-                            onChange={() => toggleRow(pid)} 
+                          <Checkbox
+                            color="primary"
+                            checked={isSelected}
+                            onChange={() => toggleRow(pid)}
                           />
                         </TableCell>
                         <TableCell>
@@ -448,10 +717,10 @@ const Purchase: React.FC = () => {
                                 setSelected(prev => prev.filter(id => id !== pid));
                               }
                             }}
-                            sx={{ 
-                              "& .MuiInputBase-input": { 
-                                py: 0.5, 
-                                px: 1, 
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                py: 0.5,
+                                px: 1,
                                 textAlign: 'center',
                                 "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
                                   display: "none",
@@ -459,7 +728,7 @@ const Purchase: React.FC = () => {
                                 "&": {
                                   MozAppearance: "textfield",
                                 },
-                              } 
+                              }
                             }}
                           />
                         </TableCell>

@@ -94,6 +94,7 @@ export default function ProductTable() {
     productName: "",
     packSize: "",
     unit: "",
+    productType: "",
     shape: "",
     colour: "",
     printStatus: "",
@@ -183,6 +184,7 @@ export default function ProductTable() {
       productName: "",
       packSize: "",
       unit: "",
+      productType: "",
       shape: "",
       colour: "",
       printStatus: "",
@@ -214,8 +216,8 @@ export default function ProductTable() {
   }, [form.perUnitRate, form.gstPct]);
 
   const handleSaveProduct = async () => {
-    if (!form.productName || !form.categoryId || !form.companyId || !form.vendorsId) {
-      alert("Please fill Product Name, Category, Vendor and Company");
+    if (!form.productName || !form.categoryId || !form.companyId || !form.vendorsId || !form.productType) {
+      alert("Please fill all required fields: Product Name, Category, Vendor, Company, and Product Type");
       return;
     }
 
@@ -227,6 +229,7 @@ export default function ProductTable() {
       productName: String(form.productName || ""),
       packSize: String(form.packSize || ""),
       unit: String(form.unit || ""),
+      productType: String(form.productType || ""),
       shape: String(form.shape || ""),
       colour: String(form.colour || ""),
       printStatus: String(form.printStatus || ""),
@@ -595,8 +598,36 @@ export default function ProductTable() {
 
                 <TextField fullWidth size="small" label="Pack Size" value={form.packSize || ""} onChange={(e) => setForm({ ...form, packSize: e.target.value })} />
                 <TextField fullWidth size="small" label="Unit" value={form.unit || ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                <TextField fullWidth size="small" label="Shape" value={form.shape || ""} onChange={(e) => setForm({ ...form, shape: e.target.value })} />
-                <TextField fullWidth size="small" label="Colour" value={form.colour || ""} onChange={(e) => setForm({ ...form, colour: e.target.value })} />
+                
+                <FormControl fullWidth size="small" required>
+                  <InputLabel id="product-type-label">Product Type *</InputLabel>
+                  <Select 
+                    labelId="product-type-label" 
+                    value={form.productType || ""} 
+                    label="Product Type *"
+                    required
+                    displayEmpty={false}
+                    onChange={(e) => {
+                      const newProductType = e.target.value;
+                      setForm({ 
+                        ...form, 
+                        productType: newProductType,
+                        // Clear shape and colour if not Packaging Items
+                        ...(newProductType !== "Packaging Items" ? { shape: "", colour: "" } : {})
+                      });
+                    }}
+                  >
+                    <MenuItem value="Inventory Items">Inventory Items</MenuItem>
+                    <MenuItem value="Packaging Items">Packaging Items</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {form.productType === "Packaging Items" && (
+                  <>
+                    <TextField fullWidth size="small" label="Shape" value={form.shape || ""} onChange={(e) => setForm({ ...form, shape: e.target.value })} />
+                    <TextField fullWidth size="small" label="Colour" value={form.colour || ""} onChange={(e) => setForm({ ...form, colour: e.target.value })} />
+                  </>
+                )}
                 
                 <FormControl fullWidth size="small">
                   <InputLabel id="print-status-label">Print Status</InputLabel>

@@ -29,6 +29,7 @@ export interface ProductInterface {
   packSize: string;
   unit: string;
   // quantity: number;
+  productType?: string;
   shape: string;
   colour: string;
   printStatus: string;
