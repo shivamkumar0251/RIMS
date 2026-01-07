@@ -1,0 +1,159 @@
+tags:
+  - name: CompanyBrands
+    description: Company / Brand endpoints
+
+paths:
+  /v1/companys:
+    post:
+      summary: Create a new company/brand
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brandName:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+        '409':
+          description: Duplicate
+    get:
+      summary: Get companies with search, pagination and date filter
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: OK
+        '500':
+          description: Server Error
+
+  /v1/companys/bulk-excel:
+    post:
+      summary: Bulk create brands from Excel file
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Excel file containing brandName column
+      responses:
+        '201':
+          description: Inserted
+        '400':
+          description: Bad Request
+        '500':
+          description: Server Error
+
+  /v1/companys/{id}:
+    put:
+      summary: Update brand name
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brandName:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete a brand
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not Found
+
+  /v1/companys/delete-bulk:
+    post:
+      summary: Bulk delete brands by ids
+      tags:
+        - CompanyBrands
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Deleted counts
+        '400':
+          description: Bad Request

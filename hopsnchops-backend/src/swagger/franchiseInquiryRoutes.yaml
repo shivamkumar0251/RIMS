@@ -1,0 +1,37 @@
+tags:
+  - name: FranchiseInquiry
+    description: Franchise enquiry endpoints
+
+paths:
+  /v1/franchiseInquiry:
+    post:
+      summary: Submit a franchise inquiry
+      tags:
+        - FranchiseInquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, email, phone, address, pincode]
+              properties:
+                fullName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  description: 10 digit phone number
+                address:
+                  type: string
+                pincode:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '422':
+          description: Validation Error
+        '500':
+          description: Server Error

@@ -1,0 +1,185 @@
+tags:
+  - name: VendorsList
+    description: Vendor list endpoints
+
+paths:
+  /v1/vendorList/list-names:
+    get:
+      summary: Get all vendor names with _id
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /v1/vendorList:
+    get:
+      summary: Get vendors with search, pagination and filters
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: OK
+
+    post:
+      summary: Create a vendor (admin)
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vendor_name
+              properties:
+                vendor_name:
+                  type: string
+                vendor_mobileNo:
+                  type: string
+                vendor_address:
+                  type: string
+                vendor_state:
+                  type: string
+                vendor_country:
+                  type: string
+                vendor_email:
+                  type: string
+                vendor_pinCode:
+                  type: string
+                vendor_bankName:
+                  type: string
+                vendor_accountNumber:
+                  type: string
+                vendor_ifscCode:
+                  type: string
+                vendor_paymentTerms:
+                  type: string
+                  enum: ["Net 15", "Net 30", "On Delivery"]
+                vendor_preferredPaymentMode:
+                  type: string
+                  enum: ["Cash", "Bank Transfer", "UPI", "Cheque"]
+                vendor_creditLimit:
+                  type: number
+                vendor_outstandingBalance:
+                  type: number
+                vendor_gstType:
+                  type: string
+                  enum: ["Cgst Sgst", "Igst", "Non Gst", "Exempt"]
+                vendor_registrationType:
+                  type: string
+                  enum: ["Composition", "Registered", "UnRegistered"]
+                vendor_gstNumber:
+                  type: string
+                vendor_openingBalance:
+                  type: number
+      responses:
+        '201':
+          description: Created
+
+  /v1/vendorList/bulk-excel:
+    post:
+      summary: Bulk create vendors from Excel
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Inserted
+        '207':
+          description: Partial Insert
+        '400':
+          description: Bad Request
+
+  /v1/vendorList/{id}:
+    put:
+      summary: Update vendor (admin)
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+
+    delete:
+      summary: Delete vendor (admin)
+      tags:
+        - VendorsList
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted

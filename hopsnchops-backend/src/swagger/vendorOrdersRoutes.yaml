@@ -1,0 +1,400 @@
+tags:
+  - name: VendorOrders
+    description: Vendor orders management endpoints
+
+paths:
+  /v1/vendor:
+    post:
+      summary: Create a vendor (admin)
+      description: Create a new vendor. vendor_name is required and must be unique.
+      tags:
+        - VendorOrders
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vendor_name
+              properties:
+                vendor_name:
+                  type: string
+                  description: Vendor name (required, must be unique)
+                  example: "ABC Suppliers"
+                vendor_mobileNo:
+                  type: string
+                  description: Vendor mobile number
+                  example: "9876543210"
+                vendor_address:
+                  type: string
+                  description: Vendor address
+                  example: "123 Main Street, City"
+                vendor_gstNumber:
+                  type: string
+                  description: Vendor GST number
+                  example: "27ABCDE1234F1Z5"
+              example:
+                vendor_name: "ABC Suppliers"
+                vendor_mobileNo: "9876543210"
+                vendor_address: "123 Main Street, City"
+                vendor_gstNumber: "27ABCDE1234F1Z5"
+      responses:
+        '201':
+          description: Vendor created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Created vendor object
+        '400':
+          description: Bad Request - vendor_name required
+        '500':
+          description: Server Error
+
+    get:
+      summary: Get vendors with search, pagination and filters
+      description: Retrieve vendors with search functionality, brand/category filters, date range filtering, and pagination. Supports filtering by products that match brand or category.
+      tags:
+        - VendorOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search text in vendor_name or vendor_mobileNo
+          example: "ABC"
+        - in: query
+          name: brand
+          schema:
+            type: string
+          description: Filter by brand name or brand ID (filters vendors whose products match this brand)
+          example: "Coca Cola"
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category name or category ID (filters vendors whose products match this category)
+          example: "Beverages"
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: Filter vendors created from this date
+          example: "2024-01-01"
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: Filter vendors created until this date
+          example: "2024-12-31"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 1000
+          description: Number of items per page (max 1000)
+          example: 50
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+          example: "createdAt"
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+          example: "desc"
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      description: Vendor object
+                  total:
+                    type: integer
+                    description: Total number of vendors
+                    example: 100
+                  page:
+                    type: integer
+                    description: Current page number
+                    example: 1
+                  limit:
+                    type: integer
+                    description: Items per page
+                    example: 50
+        '500':
+          description: Server Error
+
+  /v1/vendor/order-product:
+    put:
+      summary: Update order product and create purchase record (admin)
+      description: Update sendToPurchaseQty and remarks for a product in an order. Automatically calculates totalClosingAmount (sum of sendToPurchaseQty * taxableValue for all products) and updates paymentStatus (Paid if totalAmount = totalClosingAmount, Partial if totalClosingAmount > 0 and != totalAmount, otherwise Pending). Also creates or updates Purchase record with rcvdPurchaseQty and adds sendToPurchaseQty to currentPurchaseQty.
+      tags:
+        - VendorOrders
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - productId
+                - sendToPurchaseQty
+              properties:
+                orderId:
+                  type: string
+                  description: Order ID
+                  example: "65af12c98cd34bcdef112233"
+                productId:
+                  type: string
+                  description: Product ID to update in the order
+                  example: "65af1acd9ef45bbeae998877"
+                sendToPurchaseQty:
+                  type: number
+                  description: Quantity to send to purchase (must be non-negative)
+                  minimum: 0
+                  example: 10
+                remarks:
+                  type: string
+                  description: Optional remarks for the product
+                  example: "Urgent delivery required"
+              example:
+                orderId: "65af12c98cd34bcdef112233"
+                productId: "65af1acd9ef45bbeae998877"
+                sendToPurchaseQty: 10
+                remarks: "Urgent delivery required"
+      responses:
+        '200':
+          description: Order product updated and purchase record created/updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Order product updated and purchase record created/updated"
+                  data:
+                    type: object
+                    description: Updated order with populated products
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      orderNumber:
+                        type: string
+                      products:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            productId:
+                              type: object
+                              description: Populated product object
+                            orderQty:
+                              type: number
+                            sendToPurchaseQty:
+                              type: number
+                            remarks:
+                              type: string
+                      totalAmount:
+                        type: number
+                      totalClosingAmount:
+                        type: number
+                      paymentStatus:
+                        type: string
+                        enum: [Paid, Pending, Partial]
+                      totelOrderQty:
+                        type: number
+                      orderDate:
+                        type: string
+                        format: date-time
+        '400':
+          description: Bad Request - Missing required fields or invalid sendToPurchaseQty
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "orderId is required"
+        '404':
+          description: Not Found - Order or product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Order not found"
+        '500':
+          description: Server Error
+
+  /v1/vendor/{id}:
+    put:
+      summary: Update vendor by ID (admin)
+      description: Update vendor details by vendor ID. All fields in request body will be updated.
+      tags:
+        - VendorOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Vendor ID
+          example: "65af12c98cd34bcdef112233"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vendor_name:
+                  type: string
+                  description: Vendor name
+                  example: "ABC Suppliers Updated"
+                vendor_mobileNo:
+                  type: string
+                  description: Vendor mobile number
+                  example: "9876543210"
+                vendor_address:
+                  type: string
+                  description: Vendor address
+                  example: "456 New Street, City"
+                vendor_gstNumber:
+                  type: string
+                  description: Vendor GST number
+                  example: "27ABCDE1234F1Z5"
+              example:
+                vendor_name: "ABC Suppliers Updated"
+                vendor_mobileNo: "9876543210"
+                vendor_address: "456 New Street, City"
+      responses:
+        '200':
+          description: Vendor updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Updated vendor object
+        '400':
+          description: Bad Request - id param required
+        '404':
+          description: Not Found - Vendor not found
+        '500':
+          description: Server Error
+
+    delete:
+      summary: Delete vendor by ID (admin)
+      description: Delete a single vendor by ID. Can also delete multiple vendors by providing ids array in request body (if id param is not provided).
+      tags:
+        - VendorOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: false
+          schema:
+            type: string
+          description: Vendor ID (optional if using bulk delete with ids in body)
+          example: "65af12c98cd34bcdef112233"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of vendor IDs for bulk delete (used when id param is not provided)
+                  example: ["65af12c98cd34bcdef112233", "65af1acd9ef45bbeae998877"]
+      responses:
+        '200':
+          description: Vendor(s) deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Deleted vendor object (for single delete)
+                  deletedCount:
+                    type: integer
+                    description: Number of vendors deleted (for bulk delete)
+                    example: 2
+        '400':
+          description: Bad Request - No ids provided (for bulk delete)
+        '404':
+          description: Not Found - Vendor not found
+        '500':
+          description: Server Error
+

@@ -1,0 +1,325 @@
+tags:
+  - name: ConsumableStocks
+    description: Consumable stock endpoints
+
+paths:
+  /v1/consumableStock:
+    post:
+      summary: Record usage or wastage from consumable stock (admin)
+      description: |
+        Subtracts quantity from the latest ConsumableStocks.closingStock for the product.
+        Increments transfersToUsage and transfersToWastage.
+        closingStock = openingStock + rcvdConsumableQty - transfersToUsage - transfersToWastage
+      tags:
+        - ConsumableStocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+              properties:
+                productId:
+                  oneOf:
+                    - type: string
+                    - type: object
+                      properties:
+                        _id:
+                          type: string
+                  description: Product ID (string or object with _id)
+                  example: "65af12c98cd34bcdef112233"
+
+                transfersToUsage:
+                  type: number
+                  description: Quantity used from consumable stock
+                  example: 5
+
+                transfersToWastage:
+                  type: number
+                  description: Quantity wasted from consumable stock
+                  example: 3
+      responses:
+        '201':
+          description: Usage/Wastage recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    description: Updated consumable stock
+
+    get:
+      summary: Get consumable stock with filters, search, pagination, and sort
+      description: |
+        Returns consumable stock with populated product details.
+        categoryId/vendorsId/companyId return only _id and name fields.
+        
+        Supports:
+        - Search (productName)
+        - Filters: categoryId, vendorId, companyId
+        - Date range: fromDate, toDate
+        - Pagination: page, limit
+        - Sorting: sortBy, sortDir
+
+        Daily rollover:
+        If updated before today, openingStock is automatically set to closingStock.
+      tags:
+        - ConsumableStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by product name
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+          description: Filter by category
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+          description: Filter by vendor
+        - in: query
+          name: companyId
+          schema:
+            type: string
+          description: Filter by company
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: From date (YYYY-MM-DD)
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: To date (YYYY-MM-DD)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, openingStock, closingStock, rcvdConsumableQty, transfersToUsage, transfersToWastage]
+            default: createdAt
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of consumable stocks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: object
+                          properties:
+                            _id: { type: string }
+                            productName: { type: string }
+                            unit: { type: string }
+                            packSize: { type: string }
+                            stockAlert: { type: number }
+
+                            categoryId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                categoryName: { type: string }
+
+                            vendorsId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                vendor_name: { type: string }
+
+                            companyId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                brandName: { type: string }
+
+                        openingStock: { type: number }
+                        rcvdConsumableQty: { type: number }
+                        transfersToUsage: { type: number }
+                        transfersToWastage: { type: number }
+                        closingStock: { type: number }
+                        createdAt: { type: string, format: date-time }
+                        updatedAt: { type: string, format: date-time }
+
+                  pagination:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      pages: { type: integer }
+
+  /v1/consumableStock/{id}:
+    put:
+      summary: Update a consumable stock record (admin)
+      tags:
+        - ConsumableStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+
+    delete:
+      summary: Delete a consumable stock record (admin)
+      tags:
+        - ConsumableStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+
+  /v1/consumableStock/bulk/create:
+    post:
+      summary: Bulk update usage/wastage from consumable stock (admin)
+      description: |
+        Accepts an array of objects (or an object with `items` array). Each item must contain `productId` and at least one of `transfersToUsage` or `transfersToWastage`.
+        Applies usage/wastage updates to latest ConsumableStocks records and returns per-item success/failure details.
+      tags:
+        - ConsumableStocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - productId
+                        properties:
+                          productId:
+                            oneOf:
+                              - type: string
+                              - type: object
+                                properties:
+                                  _id:
+                                    type: string
+                          transfersToUsage:
+                            type: number
+                          transfersToWastage:
+                            type: number
+                - type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                    properties:
+                      productId:
+                        oneOf:
+                          - type: string
+                          - type: object
+                            properties:
+                              _id:
+                                type: string
+                      transfersToUsage:
+                        type: number
+                      transfersToWastage:
+                        type: number
+            examples:
+              format1:
+                summary: Array of items
+                value:
+                  - productId: "65af12c98cd34bcdef112233"
+                    transfersToUsage: 2
+                  - productId: "65af12c98cd34bcdef112234"
+                    transfersToWastage: 1
+              format2:
+                summary: Object with items
+                value:
+                  items:
+                    - productId: "65af12c98cd34bcdef112233"
+                      transfersToUsage: 2
+                    - productId: "65af12c98cd34bcdef112234"
+                      transfersToWastage: 1
+      responses:
+        '201':
+          description: All updates applied successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      successful:
+                        type: array
+                      failed:
+                        type: array
+        '207':
+          description: Partial success
+        '400':
+          description: Bad request (invalid format or empty array)
+        '500':
+          description: Server Error

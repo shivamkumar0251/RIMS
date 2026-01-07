@@ -1,0 +1,17 @@
+tags:
+  - name: Outlet
+    description: Outlet endpoints
+
+paths:
+  /v1/outlet:
+    get:
+      summary: Get list of outlets
+      tags:
+        - Outlet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+        '500':
+          description: Server Error
