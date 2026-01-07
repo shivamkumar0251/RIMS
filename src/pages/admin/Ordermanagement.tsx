@@ -4,9 +4,7 @@ import {
   Checkbox,
   CircularProgress,
   IconButton,
-  InputAdornment,
   List,
-  ListItem,
   ListItemButton,
   ListItemText,
   Paper,
@@ -28,7 +26,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSend, FiSearch, FiRefreshCw, FiFilter, FiFileText } from "react-icons/fi";
+import { FiSend, FiSearch, FiFilter, FiFileText } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import jsPDF from "jspdf";
@@ -39,7 +37,6 @@ import {
   getOrdersProduct,
   selectOrderState,
   type Order,
-  type OrderPostData,
 } from "../../redux/slices/orderSlice";
 
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
@@ -64,12 +61,12 @@ export default function OrderManagementPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState("Inventory Items");
 
   // Filters
-  const [search, setSearch] = useState("");
+  const [search] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [vendorId, setVendorId] = useState("");
   const [companyId, setCompanyId] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [fromDate] = useState("");
+  const [toDate] = useState("");
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -81,13 +78,14 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Vendor Selection Dialog
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState<"whatsapp" | "pdf">("whatsapp");
 
   // Popover States
   const [productAnchor, setProductAnchor] = useState<null | HTMLElement>(null);
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
   const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
   const [brandAnchor, setBrandAnchor] = useState<null | HTMLElement>(null);
-  
+
   const [productSearch, setProductSearch] = useState("");
   const [catSearch, setCatSearch] = useState("");
   const [vendorSearch, setVendorSearch] = useState("");
@@ -103,6 +101,12 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Fetch products
   useEffect(() => {
+    // Map activeTab to Product Type enum
+    const typeMapping: Record<string, string> = {
+      "Inventory Items": "Inventory Item",
+      "Packaging Items": "Packaging Item"
+    };
+
     dispatch(
       getOrdersProduct({
         search: productSearch || search,
@@ -111,11 +115,19 @@ export default function OrderManagementPage(): JSX.Element {
         category: categoryId,
         vendor: vendorId,
         brand: companyId,
+        productType: typeMapping[activeTab],
         fromDate,
         toDate
       })
     );
   }, [dispatch, page, rowsPerPage, search, productSearch, categoryId, vendorId, companyId, fromDate, toDate, activeTab]);
+
+  // Reset page and selection when tab changes
+  useEffect(() => {
+    setPage(0);
+    setSelected([]);
+    setQtyMap({});
+  }, [activeTab]);
 
   // Selection Logic
   const toggleRow = (id: string) => {
@@ -133,11 +145,19 @@ export default function OrderManagementPage(): JSX.Element {
   };
 
 
-  // PDF Export
-  const handleExportPDF = () => {
+  // PDF Export Logic
+  const generatePDF = (vendor: any) => {
     const doc = new jsPDF();
     const isPackaging = activeTab === "Packaging Items";
-    
+
+    // Add Vendor Info to PDF Header
+    doc.setFontSize(18);
+    doc.text("PURCHASE ORDER", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Vendor: ${vendor.vendor_name}`, 14, 30);
+    doc.text(`Date: ${dayjs().format('DD/MM/YYYY')}`, 14, 35);
+    doc.text(`Order No: (Draft)`, 14, 40);
+
     const headers = ['#', 'Product', 'Brand', 'Unit'];
     if (isPackaging) {
       headers.push('Shape', 'Colour');
@@ -147,7 +167,7 @@ export default function OrderManagementPage(): JSX.Element {
     const tableData = ordersList
       .filter(p => selected.includes(p._id))
       .map((p, index) => {
-        const row = [
+        const row: any[] = [
           index + 1,
           p.productName,
           p.companyId?.brandName || "N/A",
@@ -163,36 +183,53 @@ export default function OrderManagementPage(): JSX.Element {
     autoTable(doc, {
       head: [headers],
       body: tableData,
+      startY: 45,
     });
-    doc.save(`Order_${dayjs().format('YYYY-MM-DD')}.pdf`);
+    doc.save(`Order_${vendor.vendor_name}_${dayjs().format('YYYY-MM-DD')}.pdf`);
   };
 
-  // Vendor Selection & WhatsApp
+  const handleExportPDF = () => {
+    setActionType("pdf");
+    setVendorDialogOpen(true);
+  };
+
+  // Vendor Selection, WhatsApp & API Call
   const handleSelectVendor = async (vendor: any) => {
     const selectedProducts = ordersList.filter(p => selected.includes(p._id) && (qtyMap[p._id] || 0) > 0);
-    
+
     if (selectedProducts.length === 0) return;
 
-    // Construct WhatsApp message
-    let message = `📦 *Order for ${vendor.vendor_name}*\n\n`;
-    selectedProducts.forEach((p, index) => {
-      const qty = qtyMap[p._id];
-      const brand = p.companyId?.brandName || "N/A";
-      message += `${index + 1}. *${p.productName}*\n   Brand: ${brand}\n   Qty: ${qty}\n\n`;
-    });
+    // 1. Prepare API Payload
+    const payload = {
+      vendorsId: vendor._id,
+      products: selectedProducts.map(p => ({
+        productId: p._id,
+        orderQty: qtyMap[p._id]
+      }))
+    };
 
-    const phoneNumber = vendor.vendor_mobileNo || "7668955567";
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    // 2. Dispatch to Backend (Makes it show up in Vendor Orders)
+    await dispatch(addOrder(payload)).unwrap();
 
-    const payload: OrderPostData[] = selectedProducts.map(p => ({
-      productId: p._id,
-      orderQty: qtyMap[p._id]
-    }));
+    // 3. Perform specific action
+    if (actionType === "whatsapp") {
+      // Construct WhatsApp message
+      let message = `📦 *Order for ${vendor.vendor_name}*\n\n`;
+      selectedProducts.forEach((p, index) => {
+        const qty = qtyMap[p._id];
+        const brand = p.companyId?.brandName || "N/A";
+        message += `${index + 1}. *${p.productName}*\n   Brand: ${brand}\n   Qty: ${qty}\n\n`;
+      });
 
-    await dispatch(addOrder(payload));
-    
-    // Open WhatsApp
-    window.open(whatsappUrl, "_blank");
+      const phoneNumber = vendor.vendor_mobileNo || "";
+      if (phoneNumber) {
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, "_blank");
+      }
+    } else {
+      // Generate PDF
+      generatePDF(vendor);
+    }
 
     setVendorDialogOpen(false);
     setSelected([]);
@@ -200,22 +237,17 @@ export default function OrderManagementPage(): JSX.Element {
   };
 
   // Filter Search Logic
-  const filteredProducts = useMemo(() => 
-    ordersList.filter(p => (p.productName || "").toLowerCase().includes(productSearch.toLowerCase())),
-    [ordersList, productSearch]
-  );
-
-  const filteredCats = useMemo(() => 
+  const filteredCats = useMemo(() =>
     categories.filter(c => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
     [categories, catSearch]
   );
 
-  const filteredVendors = useMemo(() => 
+  const filteredVendors = useMemo(() =>
     vendorNames.filter(v => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
     [vendorNames, vendorSearch]
   );
 
-  const filteredBrands = useMemo(() => 
+  const filteredBrands = useMemo(() =>
     companies.filter(c => (c.brandName || "").toLowerCase().includes(brandSearch.toLowerCase())),
     [companies, brandSearch]
   );
@@ -225,14 +257,14 @@ export default function OrderManagementPage(): JSX.Element {
       <Box>
         {/* Top Header Row with Tabs */}
         <Box className="flex flex-col sm:flex-row items-center justify-between pt-4 pr-6 gap-4 border-b border-gray-200">
-          <Tabs 
-            value={activeTab} 
+          <Tabs
+            value={activeTab}
             onChange={(_, val) => setActiveTab(val)}
             textColor="primary"
             indicatorColor="primary"
           >
-            <Tab label="Inventory Items" value="Inventory Items" className="normal-case font-semibold"  sx={{fontSize: "12px"}}/>
-            <Tab label="Packaging Items" value="Packaging Items" className="normal-case font-semibold" sx={{fontSize: "12px"}}/>
+            <Tab label="Inventory Items" value="Inventory Items" className="normal-case font-semibold" sx={{ fontSize: "12px" }} />
+            <Tab label="Packaging Items" value="Packaging Items" className="normal-case font-semibold" sx={{ fontSize: "12px" }} />
           </Tabs>
 
           <Box className="flex items-center gap-2 mb-2">
@@ -250,7 +282,10 @@ export default function OrderManagementPage(): JSX.Element {
               variant="contained"
               startIcon={<FiSend />}
               disabled={selected.length === 0 || selected.some(id => !(qtyMap[id]))}
-              onClick={() => setVendorDialogOpen(true)}
+              onClick={() => {
+                setActionType("whatsapp");
+                setVendorDialogOpen(true);
+              }}
               size="small"
             >
               Send Order ({selected.length})
@@ -510,10 +545,10 @@ export default function OrderManagementPage(): JSX.Element {
           <List>
             {vendorsData.map((vendor: any) => (
               <ListItemButton key={vendor._id} onClick={() => handleSelectVendor(vendor)} className="border-b">
-                <ListItemText 
-                  primary={vendor.vendor_name} 
-                  secondary={vendor.vendor_mobileNo} 
-                  primaryTypographyProps={{fontWeight: 'bold'}}
+                <ListItemText
+                  primary={vendor.vendor_name}
+                  secondary={vendor.vendor_mobileNo}
+                  primaryTypographyProps={{ fontWeight: 'bold' }}
                 />
               </ListItemButton>
             ))}

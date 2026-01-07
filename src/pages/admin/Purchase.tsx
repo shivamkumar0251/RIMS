@@ -87,9 +87,10 @@ const Purchase: React.FC = () => {
     if (vendorOrder) {
       const initialData: Record<string, { receivedQty: number; damagedQty: number; remarks: string }> = {};
       vendorOrder.products.forEach((p: any) => {
-        if (p.productId && p.sendToPurchaseQty > 0) {
+        const qtyToRcv = p.sendToPurchaseQty || p.orderQty || 0;
+        if (p.productId && qtyToRcv > 0) {
           initialData[p.productId._id] = {
-            receivedQty: p.sendToPurchaseQty,
+            receivedQty: qtyToRcv,
             damagedQty: 0,
             remarks: ""
           };
@@ -183,18 +184,17 @@ const Purchase: React.FC = () => {
     console.log("Store Stock Payload:", storeStockPayload);
 
     try {
-      // 1. Add to Store Stock
-      if (storeStockPayload.length > 0) {
-        console.log("Adding to store stock...");
-        const result = await dispatch(addStoreStock(storeStockPayload)).unwrap();
-        console.log("Store stock updated:", result);
-      }
-
-      // 2. Mark Vendor Order as Received
-      console.log("Updating vendor order status...");
+      // 1. Mark Vendor Order as Received and update received quantities
+      // This backend call also creates/updates the Purchase records for these items.
+      console.log("Updating vendor order status and items...");
       const updateResult = await dispatch(updateVendorOrder({
         vendorOrderId: vendorOrder._id,
-        status: 'Received'
+        status: 'Received',
+        products: validItems.map(item => ({
+          productId: item.productId._id,
+          sendToPurchaseQty: item.receivedQty,
+          remarks: item.remarks
+        }))
       })).unwrap();
       console.log("Vendor order updated:", updateResult);
 
@@ -373,7 +373,7 @@ const Purchase: React.FC = () => {
                 </TableHead>
                 <TableBody>
                   {vendorOrder.products
-                    .filter((p: any) => p.sendToPurchaseQty > 0)
+                    .filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0)
                     .map((row: any) => {
                       const pid = row.productId?._id;
                       const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
@@ -391,7 +391,7 @@ const Purchase: React.FC = () => {
                               </Typography>
                             </Box>
                           </TableCell>
-                          <TableCell>{row.sendToPurchaseQty}</TableCell>
+                          <TableCell>{row.sendToPurchaseQty || row.orderQty}</TableCell>
                           <TableCell>{row.productId?.unit}</TableCell>
                           <TableCell>
                             <TextField

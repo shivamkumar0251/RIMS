@@ -69,7 +69,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
     {
       icon: <PiOvenDuotone />,
-      name: "Vendor Orders",
+      name: "Order History",
       to: "/admin/vendorsOrder",
     },
     { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },

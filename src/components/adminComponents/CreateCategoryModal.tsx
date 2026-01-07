@@ -1,115 +1,102 @@
+import React, { useState } from "react";
 import {
-  Box,
-  Button,
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
   TextField,
+  Box,
+  Typography,
+  IconButton
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
-// import { useCreateCategoryMutation, useUpdateCategoryMutation, } from "../products/store/apiServices";
+import { FiX } from "react-icons/fi";
 
 interface CreateCategoryModalProps {
   open: boolean;
   onClose: () => void;
-  onRefresh: () => void;
-  editMode: boolean;
-  currentCategory: { _id: string; category: string } | null;
+  onSave: (name: string) => Promise<void>;
 }
 
-const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
-  open,
-  onClose,
-  // onRefresh,
-  editMode,
-  currentCategory,
-}) => {
-  const [categoryName, setCategoryName] = useState("");
+const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ open, onClose, onSave }) => {
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // const [createCategory, { isLoading: creating }] = useCreateCategoryMutation();
-  // const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
-
-  // prefill when editing
-  useEffect(() => {
-    if (editMode && currentCategory) {
-      setCategoryName(currentCategory.category);
-    } else {
-      setCategoryName("");
+  const handleSave = async () => {
+    if (!name.trim()) {
+      setError("Category name is required");
+      return;
     }
-  }, [editMode, currentCategory, open]);
-
-  // const handleSubmit = async () => {
-  //   if (!categoryName.trim()) return;
-
-  //   try {
-  //     let res: any;
-  //     if (editMode && currentCategory) {
-  //       // update
-  //       res = await updateCategory({
-  //         id: currentCategory._id,
-  //         category: categoryName,
-  //       }).unwrap();
-  //     } else {
-  //       // create
-  //       res = await createCategory({ category: categoryName }).unwrap();
-  //     }
-
-  //     if (res?.success) {
-  //       await onRefresh(); // refresh table
-  //       onClose();
-  //       setCategoryName("");
-  //     } else {
-  //       console.error("Action failed:", res);
-  //     }
-  //   } catch (err) {
-  //     console.error("API Error:", err);
-  //   }
-  // };
+    setLoading(true);
+    setError("");
+    try {
+      await onSave(name);
+      setName("");
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Failed to save category");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>
-        {editMode ? "Edit Category" : "Add Category"}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs"
+      PaperProps={{
+        sx: { borderRadius: '16px', p: 1 }
+      }}
+    >
+      <DialogTitle className="flex justify-between items-center bg-white border-b pb-4">
+        <Typography variant="h6" className="font-bold text-slate-800">Add New Category</Typography>
+        <IconButton onClick={onClose} size="small" className="text-slate-400">
+          <FiX size={20} />
+        </IconButton>
       </DialogTitle>
-
-      <DialogContent>
-        <Box mt={1}>
+      <DialogContent className="pt-6">
+        <Box className="space-y-4">
+          <Typography variant="body2" className="text-slate-500 mb-2">
+            Enter a unique name for the new product category.
+          </Typography>
           <TextField
             autoFocus
             fullWidth
+            size="small"
             label="Category Name"
-            variant="outlined"
-            value={categoryName}
-            onChange={(e) => setCategoryName(e.target.value)}
+            placeholder="e.g. Beverages, Bakery, etc."
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (error) setError("");
+            }}
+            error={Boolean(error)}
+            helperText={error}
+            className="bg-white"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') handleSave();
+            }}
           />
         </Box>
       </DialogContent>
-
-      <DialogActions>
+      <DialogActions className="p-4 pt-2">
         <Button
           onClick={onClose}
-          variant="contained"
-          color="error"
-          sx={{ textTransform: "capitalize" }}
+          className="normal-case text-slate-500 font-bold px-6"
         >
-          Close
+          Cancel
         </Button>
-        {/* <Button
-          onClick={handleSubmit}
+        <Button
+          onClick={handleSave}
           variant="contained"
-          color="success"
-          disabled={creating || updating}
-          sx={{ textTransform: "capitalize" }}
+          disabled={loading}
+          className="normal-case bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 rounded-lg shadow-lg shadow-indigo-100"
         >
-          {editMode
-            ? updating
-              ? "Updating..."
-              : "Update"
-            : creating
-              ? "Creating..."
-              : "Create"}
-        </Button> */}
+          {loading ? "Saving..." : "Save Category"}
+        </Button>
       </DialogActions>
     </Dialog>
   );

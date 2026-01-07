@@ -23,7 +23,6 @@ import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import {
     getKitchenStocks,
     selectKitchenStockState,
-    updateKitchenStock
 } from "../../redux/slices/kitchenStockSlice";
 import {
     addConsumableStock
@@ -71,7 +70,10 @@ const KitchenConsumption: React.FC = () => {
     // Initialize consumption items when kitchen stocks load
     useEffect(() => {
         const newItems: Record<string, ConsumptionItem> = {};
-        kitchenStocks.forEach((stock) => {
+        // Filter out Packaging Items from Kitchen Consumption list
+        const consumableStocks = kitchenStocks.filter(s => s.productId?.productType !== "Packaging Item");
+
+        consumableStocks.forEach((stock) => {
             const pid = stock.productId?._id;
             if (pid && !consumptionItems[pid]) {
                 newItems[pid] = {
@@ -159,21 +161,7 @@ const KitchenConsumption: React.FC = () => {
             console.log("Starting consumption process...");
             console.log("Items to consume:", validItemsToConsume);
 
-            // 1. Deduct from Kitchen Stock
-            for (const item of validItemsToConsume) {
-                const kitchenStock = kitchenStocks.find(s => s.productId._id === item.productId);
-                if (kitchenStock) {
-                    console.log(`Updating kitchen stock for ${item.productName}...`);
-                    await dispatch(updateKitchenStock({
-                        kitchenStockId: kitchenStock._id,
-                        kitchenStockData: {
-                            transfersToConsumable: (kitchenStock.transfersToConsumable || 0) + item.consumedQty
-                        }
-                    })).unwrap();
-                }
-            }
-
-            // 2. Add to Consumables (log usage/wastage based on purpose)
+            // 1. Add to Consumables (The backend now automatically deducts from Kitchen Stock)
             const consumablePayload: ConsumableStockPostData[] = validItemsToConsume.map((item) => ({
                 productId: item.productId,
                 transfersToUsage: item.purpose === "Wastage" ? 0 : item.consumedQty,
@@ -287,119 +275,121 @@ const KitchenConsumption: React.FC = () => {
                                             <Typography className="mt-2 text-gray-500 text-sm">Loading kitchen stocks...</Typography>
                                         </TableCell>
                                     </TableRow>
-                                ) : kitchenStocks.length === 0 ? (
+                                ) : kitchenStocks.filter(s => s.productId?.productType !== "Packaging Item").length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} align="center" className="py-10 text-gray-500 text-sm">
-                                            No products found in kitchen stock.
+                                            No products found in kitchen stock (Packaging items are restricted).
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    kitchenStocks.map((stock) => {
-                                        const pid = stock.productId?._id;
-                                        const item = consumptionItems[pid] || {
-                                            productId: pid || "",
-                                            productName: stock.productId?.productName || "",
-                                            availableQty: stock.closingStock,
-                                            consumedQty: 0,
-                                            unit: stock.productId?.unit || "",
-                                            purpose: "" as PurposeType,
-                                            remarks: "",
-                                        };
+                                    kitchenStocks
+                                        .filter(s => s.productId?.productType !== "Packaging Item")
+                                        .map((stock) => {
+                                            const pid = stock.productId?._id;
+                                            const item = consumptionItems[pid] || {
+                                                productId: pid || "",
+                                                productName: stock.productId?.productName || "",
+                                                availableQty: stock.closingStock,
+                                                consumedQty: 0,
+                                                unit: stock.productId?.unit || "",
+                                                purpose: "" as PurposeType,
+                                                remarks: "",
+                                            };
 
-                                        const hasConsumedQty = item.consumedQty > 0;
-                                        const isQtyValid = item.consumedQty > 0 && item.consumedQty <= item.availableQty;
-                                        const isPurposeValid = hasConsumedQty ? !!item.purpose : true;
-                                        const isRemarksValid = hasConsumedQty && item.purpose === "Wastage" ? !!item.remarks.trim() : true;
-                                        const isRowValid = hasConsumedQty && isQtyValid && isPurposeValid && isRemarksValid;
+                                            const hasConsumedQty = item.consumedQty > 0;
+                                            const isQtyValid = item.consumedQty > 0 && item.consumedQty <= item.availableQty;
+                                            const isPurposeValid = hasConsumedQty ? !!item.purpose : true;
+                                            const isRemarksValid = hasConsumedQty && item.purpose === "Wastage" ? !!item.remarks.trim() : true;
+                                            const isRowValid = hasConsumedQty && isQtyValid && isPurposeValid && isRemarksValid;
 
-                                        return (
-                                            <TableRow
-                                                key={stock._id}
-                                                hover
-                                                className={hasConsumedQty && !isRowValid ? "bg-red-50" : ""}
-                                            >
-                                                <TableCell>
-                                                    <Typography variant="body2" className="font-medium">
-                                                        {stock.productId?.productName}
-                                                    </Typography>
-                                                    <Typography variant="caption" className="text-gray-500">
-                                                        {stock.productId?.packSize}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell className="text-center font-bold text-green-600">
-                                                    {item.availableQty}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <TextField
-                                                        size="small"
-                                                        type="number"
-                                                        value={item.consumedQty || ""}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            handleConsumedQtyChange(pid || "", Number(e.target.value));
-                                                        }}
-                                                        error={hasConsumedQty && !isQtyValid}
-                                                        helperText={hasConsumedQty && !isQtyValid ? "Invalid qty" : ""}
-                                                        inputProps={{
-                                                            min: 0,
-                                                            max: item.availableQty,
-                                                        }}
-                                                        sx={{
-                                                            width: 100,
-                                                            "& .MuiInputBase-input": {
-                                                                textAlign: "center",
-                                                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                                                                    display: "none",
+                                            return (
+                                                <TableRow
+                                                    key={stock._id}
+                                                    hover
+                                                    className={hasConsumedQty && !isRowValid ? "bg-red-50" : ""}
+                                                >
+                                                    <TableCell>
+                                                        <Typography variant="body2" className="font-medium">
+                                                            {stock.productId?.productName}
+                                                        </Typography>
+                                                        <Typography variant="caption" className="text-gray-500">
+                                                            {stock.productId?.packSize}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell className="text-center font-bold text-green-600">
+                                                        {item.availableQty}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={item.consumedQty || ""}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                handleConsumedQtyChange(pid || "", Number(e.target.value));
+                                                            }}
+                                                            error={hasConsumedQty && !isQtyValid}
+                                                            helperText={hasConsumedQty && !isQtyValid ? "Invalid qty" : ""}
+                                                            inputProps={{
+                                                                min: 0,
+                                                                max: item.availableQty,
+                                                            }}
+                                                            sx={{
+                                                                width: 100,
+                                                                "& .MuiInputBase-input": {
+                                                                    textAlign: "center",
+                                                                    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+                                                                        display: "none",
+                                                                    },
+                                                                    "&": {
+                                                                        MozAppearance: "textfield",
+                                                                    },
                                                                 },
-                                                                "&": {
-                                                                    MozAppearance: "textfield",
-                                                                },
-                                                            },
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-gray-600">{item.unit}</TableCell>
-                                                <TableCell>
-                                                    <TextField
-                                                        select
-                                                        size="small"
-                                                        fullWidth
-                                                        value={item.purpose}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            handlePurposeChange(pid || "", e.target.value as PurposeType);
-                                                        }}
-                                                        error={hasConsumedQty && !isPurposeValid}
-                                                        helperText={hasConsumedQty && !isPurposeValid ? "Required" : ""}
-                                                        sx={{ minWidth: 150 }}
-                                                        disabled={!hasConsumedQty}
-                                                    >
-                                                        <MenuItem value="">
-                                                            <em>Select Purpose</em>
-                                                        </MenuItem>
-                                                        {PURPOSE_OPTIONS.map((option) => (
-                                                            <MenuItem key={option} value={option}>
-                                                                {option}
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-gray-600">{item.unit}</TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            select
+                                                            size="small"
+                                                            fullWidth
+                                                            value={item.purpose}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                handlePurposeChange(pid || "", e.target.value as PurposeType);
+                                                            }}
+                                                            error={hasConsumedQty && !isPurposeValid}
+                                                            helperText={hasConsumedQty && !isPurposeValid ? "Required" : ""}
+                                                            sx={{ minWidth: 150 }}
+                                                            disabled={!hasConsumedQty}
+                                                        >
+                                                            <MenuItem value="">
+                                                                <em>Select Purpose</em>
                                                             </MenuItem>
-                                                        ))}
-                                                    </TextField>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <TextField
-                                                        size="small"
-                                                        fullWidth
-                                                        placeholder={item.purpose === "Wastage" ? "Required for wastage" : "Optional remarks..."}
-                                                        value={item.remarks}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            handleRemarksChange(pid || "", e.target.value);
-                                                        }}
-                                                        error={hasConsumedQty && !isRemarksValid}
-                                                        helperText={hasConsumedQty && !isRemarksValid ? "Required for Wastage" : ""}
-                                                        sx={{ minWidth: 180 }}
-                                                        disabled={!hasConsumedQty}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
+                                                            {PURPOSE_OPTIONS.map((option) => (
+                                                                <MenuItem key={option} value={option}>
+                                                                    {option}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </TextField>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            fullWidth
+                                                            placeholder={item.purpose === "Wastage" ? "Required for wastage" : "Optional remarks..."}
+                                                            value={item.remarks}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                handleRemarksChange(pid || "", e.target.value);
+                                                            }}
+                                                            error={hasConsumedQty && !isRemarksValid}
+                                                            helperText={hasConsumedQty && !isRemarksValid ? "Required for Wastage" : ""}
+                                                            sx={{ minWidth: 180 }}
+                                                            disabled={!hasConsumedQty}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
                                 )}
                             </TableBody>
                         </Table>

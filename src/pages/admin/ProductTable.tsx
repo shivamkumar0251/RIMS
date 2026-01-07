@@ -1,21 +1,16 @@
 import {
-  Autocomplete,
   Box,
   Button,
   CircularProgress,
   Divider,
   Drawer,
-  FormControl,
   IconButton,
   InputAdornment,
-  InputLabel,
   List,
   ListItemButton,
   ListItemText,
-  MenuItem,
   Paper,
   Popover,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -30,7 +25,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw, FiFilter } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
+import { toast, Toaster } from "react-hot-toast";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -49,6 +47,7 @@ import {
 import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
 import { addVendor, getVendorNameList, selectVendorNames, type GetVendorData, type VendorFormType } from "../../redux/slices/vendorSlice";
+import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
 
 type PartialProductForm = Partial<ProductInterface>;
 
@@ -72,14 +71,14 @@ export default function ProductTable() {
   const [vendorId, setVendorId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(0); 
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Popover States
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
   const [companyAnchor, setCompanyAnchor] = useState<null | HTMLElement>(null);
   const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
-  
+
   const [catSearch, setCatSearch] = useState("");
   const [companySearch, setCompanySearch] = useState("");
   const [vendorSearch, setVendorSearch] = useState("");
@@ -102,9 +101,13 @@ export default function ProductTable() {
     gstPct: 0,
     taxableValue: 0,
     perUnitRate: 0,
-    stockAlert: 0,
+    // stockAlert: 0,
     createdAt: new Date().toISOString(),
   });
+
+  // Quick Add Modal States
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
 
   const loading = productState.loading;
 
@@ -115,8 +118,7 @@ export default function ProductTable() {
     dispatch(getVendorNameList());
   }, [dispatch]);
 
-  // === fetch products when filters change ===
-  useEffect(() => {
+  const refreshProducts = () => {
     dispatch(getProducts({
       search: searchName || undefined,
       page: page + 1,
@@ -127,6 +129,11 @@ export default function ProductTable() {
       vendor: vendorId || '',
       company: companyId || '',
     }));
+  };
+
+  // === fetch products when filters change ===
+  useEffect(() => {
+    refreshProducts();
   }, [dispatch, page, rowsPerPage, searchName, categoryId, vendorId, companyId, fromDate, toDate]);
 
   const handleDownloadTemplate = () => {
@@ -145,7 +152,7 @@ export default function ProductTable() {
         GstPercentage: 12,
         TaxableValue: 0,
         PerUnitRate: 120,
-        StockAlert: 5,
+        // StockAlert: 5,
       },
     ];
     const ws = XLSX.utils.json_to_sheet(sample);
@@ -167,10 +174,11 @@ export default function ProductTable() {
     const payload = res?.payload as BulkProductExcelResponse;
 
     if (payload?.success) {
-      alert(`Inserted: ${payload?.insertedCount || 0}`);
+      toast.success(`Successfully imported ${payload?.insertedCount || 0} products`);
       e.currentTarget.value = "";
+      refreshProducts();
     } else {
-      alert("Bulk upload failed");
+      toast.error("Bulk upload failed");
       e.currentTarget.value = "";
     }
   };
@@ -192,7 +200,7 @@ export default function ProductTable() {
       gstPct: 0,
       taxableValue: 0,
       perUnitRate: 0,
-      stockAlert: 0,
+      // stockAlert: 0,
       createdAt: new Date().toISOString(),
     });
     setDrawerOpen(true);
@@ -215,46 +223,56 @@ export default function ProductTable() {
     }));
   }, [form.perUnitRate, form.gstPct]);
 
-  const handleSaveProduct = async () => {
-    if (!form.productName || !form.categoryId || !form.companyId || !form.vendorsId || !form.productType) {
-      alert("Please fill all required fields: Product Name, Category, Vendor, Company, and Product Type");
-      return;
+  const handleSaveProduct = async (productData?: ProductInterface) => {
+    try {
+      const dataToSave = productData || (form as ProductInterface);
+
+      const payload: any = {
+        _id: editingProduct?._id || "",
+        productName: String(dataToSave.productName || ""),
+        packSize: String(dataToSave.packSize || ""),
+        unit: String(dataToSave.unit || ""),
+        productType: String(dataToSave.productType || ""),
+        shape: String(dataToSave.shape || ""),
+        colour: String(dataToSave.colour || ""),
+        printStatus: String(dataToSave.printStatus || ""),
+        productImage: dataToSave.productImage,
+        gstPct: Number(dataToSave.gstPct || 0),
+        taxableValue: Number(dataToSave.taxableValue || 0),
+        perUnitRate: Number(dataToSave.perUnitRate || 0),
+        // stockAlert: Number(dataToSave.stockAlert || 0),
+        createdAt: dataToSave.createdAt || new Date().toISOString(),
+        isActive: dataToSave.isActive ?? true
+      };
+
+      if (dataToSave.categoryId?._id) payload.categoryId = dataToSave.categoryId;
+      if (dataToSave.vendorsId?._id) payload.vendorsId = dataToSave.vendorsId;
+      if (dataToSave.companyId?._id) payload.companyId = dataToSave.companyId;
+
+      if (editingProduct) {
+        await dispatch(updateProduct({ productId: editingProduct._id, productData: payload })).unwrap();
+        toast.success("Product updated successfully");
+      } else {
+        await dispatch(addProduct(payload)).unwrap();
+        toast.success("Product added successfully");
+      }
+
+      setDrawerOpen(false);
+      refreshProducts();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save product");
     }
-
-    const payload: ProductInterface = {
-      _id: editingProduct?._id || "",
-      categoryId: form.categoryId,
-      vendorsId: form.vendorsId,
-      companyId: form.companyId,
-      productName: String(form.productName || ""),
-      packSize: String(form.packSize || ""),
-      unit: String(form.unit || ""),
-      productType: String(form.productType || ""),
-      shape: String(form.shape || ""),
-      colour: String(form.colour || ""),
-      printStatus: String(form.printStatus || ""),
-      productImage: form.productImage,
-      gstPct: Number(form.gstPct || 0),
-      taxableValue: Number(form.taxableValue || 0),
-      perUnitRate: Number(form.perUnitRate || 0),
-      stockAlert: Number(form.stockAlert || 0),
-      createdAt: form.createdAt || new Date().toISOString(),
-    };
-
-    if (editingProduct) {
-      await dispatch(updateProduct({ productId: editingProduct._id, productData: payload }));
-      alert("Updated successfully");
-    } else {
-      await dispatch(addProduct(payload));
-      alert("Added successfully");
-    }
-
-    setDrawerOpen(false);
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    await dispatch(deleteProduct(id));
+    try {
+      await dispatch(deleteProduct(id)).unwrap();
+      toast.success("Product deleted successfully");
+      refreshProducts();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete product");
+    }
   };
 
   const handleResetFilters = () => {
@@ -268,17 +286,17 @@ export default function ProductTable() {
   };
 
   // Filter Logic
-  const filteredCats = useMemo(() => 
+  const filteredCats = useMemo(() =>
     categories.filter((c: any) => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
     [categories, catSearch]
   );
 
-  const filteredVendors = useMemo(() => 
+  const filteredVendors = useMemo(() =>
     vendors.filter((v: any) => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
     [vendors, vendorSearch]
   );
 
-  const filteredCompanies = useMemo(() => 
+  const filteredCompanies = useMemo(() =>
     companies.filter((c: any) => (c.brandName || "").toLowerCase().includes(companySearch.toLowerCase())),
     [companies, companySearch]
   );
@@ -313,21 +331,47 @@ export default function ProductTable() {
 
   const handleSaveVendor = async () => {
     if (!vendorForm.vendor_name) {
-      alert("Vendor name is required");
+      toast.error("Vendor name is required");
       return;
     }
-    const res = await dispatch(addVendor(vendorForm));
-    if ((res.payload as GetVendorData)?._id) {
-      alert("Vendor added");
-      dispatch(getVendorNameList());
-      setVendorDrawerOpen(false);
-      setVendorForm({
-        vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
-        vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
-        vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
-        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
-        vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
-      });
+    try {
+      const res = await dispatch(addVendor(vendorForm)).unwrap();
+      if (res?._id) {
+        toast.success("Vendor added successfully");
+        dispatch(getVendorNameList());
+        setVendorDrawerOpen(false);
+        setVendorForm({
+          vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
+          vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
+          vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
+          vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
+          vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
+        });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save vendor");
+    }
+  };
+
+  const handleSaveCategory = async (name: string) => {
+    try {
+      await dispatch(addCategory({ categoryName: name })).unwrap();
+      dispatch(getCategories({ page: 1, limit: 1000 }));
+      toast.success("Category added successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add category");
+      throw err;
+    }
+  };
+
+  const handleSaveBrand = async (name: string) => {
+    try {
+      await dispatch(addCompany({ brandName: name })).unwrap();
+      dispatch(getCompanies({ page: 1, limit: 1000 }));
+      toast.success("Brand added successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add brand");
+      throw err;
     }
   };
 
@@ -335,9 +379,9 @@ export default function ProductTable() {
     <AdminLayout>
       <div>
         {/* Combined Tool Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
+        <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white rounded-xl mb-4">
           {/* Filters Area */}
-          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <Box className="flex flex-col sm:flex-row xl:flex-row items-start sm:items-end gap-3 w-full lg:w-auto">
             <TextField
               placeholder="Search products..."
               size="small"
@@ -353,8 +397,8 @@ export default function ProductTable() {
               className="w-full sm:w-64"
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
             />
-            
-            <Box className="flex items-center gap-2">
+
+            <Box className="flex flex-col sm:flex-row items-end gap-3 w-full sm:w-auto">
               <TextField
                 type="date"
                 size="small"
@@ -362,7 +406,7 @@ export default function ProductTable() {
                 InputLabelProps={{ shrink: true }}
                 value={fromDate}
                 onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
-                className="w-64"
+                className="w-full sm:w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
               <TextField
@@ -372,32 +416,31 @@ export default function ProductTable() {
                 InputLabelProps={{ shrink: true }}
                 value={toDate}
                 onChange={(e) => { setToDate(e.target.value); setPage(0); }}
-                className="w-64"
+                className="w-full sm:w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<FiRefreshCw />}
+                onClick={handleResetFilters}
+                className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-[40px] shrink-0"
+              >
+                Reset
+              </Button>
             </Box>
-
-            <Button 
-              size="small" 
-              variant="text" 
-              startIcon={<FiRefreshCw />} 
-              onClick={handleResetFilters}
-              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
-            >
-              Reset
-            </Button>
           </Box>
 
           {/* Actions Area */}
-          <Box className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
+          <Box className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0">
+            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px]">
               Template
             </Button>
             <input id="product-excel" type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleExcelUpload} />
-            <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
+            <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px]">
               Import
             </Button>
-            <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="!bg-blue-600 hover:!bg-blue-700 normal-case shadow-none">
+            <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="w-full sm:w-auto !bg-blue-600 hover:!bg-blue-700 normal-case shadow-none h-[40px]">
               Add Product
             </Button>
           </Box>
@@ -408,7 +451,8 @@ export default function ProductTable() {
             <Table>
               <TableHead className="bg-gray-50">
                 <TableRow>
-                  <TableCell className="font-bold">Product Details</TableCell>
+                  <TableCell className="font-bold">Product Name</TableCell>
+                  <TableCell className="font-bold">Type</TableCell>
                   <TableCell className="font-bold">
                     <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
                       Category
@@ -472,10 +516,14 @@ export default function ProductTable() {
                       </List>
                     </Popover>
                   </TableCell>
+                  <TableCell className="font-bold">Pack Size</TableCell>
+                  <TableCell className="font-bold">Attributes</TableCell>
+                  <TableCell className="font-bold">Print</TableCell>
+                  {/* <TableCell className="font-bold text-center">Status</TableCell> */}
                   <TableCell className="font-bold text-center">Rate</TableCell>
                   <TableCell className="font-bold text-center">GST%</TableCell>
                   <TableCell className="font-bold text-center">Taxable</TableCell>
-                  <TableCell className="font-bold text-center">Alert</TableCell>
+                  {/* <TableCell className="font-bold text-center">Alert</TableCell> */}
                   <TableCell className="font-bold">Created</TableCell>
                   <TableCell align="right" className="font-bold">Actions</TableCell>
                 </TableRow>
@@ -490,26 +538,65 @@ export default function ProductTable() {
                   (products || []).map((p: ProductInterface) => (
                     <TableRow key={p._id} hover>
                       <TableCell>
-                        <Typography variant="body2" className="font-medium">{p.productName}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{p.packSize} | {p.unit}</Typography>
+                        <Typography variant="body2" className="font-medium text-slate-800">{p.productName || "Unnamed Product"}</Typography>
                       </TableCell>
-                      <TableCell className="text-gray-600 capitalize">
+                      <TableCell>
+                        <Box className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${p.productType === 'Packaging Item' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                          {p.productType === 'Packaging Item' ? 'Packaging' : 'Inventory'}
+                        </Box>
+                      </TableCell>
+                      <TableCell className="text-gray-600 capitalize text-sm">
                         {p.categoryId && typeof p.categoryId === "object" ? p.categoryId.categoryName : (p.categoryId || "N/A")}
                       </TableCell>
-                      <TableCell className="text-gray-600">
+                      <TableCell className="text-gray-600 text-sm">
                         {p.vendorsId && typeof p.vendorsId === "object" ? p.vendorsId.vendor_name : (p.vendorsId || "N/A")}
                       </TableCell>
-                      <TableCell className="text-gray-600 italic">
-                        {p.companyId && typeof p.companyId === "object" ? p.companyId.brandName : (p.companyId || "N/A")}
+                      <TableCell className="text-gray-600 italic text-sm">
+                        {p.productType === 'Inventory Item' ? (
+                          p.companyId && typeof p.companyId === "object" ? p.companyId.brandName : (p.companyId || "N/A")
+                        ) : (
+                          <Typography variant="caption" className="text-gray-400">-</Typography>
+                        )}
                       </TableCell>
+                      <TableCell>
+                        <Box className="flex flex-col">
+                          <Typography variant="body2" className="font-medium">{p.packSize || "-"}</Typography>
+                          <Typography variant="caption" className="text-gray-400">{p.unit || "-"}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {p.productType === "Packaging Item" ? (
+                          <Box className="flex flex-col gap-0.5">
+                            {p.shape && <Typography variant="caption" className="text-slate-500 block leading-tight">S: {p.shape}</Typography>}
+                            {p.colour && <Typography variant="caption" className="text-slate-500 block leading-tight">C: {p.colour}</Typography>}
+                            {!p.shape && !p.colour && <Typography variant="caption" className="text-gray-400">-</Typography>}
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" className="text-gray-400">-</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {p.productType === "Packaging Item" ? (
+                          <Box className={`px-2 py-0.5 rounded-md text-[10px] font-bold inline-block ${p.printStatus === 'Non Print' ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}`}>
+                            {p.printStatus || "N/A"}
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" className="text-gray-400">-</Typography>
+                        )}
+                      </TableCell>
+                      {/* <TableCell className="text-center">
+                        <Box className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {p.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        </Box>
+                      </TableCell> */}
                       <TableCell className="text-center font-medium">₹{p.perUnitRate}</TableCell>
                       <TableCell className="text-center text-gray-600">{p.gstPct}%</TableCell>
                       <TableCell className="text-center font-bold text-blue-600">₹{p.taxableValue}</TableCell>
-                      <TableCell className="text-center">
+                      {/* <TableCell className="text-center">
                         <Box className="bg-orange-50 text-orange-700 rounded px-2 py-0.5 inline-block text-xs font-bold">
                           {p.stockAlert}
                         </Box>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell className="text-gray-500 text-xs">
                         {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
                       </TableCell>
@@ -537,120 +624,25 @@ export default function ProductTable() {
           />
         </Paper>
 
-        {/* right drawer form */}
-        <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          <Box sx={{ width: { xs: '100vw', sm: 600 }, p: 4 }}>
-            <Box className="flex items-center justify-between mb-6">
-              <Typography variant="h6" className="font-bold">{editingProduct ? "Edit Product" : "Add New Product"}</Typography>
-              <Box className="flex gap-2">
-                <Button size="small" variant="outlined" onClick={async () => { const name = prompt("New category name"); if (name) { await dispatch(addCategory({ categoryName: name })); dispatch(getCategories({ page: 1, limit: 1000 })); } }}>+ Category</Button>
-                <Button size="small" variant="outlined" onClick={() => setVendorDrawerOpen(true)}>+ Vendor</Button>
-                <Button size="small" variant="outlined" onClick={async () => { const name = prompt("New company brand"); if (name) { await dispatch(addCompany({ brandName: name })); dispatch(getCompanies({ page: 1, limit: 1000 })); } }}>+ Brand</Button>
-              </Box>
-            </Box>
-
-            <Divider className="mb-6" />
-
-            <div className="space-y-4">
-              <Autocomplete
-                freeSolo
-                size="small"
-                options={productNames}
-                value={form.productName || ""}
-                onChange={(_, val) => {
-                  const matched = products.find((x: ProductInterface) => x.productName === val);
-                  if (matched) {
-                    setForm({ ...matched });
-                    setEditingProduct(matched);
-                  } else {
-                    setForm(prev => ({ ...prev, productName: val as string }));
-                  }
-                }}
-                renderInput={(params) => <TextField {...params} label="Fast Product Search" placeholder="Type to find and fill..." />}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField fullWidth size="small" label="Product Name" value={form.productName || ""} onChange={(e) => setForm({ ...form, productName: e.target.value })} />
-                
-                <TextField select fullWidth size="small" label="Category" value={form.categoryId?._id || ""} onChange={(e) => {
-                  const s = categoryOptions.find((c) => c.id === e.target.value);
-                  setForm({ ...form, categoryId: { _id: e.target.value, categoryName: s?.label || "" } });
-                }}>
-                  <MenuItem value="">Select Category</MenuItem>
-                  {categoryOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
-                </TextField>
-
-                <TextField select fullWidth size="small" label="Vendor" value={form.vendorsId?._id || ""} onChange={(e) => {
-                  const s = vendorOptions.find((v) => v.id === e.target.value);
-                  setForm({ ...form, vendorsId: { _id: e.target.value, vendor_name: s?.label || "" } });
-                }}>
-                  <MenuItem value="">Select Vendor</MenuItem>
-                  {vendorOptions.map((v) => <MenuItem key={v.id} value={v.id}>{v.label}</MenuItem>)}
-                </TextField>
-
-                <TextField select fullWidth size="small" label="Brand" value={form.companyId?._id || ""} onChange={(e) => {
-                  const s = companyOptions.find((c) => c.id === e.target.value);
-                  setForm({ ...form, companyId: { _id: e.target.value, brandName: s?.label || "" } });
-                }}>
-                  <MenuItem value="">Select Brand</MenuItem>
-                  {companyOptions.map((c) => <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>)}
-                </TextField>
-
-                <TextField fullWidth size="small" label="Pack Size" value={form.packSize || ""} onChange={(e) => setForm({ ...form, packSize: e.target.value })} />
-                <TextField fullWidth size="small" label="Unit" value={form.unit || ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                
-                <FormControl fullWidth size="small" required>
-                  <InputLabel id="product-type-label">Product Type *</InputLabel>
-                  <Select 
-                    labelId="product-type-label" 
-                    value={form.productType || ""} 
-                    label="Product Type *"
-                    required
-                    displayEmpty={false}
-                    onChange={(e) => {
-                      const newProductType = e.target.value;
-                      setForm({ 
-                        ...form, 
-                        productType: newProductType,
-                        // Clear shape and colour if not Packaging Items
-                        ...(newProductType !== "Packaging Items" ? { shape: "", colour: "" } : {})
-                      });
-                    }}
-                  >
-                    <MenuItem value="Inventory Items">Inventory Items</MenuItem>
-                    <MenuItem value="Packaging Items">Packaging Items</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {form.productType === "Packaging Items" && (
-                  <>
-                    <TextField fullWidth size="small" label="Shape" value={form.shape || ""} onChange={(e) => setForm({ ...form, shape: e.target.value })} />
-                    <TextField fullWidth size="small" label="Colour" value={form.colour || ""} onChange={(e) => setForm({ ...form, colour: e.target.value })} />
-                  </>
-                )}
-                
-                <FormControl fullWidth size="small">
-                  <InputLabel id="print-status-label">Print Status</InputLabel>
-                  <Select labelId="print-status-label" value={form.printStatus || ""} label="Print Status" onChange={(e) => setForm({ ...form, printStatus: e.target.value })}>
-                    <MenuItem value="Printed">Printed</MenuItem>
-                    <MenuItem value="Not Printed">Not Printed</MenuItem>
-                    <MenuItem value="Pending">Pending</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <TextField fullWidth size="small" label="Per Unit Rate" type="number" value={form.perUnitRate ?? 0} onChange={(e) => setForm({ ...form, perUnitRate: Number(e.target.value) })} />
-                <TextField fullWidth size="small" label="GST %" type="number" value={form.gstPct ?? 0} onChange={(e) => setForm({ ...form, gstPct: Number(e.target.value) })} />
-                <TextField fullWidth size="small" label="Taxable Value" value={form.taxableValue ?? 0} InputProps={{ readOnly: true }} />
-                <TextField fullWidth size="small" label="Stock Alert" type="number" value={form.stockAlert ?? 0} onChange={(e) => setForm({ ...form, stockAlert: Number(e.target.value) })} />
-              </div>
-
-              <Box className="flex gap-3 justify-end mt-8">
-                <Button variant="outlined" onClick={() => setDrawerOpen(false)} className="normal-case">Cancel</Button>
-                <Button variant="contained" onClick={handleSaveProduct} className="!bg-blue-600 hover:!bg-blue-700 normal-case px-8">Save Product</Button>
-              </Box>
-            </div>
-          </Box>
-        </Drawer>
+        {/* right drawer form (new component) */}
+        <ProductDrawerForm
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          isEdit={Boolean(editingProduct)}
+          initialData={form}
+          categories={categories}
+          vendors={vendors}
+          companies={companies}
+          productNames={productNames}
+          onSave={handleSaveProduct}
+          onAddCategory={() => setCategoryModalOpen(true)}
+          onAddVendor={() => setVendorDrawerOpen(true)}
+          onAddBrand={() => setBrandModalOpen(true)}
+          onFillFromSearch={(matched) => {
+            setForm({ ...matched });
+            setEditingProduct(matched);
+          }}
+        />
 
         {/* VENDOR DRAWER */}
         <Drawer anchor="right" open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)}>
@@ -665,7 +657,7 @@ export default function ProductTable() {
               <TextField fullWidth size="small" label="State" value={vendorForm.vendor_state} onChange={(e) => setVendorForm({ ...vendorForm, vendor_state: e.target.value })} />
               <TextField fullWidth size="small" label="Country" value={vendorForm.vendor_country} onChange={(e) => setVendorForm({ ...vendorForm, vendor_country: e.target.value })} />
               <TextField fullWidth size="small" label="Pin Code" value={vendorForm.vendor_pinCode} onChange={(e) => setVendorForm({ ...vendorForm, vendor_pinCode: e.target.value })} />
-              
+
               <Box className="flex gap-3 justify-end mt-8">
                 <Button variant="outlined" onClick={() => setVendorDrawerOpen(false)} size="small">Cancel</Button>
                 <Button variant="contained" onClick={handleSaveVendor} size="small" className="!bg-blue-600">Save Vendor</Button>
@@ -673,6 +665,20 @@ export default function ProductTable() {
             </div>
           </Box>
         </Drawer>
+
+        {/* QUICK ADD MODALS */}
+        <CreateCategoryModal
+          open={categoryModalOpen}
+          onClose={() => setCategoryModalOpen(false)}
+          onSave={handleSaveCategory}
+        />
+        <CreateBrandModal
+          open={brandModalOpen}
+          onClose={() => setBrandModalOpen(false)}
+          onSave={handleSaveBrand}
+        />
+
+        <Toaster position="top-right" />
       </div>
     </AdminLayout>
   );

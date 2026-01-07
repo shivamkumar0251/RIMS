@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Grid,
   Paper,
   Table,
   TableBody,
@@ -70,8 +69,8 @@ function VendorOrderDetails() {
   if (!order) return null;
 
   const filterOrder = order?.products.filter(o => o.productId);
-  const vendorName = filterOrder?.[0]?.productId?.vendorsId?.vendor_name || "N/A";
-  
+  const vendorName = (order as any).vendorsId?.vendor_name || filterOrder?.[0]?.productId?.vendorsId?.vendor_name || "N/A";
+
   // Slice for Pagination
   const paginatedProducts = filterOrder?.slice(
     page * rowsPerPage,
@@ -99,16 +98,16 @@ function VendorOrderDetails() {
       <Box >
         {/* Vendor Summary Card */}
         <Card className="p-6 rounded-2xl border border-gray-100 shadow-md bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={3}>
+          <Box className="flex flex-wrap w-full gap-y-4">
+            <Box className="w-full sm:w-1/4">
               <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
                 Vendor Name
               </Typography>
               <Typography variant="h6" className="text-blue-700 font-bold">
                 {vendorName}
               </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
+            </Box>
+            <Box className="w-full sm:w-1/4">
               <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
                 Order Date
               </Typography>
@@ -119,29 +118,29 @@ function VendorOrderDetails() {
                   year: "numeric"
                 })}
               </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
+            </Box>
+            <Box className="w-full sm:w-1/4">
               <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
                 Total Amount
               </Typography>
               <Typography variant="body1" className="text-gray-800 font-bold">
                 ₹{order.totalAmount?.toLocaleString()}
               </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
+            </Box>
+            <Box className="w-full sm:w-1/4">
               <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
                 Status
               </Typography>
               <Box className="mt-1">
-                <Chip 
-                  label={order.status || "Draft"} 
+                <Chip
+                  label={order.status || "Draft"}
                   color={(order.status?.toLowerCase() === 'delivered' ? 'success' : order.status?.toLowerCase() === 'sent' ? 'info' : 'warning') as any}
                   size="small"
                   className="font-bold text-xs"
                 />
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
           {(!order.status || order.status.toLowerCase() === "draft") && (
             <Button
               variant="contained"
@@ -242,14 +241,14 @@ function VendorOrderDetails() {
           </DialogContentText>
         </DialogContent>
         <DialogActions className="p-4 gap-3">
-          <Button 
+          <Button
             onClick={() => setOpenConfirm(false)}
             variant="outlined"
             className="normal-case text-gray-600 border-gray-300 hover:bg-gray-50 font-medium px-6"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleConfirmSend}
             variant="contained"
             className="normal-case bg-blue-600 hover:bg-blue-700 shadow-none rounded-lg text-white font-semibold px-6"

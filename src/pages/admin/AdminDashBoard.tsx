@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import {
   FiBox,
   FiAlertTriangle,
@@ -17,12 +17,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '../../layouts/AdminLayout';
 import { useAppDispatch, useAppSelector } from '../../redux/store/storeHooks';
-import { getStoreStocks, selectStoreStockState } from '../../redux/slices/storeStockSlice';
-import { getKitchenStocks, selectKitchenStockState } from '../../redux/slices/kitchenStockSlice';
-import { getConsumableStocks, selectConsumableStockState } from '../../redux/slices/consumableStockSlice';
+import { getDashboardStats, selectDashboardState } from '../../redux/slices/dashboardSlice';
 import {
   Box,
-  Grid,
   Paper,
   Typography,
   Button,
@@ -35,7 +32,9 @@ import {
   Chip,
   LinearProgress,
   Tooltip,
-  Avatar
+  Avatar,
+  CircularProgress,
+  Skeleton
 } from '@mui/material';
 import dayjs from 'dayjs';
 
@@ -46,9 +45,10 @@ interface KPICardProps {
   icon: React.ReactNode;
   gradient: string;
   shadowColor: string;
+  loading?: boolean;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ title, value, icon, gradient, shadowColor }) => (
+const KPICard: React.FC<KPICardProps> = ({ title, value, icon, gradient, shadowColor, loading }) => (
   <Paper
     elevation={0}
     className="p-6 rounded-[24px] relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 h-full w-full"
@@ -79,9 +79,13 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, icon, gradient, shadowC
         <Typography variant="caption" className="text-slate-400 font-bold tracking-widest uppercase block mb-0.5 truncate">
           {title}
         </Typography>
-        <Typography variant="h4" className="font-extrabold text-slate-800 truncate">
-          {value}
-        </Typography>
+        {loading ? (
+          <Skeleton width={60} height={40} />
+        ) : (
+          <Typography variant="h4" className="font-extrabold text-slate-800 truncate">
+            {value}
+          </Typography>
+        )}
       </Box>
     </Box>
   </Paper>
@@ -131,52 +135,27 @@ function Admindashboard() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { storeStocks } = useAppSelector(selectStoreStockState);
-  const { kitchenStocks } = useAppSelector(selectKitchenStockState);
-  const { consumableStocks } = useAppSelector(selectConsumableStockState);
+  const { data, loading } = useAppSelector(selectDashboardState);
 
   useEffect(() => {
     document.title = "RIMS Dashboard | Operations Summary";
     window.scrollTo(0, 0);
-
-    dispatch(getStoreStocks({ page: 1, limit: 100 }));
-    dispatch(getKitchenStocks({ page: 1, limit: 100 }));
-    dispatch(getConsumableStocks({ page: 1, limit: 100 }));
+    dispatch(getDashboardStats());
   }, [dispatch]);
 
-  const stats = useMemo(() => {
-    const lowStockStore = storeStocks.filter(s => s.closingStock <= (s.productId?.stockAlert || 10));
-    const lowStockKitchen = kitchenStocks.filter(k => k.closingStock <= (k.productId?.stockAlert || 5));
+  const kpiData = [
+    { title: "Store Items", value: data?.kpi.storeItems || 0, icon: <FiBox size={24} />, grad: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", shadow: "#6366f1" },
+    { title: "Kitchen Stock", value: data?.kpi.kitchenItems || 0, icon: <FiShoppingBag size={24} />, grad: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)", shadow: "#0ea5e9" },
+    { title: "Low Alerts", value: data?.kpi.lowAlerts || 0, icon: <FiAlertTriangle size={24} />, grad: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", shadow: "#f59e0b" },
+    { title: "Usage (Today)", value: data?.kpi.usageToday.toFixed(1) || 0, icon: <FiTrendingUp size={24} />, grad: "linear-gradient(135deg, #10b981 0%, #059669 100%)", shadow: "#10b981" },
+    { title: "Wastage (Today)", value: data?.kpi.wastageToday.toFixed(1) || 0, icon: <FiTrash2 size={24} />, grad: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", shadow: "#ef4444" }
+  ];
 
-    const today = dayjs().startOf('day');
-    const todayConsumables = consumableStocks.filter(c => dayjs(c.createdAt).isAfter(today));
-    const todayConsumption = todayConsumables.reduce((acc, curr) => acc + (curr.transfersInUse || 0), 0);
-    const todayWastage = todayConsumables.reduce((acc, curr) => acc + (curr.transfersToWastage || 0), 0);
-
-    return {
-      storeCount: storeStocks.length,
-      kitchenCount: kitchenStocks.length,
-      lowStockCount: lowStockStore.length + lowStockKitchen.length,
-      todayConsumption,
-      todayWastage,
-      lowStockItems: [
-        ...lowStockStore.map(i => ({ ...i, location: 'Store' })),
-        ...lowStockKitchen.map(i => ({ ...i, location: 'Kitchen' }))
-      ].sort((a, b) => a.closingStock - b.closingStock).slice(0, 5)
-    };
-  }, [storeStocks, kitchenStocks, consumableStocks]);
-
-  const recentActivities = useMemo(() => {
-    return [
-      ...storeStocks.map(s => ({ type: 'STORE', item: s.productId?.productName, date: s.updatedAt, qty: s.closingStock, user: 'Admin' })),
-      ...kitchenStocks.map(k => ({ type: 'ISSUE', item: k.productId?.productName, date: k.updatedAt, qty: k.rcvdKitchenQty, user: 'Manager' })),
-      ...consumableStocks.map(c => ({ type: 'CONSUME', item: c.productId?.productName, date: c.createdAt, qty: c.transfersInUse, user: 'Chef' }))
-    ].sort((a, b) => dayjs(b.date).diff(dayjs(a.date))).slice(0, 6);
-  }, [storeStocks, kitchenStocks, consumableStocks]);
+  const wastageRatio = data?.kpi.usageToday ? (data.kpi.wastageToday / data.kpi.usageToday) : 0;
 
   return (
     <AdminLayout>
-      <Box className="bg-[#fdfdfe] min-h-screen p-4 md:p-6" sx={{ width: '100%', overflowX: 'hidden' }}>
+      <Box className="bg-[#fdfdfe] min-h-screen p-4 md:p-8" sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header - Minimal & Elegant */}
         <Box className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 w-full">
@@ -197,8 +176,9 @@ function Admindashboard() {
             <Button
               variant="outlined"
               className="rounded-2xl px-6 py-3 normal-case font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
-              onClick={() => dispatch(getStoreStocks({ page: 1, limit: 100 }))}
-              startIcon={<FiRefreshCw />}
+              onClick={() => dispatch(getDashboardStats())}
+              startIcon={loading ? <CircularProgress size={16} /> : <FiRefreshCw />}
+              disabled={loading}
             >
               Sync Data
             </Button>
@@ -206,20 +186,16 @@ function Admindashboard() {
               variant="contained"
               className="!bg-slate-900 rounded-2xl px-8 py-3 normal-case font-bold shadow-xl shadow-slate-200"
               startIcon={<FiPlusCircle />}
+              onClick={() => navigate('/admin/kitchen-consumption')}
             >
               New Transaction
             </Button>
           </Box>
         </Box>
 
-        <Box className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10 w-full">
-          {[
-            { title: "Store Items", value: stats.storeCount, icon: <FiBox size={24} />, grad: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", shadow: "#6366f1" },
-            { title: "Kitchen Stock", value: stats.kitchenCount, icon: <FiShoppingBag size={24} />, grad: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)", shadow: "#0ea5e9" },
-            { title: "Low Alerts", value: stats.lowStockCount, icon: <FiAlertTriangle size={24} />, grad: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", shadow: "#f59e0b" },
-            { title: "Usage (Qty)", value: stats.todayConsumption.toFixed(1), icon: <FiTrendingUp size={24} />, grad: "linear-gradient(135deg, #10b981 0%, #059669 100%)", shadow: "#10b981" },
-            { title: "Wastage (Qty)", value: stats.todayWastage.toFixed(1), icon: <FiTrash2 size={24} />, grad: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", shadow: "#ef4444" }
-          ].map((card, idx) => (
+        {/* KPI Grid */}
+        <Box className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-10 w-full">
+          {kpiData.map((card, idx) => (
             <Box key={idx} sx={{ display: 'flex' }}>
               <KPICard
                 title={card.title}
@@ -227,17 +203,18 @@ function Admindashboard() {
                 icon={card.icon}
                 gradient={card.grad}
                 shadowColor={card.shadow}
+                loading={loading}
               />
             </Box>
           ))}
         </Box>
 
-        <Grid container spacing={4} sx={{ width: '100%', margin: 0 }}>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 w-full">
           {/* Main Dashboard Area */}
-          <Grid item xs={12} lg={8} sx={{ paddingLeft: { xs: 0, md: '32px' }, paddingTop: '32px !important' }}>
+          <div className="xl:col-span-8 flex flex-col gap-10">
             <Box className="flex flex-col gap-10 w-full">
 
-              {/* Table Section - Clean & High-Contrast */}
+              {/* Table Section - Critical Alerts */}
               <Paper elevation={0} className="rounded-[32px] border border-slate-50 overflow-hidden shadow-xl shadow-slate-100/50 w-full">
                 <Box className="px-8 py-6 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
                   <Box className="flex items-center gap-3">
@@ -253,7 +230,7 @@ function Admindashboard() {
                   </Button>
                 </Box>
                 <TableContainer sx={{ overflowX: 'auto' }}>
-                  <Table size="large" sx={{ minWidth: 600 }}>
+                  <Table size="medium" sx={{ minWidth: 600 }}>
                     <TableHead className="bg-slate-50/50">
                       <TableRow>
                         <TableCell className="text-slate-400 font-extrabold uppercase text-[10px] tracking-widest pl-8">Product Name</TableCell>
@@ -263,8 +240,14 @@ function Admindashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {stats.lowStockItems.length > 0 ? (
-                        stats.lowStockItems.map((item: any, idx) => (
+                      {loading ? (
+                        [...Array(3)].map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell colSpan={4}><Skeleton height={40} /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : (data?.criticalItems && data.criticalItems.length > 0) ? (
+                        data.criticalItems.map((item, idx) => (
                           <TableRow key={idx} hover className="transition-all duration-200">
                             <TableCell className="py-5 pl-8">
                               <Typography variant="body2" className="font-bold text-slate-700">
@@ -279,7 +262,7 @@ function Admindashboard() {
                             </TableCell>
                             <TableCell align="center">
                               <Typography variant="body2" className="font-black text-red-500 bg-red-50 px-3 py-1 rounded-lg inline-block">
-                                {item.closingStock} <span className="text-[10px] uppercase">{item.productId?.unit}</span>
+                                {item.closingStock} <span className="text-[10px] uppercase">{item.unit}</span>
                               </Typography>
                             </TableCell>
                             <TableCell>
@@ -314,8 +297,8 @@ function Admindashboard() {
               </Paper>
 
               {/* Insights Row */}
-              <Grid container spacing={4} sx={{ width: '100%', margin: 0 }}>
-                <Grid item xs={12} md={6}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                <div className="w-full">
                   <Paper elevation={0} className="p-8 rounded-[32px] border border-slate-50 shadow-xl shadow-slate-100/50 bg-white h-full overflow-hidden relative w-full">
                     <Box className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-50 rounded-full opacity-50" />
                     <Typography variant="h6" className="font-black text-slate-800 mb-6 flex items-center gap-2 relative z-10">
@@ -323,22 +306,22 @@ function Admindashboard() {
                     </Typography>
                     <Box className="space-y-6 relative z-10">
                       {[
-                        { label: 'Received', val: '12 Products', p: 70, col: '#6366f1' },
-                        { label: 'Issued Qty', val: '45.0 Units', p: 45, col: '#0ea5e9' },
-                        { label: 'Consumed Qty', val: `${stats.todayConsumption.toFixed(1)} Units`, p: 60, col: '#10b981' }
+                        { label: 'Received', val: `${data?.dailyStats.receivedProducts || 0} Products`, p: (data?.dailyStats.receivedProducts || 0) * 10, col: '#6366f1' },
+                        { label: 'Issued Qty', val: `${data?.dailyStats.issuedQty.toFixed(1) || 0} Units`, p: Math.min((data?.dailyStats.issuedQty || 0) * 2, 100), col: '#0ea5e9' },
+                        { label: 'Consumed Qty', val: `${data?.dailyStats.consumedQty.toFixed(1) || 0} Units`, p: Math.min((data?.dailyStats.consumedQty || 0) * 2, 100), col: '#10b981' }
                       ].map((item, i) => (
                         <Box key={i}>
                           <Box className="flex justify-between items-end mb-2">
                             <Typography variant="caption" className="text-slate-400 font-black tracking-widest uppercase">{item.label}</Typography>
-                            <Typography variant="body2" className="text-slate-800 font-black">{item.val}</Typography>
+                            <Typography variant="body2" className="text-slate-800 font-black">{loading ? <Skeleton width={50} /> : item.val}</Typography>
                           </Box>
-                          <LinearProgress variant="determinate" value={item.p} className="h-2 rounded-full bg-slate-100" sx={{ '& .MuiLinearProgress-bar': { backgroundColor: item.col } }} />
+                          <LinearProgress variant="determinate" value={loading ? 0 : item.p} className="h-2 rounded-full bg-slate-100" sx={{ '& .MuiLinearProgress-bar': { backgroundColor: item.col } }} />
                         </Box>
                       ))}
                     </Box>
                   </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
+                </div>
+                <div className="w-full">
                   <Paper elevation={0} className="p-8 rounded-[32px] border border-slate-50 shadow-xl shadow-slate-100/50 bg-white h-full text-center w-full">
                     <Typography variant="h6" className="font-black text-slate-800 mb-8 flex items-center justify-center gap-2">
                       Wastage Ratio
@@ -346,10 +329,16 @@ function Admindashboard() {
                     <Box className="inline-flex items-center justify-center relative">
                       <Box className="relative flex items-center justify-center w-40 h-40">
                         <Box className="text-center relative z-10">
-                          <Typography variant="h3" className="font-black text-slate-800 leading-none">
-                            {stats.todayConsumption > 0 ? ((stats.todayWastage / stats.todayConsumption) * 100).toFixed(0) : 0}%
-                          </Typography>
-                          <Typography variant="overline" className="text-slate-400 font-black">Wastage</Typography>
+                          {loading ? (
+                            <Skeleton variant="circular" width={80} height={80} />
+                          ) : (
+                            <>
+                              <Typography variant="h3" className="font-black text-slate-800 leading-none">
+                                {(wastageRatio * 100).toFixed(0)}%
+                              </Typography>
+                              <Typography variant="overline" className="text-slate-400 font-black">Wastage</Typography>
+                            </>
+                          )}
                         </Box>
                         <svg className="absolute w-full h-full -rotate-90">
                           <circle cx="80" cy="80" r="70" stroke="#f1f5f9" strokeWidth="14" fill="transparent" />
@@ -357,7 +346,7 @@ function Admindashboard() {
                             cx="80" cy="80" r="70"
                             stroke="#ef4444" strokeWidth="14" fill="transparent"
                             strokeDasharray="440"
-                            strokeDashoffset={440 - (440 * (stats.todayConsumption > 0 ? Math.min(stats.todayWastage / stats.todayConsumption, 1) : 0.05))}
+                            strokeDashoffset={440 - (440 * Math.min(wastageRatio, 1))}
                             strokeLinecap="round"
                             className="transition-all duration-1000"
                           />
@@ -366,12 +355,12 @@ function Admindashboard() {
                     </Box>
                     <Box className="flex justify-center mt-6">
                       <Typography variant="body2" className="text-slate-500 font-medium italic bg-slate-50 px-4 py-2 rounded-xl">
-                        {stats.todayWastage < stats.todayConsumption * 0.1 ? '✨ Optimization is within green zone.' : '⚠️ Performance review recommended.'}
+                        {wastageRatio < 0.1 ? '✨ Optimization is within green zone.' : '⚠️ Performance review recommended.'}
                       </Typography>
                     </Box>
                   </Paper>
-                </Grid>
-              </Grid>
+                </div>
+              </div>
 
               {/* Chart Section - Visual & Spaced */}
               <Paper elevation={0} className="p-10 rounded-[40px] border border-slate-50 shadow-2xl shadow-slate-100/50 bg-white w-full">
@@ -390,30 +379,32 @@ function Admindashboard() {
                   </Box>
                 </Box>
                 <Box className="flex items-end justify-between h-56 gap-4 px-2 overflow-x-auto pb-4">
-                  {[45, 60, 30, 80, 55, 70, 40].map((h, i) => (
-                    <Tooltip key={i} title={`D${i + 1} Usage: ${h}, Wastage: ${(h * 0.1).toFixed(1)}`}>
+                  {loading ? (
+                    [...Array(7)].map((_, i) => <Skeleton key={i} variant="rectangular" width="10%" height="80%" sx={{ borderRadius: 2 }} />)
+                  ) : data?.trends.map((t, i) => (
+                    <Tooltip key={i} title={`${t.day} Usage: ${t.usage}, Wastage: ${t.wastage}`}>
                       <Box className="flex-1 min-w-[30px] flex flex-col items-center group cursor-pointer h-full justify-end">
                         <Box className="w-full flex flex-col items-center gap-1.5 h-full justify-end">
                           <Box
                             className="w-full sm:w-1/2 bg-indigo-500 rounded-[8px] transition-all duration-300 group-hover:scale-110 shadow-lg shadow-indigo-100"
-                            style={{ height: `${h * 1.8}px` }}
+                            style={{ height: `${Math.min(t.usage * 2, 180)}px` }}
                           />
                           <Box
                             className="w-full sm:w-1/2 bg-red-400 rounded-[8px] opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110 shadow-lg shadow-red-100"
-                            style={{ height: `${h * 0.3}px` }}
+                            style={{ height: `${Math.min(t.wastage * 5, 80)}px` }}
                           />
                         </Box>
-                        <Typography variant="caption" className="text-slate-300 font-black mt-4 group-hover:text-slate-900">D{i + 1}</Typography>
+                        <Typography variant="caption" className="text-slate-300 font-black mt-4 group-hover:text-slate-900">{t.day}</Typography>
                       </Box>
                     </Tooltip>
                   ))}
                 </Box>
               </Paper>
             </Box>
-          </Grid>
+          </div>
 
           {/* Sidebar Section */}
-          <Grid item xs={12} lg={4} sx={{ paddingLeft: { xs: 0, md: '32px' }, paddingRight: { xs: 0, md: '16px' }, paddingTop: '32px !important' }}>
+          <div className="xl:col-span-4 flex flex-col gap-10 h-full">
             <Box className="flex flex-col gap-10 h-full w-full">
 
               {/* Modern Action Grid */}
@@ -440,7 +431,7 @@ function Admindashboard() {
                 </Box>
               </Box>
 
-              {/* Activity Feed - Professional Vertical Timeline */}
+              {/* Activity Feed */}
               <Paper elevation={0} className="p-8 rounded-[32px] border border-slate-50 shadow-xl shadow-slate-100/50 bg-white w-full">
                 <Box className="flex items-center justify-between mb-8">
                   <Typography variant="h6" className="font-bold text-slate-800">
@@ -451,35 +442,41 @@ function Admindashboard() {
                   </Box>
                 </Box>
                 <Box className="flex flex-col gap-8">
-                  {recentActivities.map((act, idx) => (
-                    <Box key={idx} className="flex gap-5 relative group">
-                      {idx !== recentActivities.length - 1 && (
-                        <Box className="absolute left-[14px] top-6 bottom-[-32px] w-[2px] bg-slate-50 group-hover:bg-indigo-50" />
-                      )}
-                      <Box
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 z-10 shadow-sm border-2 border-white
-                          ${act.type === 'STORE' ? 'bg-indigo-500' : act.type === 'ISSUE' ? 'bg-sky-500' : 'bg-emerald-500'}`}
-                      >
-                        <Box className="w-1.5 h-1.5 bg-white rounded-full" />
-                      </Box>
-                      <Box className="flex-1 min-w-0">
-                        <Box className="flex justify-between items-start mb-0.5">
-                          <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-tighter truncate">
-                            {act.type} Movement
+                  {loading ? (
+                    [...Array(4)].map((_, i) => <Skeleton key={i} height={60} />)
+                  ) : (data?.activityFeed && data.activityFeed.length > 0) ? (
+                    data.activityFeed.map((act, idx) => (
+                      <Box key={idx} className="flex gap-5 relative group">
+                        {idx !== data.activityFeed.length - 1 && (
+                          <Box className="absolute left-[14px] top-6 bottom-[-32px] w-[2px] bg-slate-50 group-hover:bg-indigo-50" />
+                        )}
+                        <Box
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 z-10 shadow-sm border-2 border-white
+                            ${act.type === 'STORE' ? 'bg-indigo-500' : act.type === 'ISSUE' ? 'bg-sky-500' : 'bg-emerald-500'}`}
+                        >
+                          <Box className="w-1.5 h-1.5 bg-white rounded-full" />
+                        </Box>
+                        <Box className="flex-1 min-w-0">
+                          <Box className="flex justify-between items-start mb-0.5">
+                            <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-tighter truncate">
+                              {act.type} Movement
+                            </Typography>
+                            <Typography variant="caption" className="text-slate-300 font-bold shrink-0">
+                              {dayjs(act.date).format('h:mm A')}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" className="text-slate-700 font-bold leading-tight truncate">
+                            {act.item}
                           </Typography>
-                          <Typography variant="caption" className="text-slate-300 font-bold shrink-0">
-                            {dayjs(act.date).format('h:mm A')}
+                          <Typography variant="caption" className="text-slate-400 font-medium block truncate">
+                            <span className="text-slate-600 font-bold">{act.qty} units</span> by {act.user}
                           </Typography>
                         </Box>
-                        <Typography variant="body2" className="text-slate-700 font-bold leading-tight truncate">
-                          {act.item}
-                        </Typography>
-                        <Typography variant="caption" className="text-slate-400 font-medium block truncate">
-                          <span className="text-slate-600 font-bold">{act.qty} units</span> by {act.user}
-                        </Typography>
                       </Box>
-                    </Box>
-                  ))}
+                    ))
+                  ) : (
+                    <Typography className="text-slate-400 italic text-center py-4">No recent activity</Typography>
+                  )}
                 </Box>
                 <Button
                   fullWidth
@@ -491,8 +488,8 @@ function Admindashboard() {
               </Paper>
 
             </Box>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Box>
     </AdminLayout>
   );

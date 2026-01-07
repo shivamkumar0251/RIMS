@@ -2,7 +2,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  IconButton,
   InputAdornment,
   MenuItem,
   Paper,
@@ -16,8 +15,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import dayjs from "dayjs";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { FiSearch, FiRefreshCw, FiSend } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
@@ -26,13 +24,9 @@ import {
   selectStoreStockState
 } from "../../redux/slices/storeStockSlice";
 import {
-  addKitchenStock,
-  KitchenStockPost
-} from "../../redux/slices/kitchenStockSlice";
-import {
   addStoreStock,
-  StoreStockPostData
 } from "../../redux/slices/storeStockSlice";
+import type { StoreStockPostData } from "../../redux/slices/storeStockSlice";
 
 type IssuedToType = "Main Kitchen" | "Tandoor Section" | "Curry Section" | "Pantry" | "Bar" | "Bakery" | "Cold Kitchen" | "";
 
@@ -82,7 +76,10 @@ const KitchenIssue: React.FC = () => {
   // Initialize issue items when store stocks load
   useEffect(() => {
     const newItems: Record<string, IssueItem> = {};
-    storeStocks.forEach((stock) => {
+    // Filter out Packaging Items from Issue list
+    const issueableStocks = storeStocks.filter(s => s.productId?.productType !== "Packaging Item");
+
+    issueableStocks.forEach((stock) => {
       const pid = stock.productId?._id;
       if (pid && !issueItems[pid]) {
         newItems[pid] = {
@@ -155,24 +152,17 @@ const KitchenIssue: React.FC = () => {
       }
     }
 
-    // Prepare payload for kitchen stock (add)
-    const kitchenStockPayload: KitchenStockPost[] = itemsToIssue.map((item) => ({
+    // Prepare payload for store stock (transfer to kitchen)
+    const storeStockPayload: StoreStockPostData[] = itemsToIssue.map((item) => ({
       productId: item.productId,
       qty: item.issueQty,
     }));
 
-    // Prepare payload for store stock (deduct - using addStoreStock which handles transfers)
-    const storeStockPayload: StoreStockPostData[] = itemsToIssue.map((item) => ({
-      productId: item.productId,
-      qty: item.issueQty, // The backend should handle deduction when transferring
-    }));
-
     try {
-      // First deduct from store stock (transfer to kitchen)
-      await dispatch(addStoreStock(storeStockPayload));
-
-      // Then add to kitchen stock
-      await dispatch(addKitchenStock(kitchenStockPayload));
+      // Deduct from store stock (transfer to kitchen)
+      // The backend 'addStoreStock' controller handles both deducting from Store 
+      // and adding to Kitchen stock automatically.
+      await dispatch(addStoreStock(storeStockPayload)).unwrap();
 
       // Log transaction
       const transactionLog = {
@@ -280,100 +270,102 @@ const KitchenIssue: React.FC = () => {
                       <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                     </TableCell>
                   </TableRow>
-                ) : storeStocks.length === 0 ? (
+                ) : storeStocks.filter(s => s.productId?.productType !== "Packaging Item").length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" className="py-10 text-gray-500 text-sm">
-                      No products found.
+                      No issueable products found (Packaging items are restricted).
                     </TableCell>
                   </TableRow>
                 ) : (
-                  storeStocks.map((stock) => {
-                    const pid = stock.productId?._id;
-                    const item = issueItems[pid] || {
-                      productId: pid || "",
-                      productName: stock.productId?.productName || "",
-                      availableQty: stock.closingStock,
-                      issueQty: 0,
-                      unit: stock.productId?.unit || "",
-                      issuedTo: "",
-                      remarks: "",
-                    };
+                  storeStocks
+                    .filter(s => s.productId?.productType !== "Packaging Item")
+                    .map((stock) => {
+                      const pid = stock.productId?._id;
+                      const item = issueItems[pid] || {
+                        productId: pid || "",
+                        productName: stock.productId?.productName || "",
+                        availableQty: stock.closingStock,
+                        issueQty: 0,
+                        unit: stock.productId?.unit || "",
+                        issuedTo: "",
+                        remarks: "",
+                      };
 
-                    return (
-                      <TableRow key={stock._id} hover>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">
-                            {stock.productId?.productName}
-                          </Typography>
-                          <Typography variant="caption" className="text-gray-500">
-                            {stock.productId?.packSize}
-                          </Typography>
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">
-                          {item.availableQty}
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.issueQty || ""}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              handleIssueQtyChange(pid || "", Number(e.target.value));
-                            }}
-                            inputProps={{
-                              min: 0,
-                              max: item.availableQty,
-                            }}
-                            sx={{
-                              width: 100,
-                              "& .MuiInputBase-input": {
-                                textAlign: "center",
-                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                                  display: "none",
+                      return (
+                        <TableRow key={stock._id} hover>
+                          <TableCell>
+                            <Typography variant="body2" className="font-medium">
+                              {stock.productId?.productName}
+                            </Typography>
+                            <Typography variant="caption" className="text-gray-500">
+                              {stock.productId?.packSize}
+                            </Typography>
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">
+                            {item.availableQty}
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              type="number"
+                              value={item.issueQty || ""}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                handleIssueQtyChange(pid || "", Number(e.target.value));
+                              }}
+                              inputProps={{
+                                min: 0,
+                                max: item.availableQty,
+                              }}
+                              sx={{
+                                width: 100,
+                                "& .MuiInputBase-input": {
+                                  textAlign: "center",
+                                  "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+                                    display: "none",
+                                  },
+                                  "&": {
+                                    MozAppearance: "textfield",
+                                  },
                                 },
-                                "&": {
-                                  MozAppearance: "textfield",
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-gray-600">{item.unit}</TableCell>
-                        <TableCell>
-                          <TextField
-                            select
-                            size="small"
-                            fullWidth
-                            value={item.issuedTo}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              handleIssuedToChange(pid || "", e.target.value as IssuedToType);
-                            }}
-                            sx={{ minWidth: 150 }}
-                          >
-                            <MenuItem value="">
-                              <em>Select Section</em>
-                            </MenuItem>
-                            {ISSUED_TO_OPTIONS.map((option) => (
-                              <MenuItem key={option} value={option}>
-                                {option}
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-600">{item.unit}</TableCell>
+                          <TableCell>
+                            <TextField
+                              select
+                              size="small"
+                              fullWidth
+                              value={item.issuedTo}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                handleIssuedToChange(pid || "", e.target.value as IssuedToType);
+                              }}
+                              sx={{ minWidth: 150 }}
+                            >
+                              <MenuItem value="">
+                                <em>Select Section</em>
                               </MenuItem>
-                            ))}
-                          </TextField>
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="Enter remarks..."
-                            value={item.remarks}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              handleRemarksChange(pid || "", e.target.value);
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                              {ISSUED_TO_OPTIONS.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                  {option}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              placeholder="Enter remarks..."
+                              value={item.remarks}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                handleRemarksChange(pid || "", e.target.value);
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                 )}
               </TableBody>
             </Table>

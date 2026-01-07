@@ -19,9 +19,14 @@ interface GetOrdersResponse {
   data: Order[];
 }
 
-export interface OrderPostData {
+export interface OrderItemPostData {
   productId: string;
   orderQty: number;
+}
+
+export interface OrderPostData {
+  vendorsId?: string;
+  products: OrderItemPostData[];
 }
 // ---------------- PostOrderResponse State ----------------
 export interface OrderProduct {
@@ -80,13 +85,13 @@ const initialState: OrderState = {
 // GET ORDER PRODUCT
 export const getOrdersProduct = createAsyncThunk<
   GetOrdersResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  category?: string, vendor?: string, brand?:string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, productType?: string },
   { rejectValue: { message: string } }
 >(
   'order/getOrders',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '',  vendor = '',  brand = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', productType = '' }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_ORDERS}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_ORDERS}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&productType=${productType}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -109,8 +114,8 @@ export const getOrdersProduct = createAsyncThunk<
 
 // ADD ORDER
 export const addOrder = createAsyncThunk<
-  OrderPostData[],
-  OrderPostData[],
+  any,
+  OrderPostData,
   { rejectValue: { message: string } }
 >(
   'order/addOrder',
@@ -122,8 +127,9 @@ export const addOrder = createAsyncThunk<
         data: orderData,
       });
 
-      if (response.status === 201) {
-        return response?.data as OrderPostData[];
+      if (response.status === 201 || response.status === 200) {
+        const resData = response.data as any;
+        return resData.data || resData;
       }
 
       return thunkAPI.rejectWithValue({

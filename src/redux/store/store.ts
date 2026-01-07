@@ -20,6 +20,7 @@ import franchiseReducer from '../slices/franchiseSlice';
 import outletReducer from '../slices/outletSlice';
 import vendorOrderReducer from '../slices/vendorOrderSlice';
 import franchiseInquiryReducer from '../slices/franchiseInquirySlice';
+import dashboardReducer from '../slices/dashboardSlice';
 
 const persistedUserDetailsReducer = persistReducer(
   persistConfig,
@@ -45,6 +46,7 @@ export const store = configureStore({
     outlet: outletReducer,
     vendorOrder: vendorOrderReducer,
     franchiseInquiry: franchiseInquiryReducer,
+    dashboard: dashboardReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
