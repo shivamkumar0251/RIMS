@@ -143,10 +143,11 @@ export default function ProductTable() {
         VendorsName: "",
         CompanyName: "",
         ProductName: "Sample Product A",
+        ProductType: "Packaging Item",
         PackSize: "10x10",
         Unit: "box",
-        Shape: "tablet",
-        Colour: "white",
+        Shape: "Round",
+        Colour: "White",
         PrintStatus: "Printed",
         ProductImage: "",
         GstPercentage: 12,
@@ -377,7 +378,7 @@ export default function ProductTable() {
 
   return (
     <AdminLayout>
-      <div>
+      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
         {/* Combined Tool Bar */}
         <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white rounded-xl mb-4">
           {/* Filters Area */}
@@ -446,14 +447,14 @@ export default function ProductTable() {
           </Box>
         </Box>
 
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table>
-              <TableHead className="bg-gray-50">
+        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+          <TableContainer className="flex-1 overflow-auto">
+            <Table stickyHeader size="medium">
+              <TableHead>
                 <TableRow>
-                  <TableCell className="font-bold">Product Name</TableCell>
-                  <TableCell className="font-bold">Type</TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Product Name</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Type</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
                     <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
                       Category
                       <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
@@ -474,7 +475,7 @@ export default function ProductTable() {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
                     <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setVendorAnchor(e.currentTarget)}>
                       Vendor
                       <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
@@ -495,7 +496,7 @@ export default function ProductTable() {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
                     <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCompanyAnchor(e.currentTarget)}>
                       Brand
                       <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
@@ -516,55 +517,74 @@ export default function ProductTable() {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">Pack Size</TableCell>
-                  <TableCell className="font-bold">Attributes</TableCell>
-                  <TableCell className="font-bold">Print</TableCell>
-                  {/* <TableCell className="font-bold text-center">Status</TableCell> */}
-                  <TableCell className="font-bold text-center">Rate</TableCell>
-                  <TableCell className="font-bold text-center">GST%</TableCell>
-                  <TableCell className="font-bold text-center">Taxable</TableCell>
-                  {/* <TableCell className="font-bold text-center">Alert</TableCell> */}
-                  <TableCell className="font-bold">Created</TableCell>
-                  <TableCell align="right" className="font-bold">Actions</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Pack Size</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Attributes</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Print</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Rate</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">GST%</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Taxable</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Created</TableCell>
+                  <TableCell align="right" className="bg-gray-50 font-bold text-gray-700 py-3">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} align="center" className="py-10"><CircularProgress size={30} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
                 ) : (products || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={10} align="center" className="py-10 text-gray-500 text-sm">No products found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} align="center" className="py-20 text-gray-500 text-sm">No products found.</TableCell></TableRow>
                 ) : (
                   (products || []).map((p: ProductInterface) => (
-                    <TableRow key={p._id} hover>
-                      <TableCell>
+                    <TableRow key={p._id} hover className="transition-colors">
+                      <TableCell className="py-3">
                         <Typography variant="body2" className="font-medium text-slate-800">{p.productName || "Unnamed Product"}</Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         <Box className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${p.productType === 'Packaging Item' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
                           {p.productType === 'Packaging Item' ? 'Packaging' : 'Inventory'}
                         </Box>
                       </TableCell>
-                      <TableCell className="text-gray-600 capitalize text-sm">
-                        {p.categoryId && typeof p.categoryId === "object" ? p.categoryId.categoryName : (p.categoryId || "N/A")}
+                      <TableCell className="text-gray-600 capitalize text-sm py-3">
+                        {(() => {
+                          if (p.categoryId && typeof p.categoryId === "object") return p.categoryId.categoryName;
+                          if (typeof p.categoryId === "string") {
+                            const found = categories.find((c: any) => c._id === p.categoryId);
+                            return found?.categoryName || p.categoryId; // Fallback to ID if not found, but lookup tries first
+                          }
+                          return "N/A";
+                        })()}
                       </TableCell>
-                      <TableCell className="text-gray-600 text-sm">
-                        {p.vendorsId && typeof p.vendorsId === "object" ? p.vendorsId.vendor_name : (p.vendorsId || "N/A")}
+                      <TableCell className="text-gray-600 text-sm py-3">
+                        {(() => {
+                          if (p.vendorsId && typeof p.vendorsId === "object") return p.vendorsId.vendor_name;
+                          if (typeof p.vendorsId === "string") {
+                            const found = vendors.find((v: any) => v._id === p.vendorsId);
+                            return found?.vendor_name || p.vendorsId;
+                          }
+                          return "N/A";
+                        })()}
                       </TableCell>
-                      <TableCell className="text-gray-600 italic text-sm">
+                      <TableCell className="text-gray-600 italic text-sm py-3">
                         {p.productType === 'Inventory Item' ? (
-                          p.companyId && typeof p.companyId === "object" ? p.companyId.brandName : (p.companyId || "N/A")
+                          (() => {
+                            if (p.companyId && typeof p.companyId === "object") return p.companyId.brandName;
+                            if (typeof p.companyId === "string") {
+                              const found = companies.find((c: any) => c._id === p.companyId);
+                              return found?.brandName || p.companyId;
+                            }
+                            return "N/A";
+                          })()
                         ) : (
                           <Typography variant="caption" className="text-gray-400">-</Typography>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         <Box className="flex flex-col">
                           <Typography variant="body2" className="font-medium">{p.packSize || "-"}</Typography>
                           <Typography variant="caption" className="text-gray-400">{p.unit || "-"}</Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         {p.productType === "Packaging Item" ? (
                           <Box className="flex flex-col gap-0.5">
                             {p.shape && <Typography variant="caption" className="text-slate-500 block leading-tight">S: {p.shape}</Typography>}
@@ -575,7 +595,7 @@ export default function ProductTable() {
                           <Typography variant="caption" className="text-gray-400">-</Typography>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         {p.productType === "Packaging Item" ? (
                           <Box className={`px-2 py-0.5 rounded-md text-[10px] font-bold inline-block ${p.printStatus === 'Non Print' ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}`}>
                             {p.printStatus || "N/A"}
@@ -584,23 +604,13 @@ export default function ProductTable() {
                           <Typography variant="caption" className="text-gray-400">-</Typography>
                         )}
                       </TableCell>
-                      {/* <TableCell className="text-center">
-                        <Box className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {p.isActive ? 'ACTIVE' : 'INACTIVE'}
-                        </Box>
-                      </TableCell> */}
-                      <TableCell className="text-center font-medium">₹{p.perUnitRate}</TableCell>
-                      <TableCell className="text-center text-gray-600">{p.gstPct}%</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">₹{p.taxableValue}</TableCell>
-                      {/* <TableCell className="text-center">
-                        <Box className="bg-orange-50 text-orange-700 rounded px-2 py-0.5 inline-block text-xs font-bold">
-                          {p.stockAlert}
-                        </Box>
-                      </TableCell> */}
-                      <TableCell className="text-gray-500 text-xs">
+                      <TableCell className="text-center font-medium py-3">₹{p.perUnitRate}</TableCell>
+                      <TableCell className="text-center text-gray-600 py-3">{p.gstPct}%</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600 py-3">₹{p.taxableValue}</TableCell>
+                      <TableCell className="text-gray-500 text-xs py-3">
                         {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" className="py-3">
                         <Box className="flex gap-1 justify-end">
                           <IconButton onClick={() => openEditDrawer(p)} size="small" className="text-blue-600"><FiEdit size={16} /></IconButton>
                           <IconButton onClick={() => handleDeleteProduct(p._id)} size="small" className="text-red-500"><FiTrash2 size={16} /></IconButton>
@@ -613,15 +623,17 @@ export default function ProductTable() {
             </Table>
           </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={productsResponse?.total || 0}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-            className="border-t bg-gray-50"
-          />
+          <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
+            <TablePagination
+              component="div"
+              count={productsResponse?.total || 0}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              className="text-sm text-gray-600"
+            />
+          </Box>
         </Paper>
 
         {/* right drawer form (new component) */}
@@ -679,7 +691,7 @@ export default function ProductTable() {
         />
 
         <Toaster position="top-right" />
-      </div>
+      </Box>
     </AdminLayout>
   );
 }

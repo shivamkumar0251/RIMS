@@ -91,7 +91,7 @@ exports.createSingleProduct = async (req, res) => {
       gstPct: productData.gstPct,
       taxableValue: taxVal(productData.perUnitRate, productData.gstPct),
       perUnitRate: productData.perUnitRate,
-      productType: safeEnum(productData.productType, PRODUCT_TYPE, "Inventory Items"),
+      productType: safeEnum(productData.productType, PRODUCT_TYPE, "Inventory Item"),
       expiryDate: productData.expiryDate,
       stockAlert: productData.stockAlert,
     });
@@ -148,7 +148,7 @@ exports.createBulkFromExcel = async (req, res) => {
           gstPct: Number(r.GstPercentage) || 0,
           taxableValue: taxVal(r.PerUnitRate, r.GstPercentage) || 0,
           perUnitRate: Number(r.PerUnitRate) || 0,
-          productType: safeEnum(r.ProductType, PRODUCT_TYPE, "Inventory Items") || "",
+          productType: safeEnum(r.ProductType, PRODUCT_TYPE, "Inventory Item"),
           expiryDate: r.ExpiryDate || "",
           stockAlert: Number(r.StockAlert) || 0,
         };
@@ -161,7 +161,10 @@ exports.createBulkFromExcel = async (req, res) => {
       const s = String(val).trim();
       if (isObjectId(s)) return s;
       try {
-        const found = await model.findOne({ [nameField]: s, franchiseId });
+        const found = await model.findOne({ 
+          [nameField]: { $regex: new RegExp(`^${s}$`, "i") }, 
+          franchiseId 
+        });
         return found ? String(found._id) : null;
       } catch (e) {
         return null;

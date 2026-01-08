@@ -56,7 +56,7 @@ const productsSchema = new mongoose.Schema({
   gstPct: { type: Number, default: 0, },
   taxableValue: { type: Number, required: true, },
   perUnitRate: { type: Number, required: true, },
-  stockAlert: { type: Number, required: true, },
+  stockAlert: { type: Number, required: false, default: 0 },
   productType: {
     type: String,
     enum: ["Inventory Item", "Packaging Item"],

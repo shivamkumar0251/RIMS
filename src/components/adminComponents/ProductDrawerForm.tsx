@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
     Box,
     Button,
-    Divider,
     Drawer,
     MenuItem,
     TextField,
@@ -70,19 +69,16 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
     categories,
     vendors,
     companies,
-    productNames,
     onSave,
     onAddCategory,
     onAddVendor,
     onAddBrand,
-    onFillFromSearch
 }) => {
     const [form, setForm] = useState<Partial<ProductInterface>>(initialData);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSaving, setIsSaving] = useState(false);
     const dispatch = useAppDispatch();
 
-    // Reset form when initialData changes (e.g. opening drawer)
     useEffect(() => {
         setForm({
             ...initialData,
@@ -126,9 +122,9 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
         if (!form.unit) newErrors.unit = "Unit is required";
         if (!form.packSize) newErrors.packSize = "Pack Size is required";
-        if (form.stockAlert === undefined || form.stockAlert === null || form.stockAlert < 0) {
-            newErrors.stockAlert = "Reorder Level is required";
-        }
+        // if (form.stockAlert === undefined || form.stockAlert === null || form.stockAlert < 0) {
+        //     newErrors.stockAlert = "Reorder Level is required";
+        // }
 
         // Active Status (Required)
         if (form.isActive === undefined) newErrors.isActive = "Active Status is required";
@@ -169,7 +165,6 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 }
             }
 
-            // 3. Clean up optional fields if they are empty
             if (finalizedForm.vendorsId && !finalizedForm.vendorsId._id) {
                 delete finalizedForm.vendorsId;
             }
@@ -259,31 +254,9 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                         {errors.productType && <Typography color="error" variant="caption">{errors.productType}</Typography>}
                     </Box>
 
-                    {/* 0. Fast Search (Cloning) - Keeping it but slightly de-emphasized */}
-                    {!isEdit && (
-                        <Box className="bg-slate-50 p-4 rounded-xl border border-slate-200 border-dashed">
-                            <Typography variant="caption" className="text-slate-500 mb-2 block font-medium">Clone form existing product (Optional)</Typography>
-                            <Autocomplete
-                                freeSolo
-                                size="small"
-                                options={productNames}
-                                value={form.productName || ""}
-                                onChange={(_, val) => {
-                                    if (val) handleInputChange('productName', val);
-                                }}
-                                onInputChange={(_, val, reason) => {
-                                    if (reason === 'input') handleInputChange('productName', val);
-                                }}
-                                renderInput={(params) => (
-                                    <TextField {...params} variant="outlined" className="bg-white" placeholder="Type to search..." />
-                                )}
-                            />
-                        </Box>
-                    )}
-
                     {/* 2. Common Fields */}
                     <Box className="space-y-4">
-                        <Typography variant="subtitle2" className="font-bold text-slate-700 flex items-center gap-2">
+                        <Typography variant="subtitle2" className="font-bold text-slate-700 flex items-center m-0 gap-2">
                             COMMON DETAILS (REQUIRED)
                         </Typography>
                         <Box className="grid grid-cols-1 gap-4">
@@ -352,14 +325,14 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                             </Box>
 
                             <Box className="grid grid-cols-2 gap-4">
-                                <TextField fullWidth size="small" label="Reorder Level *" type="number"
+                                {/* <TextField fullWidth size="small" label="Reorder Level *" type="number"
                                     value={form.stockAlert ?? ""}
                                     onChange={(e) => handleInputChange('stockAlert', e.target.value === '' ? '' : Number(e.target.value))}
                                     error={Boolean(errors.stockAlert)}
                                     helperText={errors.stockAlert}
                                     className="bg-white"
                                     sx={numberInputStyle}
-                                />
+                                /> */}
                                 <TextField
                                     select
                                     fullWidth
@@ -377,11 +350,11 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                         </Box>
                     </Box>
 
-                    <Divider />
+
 
                     {/* 3. Optional Fields */}
                     <Box className="space-y-4">
-                        <Typography variant="subtitle2" className="font-bold text-slate-500 uppercase tracking-tighter text-xs">
+                        <Typography variant="subtitle2" className="font-bold text-slate-500 m-0 uppercase tracking-tighter text-xs">
                             Additional Details (Optional)
                         </Typography>
                         <Box className="grid grid-cols-2 gap-4">

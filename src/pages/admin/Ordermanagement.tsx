@@ -2,35 +2,39 @@ import {
   Box,
   Button,
   Checkbox,
-  CircularProgress,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemText,
-  Paper,
-  Popover,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
+  Paper,
+  TablePagination,
   TextField,
-  Typography,
-  Tab,
   Tabs,
+  Tab,
+  Typography,
+  IconButton,
+  Popover,
+  List,
+  ListItemButton,
+  ListItemText,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
+  Autocomplete,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSend, FiSearch, FiFilter, FiFileText } from "react-icons/fi";
+import { FiSend, FiSearch, FiFilter, FiFileText, FiGrid, FiList } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import { useSearchParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
+import * as XLSX from 'xlsx';
 
 import {
   addOrder,
@@ -42,6 +46,8 @@ import {
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, getVendors, selectVendors } from "../../redux/slices/vendorSlice";
+
+import { CreateOrderModal } from "../../components/adminComponents/CreateOrderModal";
 
 export default function OrderManagementPage(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -57,16 +63,40 @@ export default function OrderManagementPage(): JSX.Element {
   const vendorsData = useAppSelector(selectVendors) || [];
   const companies = useAppSelector(selectCompanies) || [];
 
-  // Tabs
-  const [activeTab, setActiveTab] = useState("Inventory Items");
+  // Tabs (Removed UI, but keeping state for now if needed internally, or just set to empty string)
+  const [activeTab] = useState("");
 
   // Filters
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode = searchParams.get("mode");
+  const paramId = searchParams.get("id");
+
+  // Derive initial state from URL (Persistence Logic)
+  const initialCategoryId = (mode === 'category' && paramId) ? paramId : (searchParams.get("categoryId") || "");
+  const initialVendorId = (mode === 'vendor' && paramId) ? paramId : (searchParams.get("vendorId") || "");
+  const initialCompanyId = (mode === 'brand' && paramId) ? paramId : (searchParams.get("companyId") || "");
+
   const [search] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [vendorId, setVendorId] = useState("");
-  const [companyId, setCompanyId] = useState("");
+  const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [vendorId, setVendorId] = useState(initialVendorId);
+  const [companyId, setCompanyId] = useState(initialCompanyId);
   const [fromDate] = useState("");
   const [toDate] = useState("");
+
+  // Sync state if URL changes externally (e.g. Back button or Sidebar click while on page)
+  useEffect(() => {
+    if (mode === 'vendor' && paramId) setVendorId(paramId);
+    else if (searchParams.get("vendorId")) setVendorId(searchParams.get("vendorId") || "");
+    else if (!mode) setVendorId(""); // Clear if no relevant params
+
+    if (mode === 'category' && paramId) setCategoryId(paramId);
+    else if (searchParams.get("categoryId")) setCategoryId(searchParams.get("categoryId") || "");
+    else if (!mode) setCategoryId("");
+
+    if (mode === 'brand' && paramId) setCompanyId(paramId);
+    else if (searchParams.get("companyId")) setCompanyId(searchParams.get("companyId") || "");
+    else if (!mode) setCompanyId("");
+  }, [mode, paramId, searchParams]);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -77,8 +107,9 @@ export default function OrderManagementPage(): JSX.Element {
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
 
   // Vendor Selection Dialog
-  const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<"whatsapp" | "pdf">("whatsapp");
+  // Create Order Modal
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"whatsapp" | "pdf" | "excel" | "csv" | null>(null);
 
   // Popover States
   const [productAnchor, setProductAnchor] = useState<null | HTMLElement>(null);
@@ -101,12 +132,6 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Fetch products
   useEffect(() => {
-    // Map activeTab to Product Type enum
-    const typeMapping: Record<string, string> = {
-      "Inventory Items": "Inventory Item",
-      "Packaging Items": "Packaging Item"
-    };
-
     dispatch(
       getOrdersProduct({
         search: productSearch || search,
@@ -115,19 +140,14 @@ export default function OrderManagementPage(): JSX.Element {
         category: categoryId,
         vendor: vendorId,
         brand: companyId,
-        productType: typeMapping[activeTab],
+        productType: "", // Fetch all
         fromDate,
         toDate
       })
     );
-  }, [dispatch, page, rowsPerPage, search, productSearch, categoryId, vendorId, companyId, fromDate, toDate, activeTab]);
+  }, [dispatch, page, rowsPerPage, search, productSearch, categoryId, vendorId, companyId, fromDate, toDate]);
 
-  // Reset page and selection when tab changes
-  useEffect(() => {
-    setPage(0);
-    setSelected([]);
-    setQtyMap({});
-  }, [activeTab]);
+
 
   // Selection Logic
   const toggleRow = (id: string) => {
@@ -150,14 +170,45 @@ export default function OrderManagementPage(): JSX.Element {
     const doc = new jsPDF();
     const isPackaging = activeTab === "Packaging Items";
 
-    // Add Vendor Info to PDF Header
-    doc.setFontSize(18);
-    doc.text("PURCHASE ORDER", 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Vendor: ${vendor.vendor_name}`, 14, 30);
-    doc.text(`Date: ${dayjs().format('DD/MM/YYYY')}`, 14, 35);
-    doc.text(`Order No: (Draft)`, 14, 40);
+    // --- Header Section ---
+    doc.setFillColor(63, 81, 181); // Indigo color header
+    doc.rect(0, 0, 210, 24, 'F');
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text("PURCHASE ORDER", 105, 16, { align: "center" });
+
+    // --- Info Section (From & To) ---
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+
+    let yPos = 35;
+
+    // Left Side: Bill From (Our Company)
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL FROM:", 14, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text("My Restaurant / Store Name", 14, yPos + 5); // Replace with dynamic Store Name
+    doc.text("123, Main Street, City, State", 14, yPos + 10); // Replace with dynamic Address
+    doc.text("Contact: +91 9876543210", 14, yPos + 15); // Replace with dynamic Phone
+
+    // Right Side: Bill To (Vendor)
+    const rightX = 120;
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO (VENDOR):", rightX, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(vendor.vendor_name || "N/A", rightX, yPos + 5);
+    doc.text(`Mobile: ${vendor.vendor_mobileNo || "N/A"}`, rightX, yPos + 10);
+    doc.text(`Address: ${vendor.vendor_address || "N/A"}`, rightX, yPos + 15); // Assuming address exists
+    if (vendor.vendor_gstNo) doc.text(`GSTIN: ${vendor.vendor_gstNo}`, rightX, yPos + 20);
+
+    // Order Details
+    doc.setFont("helvetica", "bold");
+    doc.text(`Date: ${dayjs().format('DD/MM/YYYY')}`, 14, yPos + 35);
+    doc.text(`Order Status: Created/Draft`, 120, yPos + 35);
+
+    // --- Table ---
     const headers = ['#', 'Product', 'Brand', 'Unit'];
     if (isPackaging) {
       headers.push('Shape', 'Colour');
@@ -183,8 +234,19 @@ export default function OrderManagementPage(): JSX.Element {
     autoTable(doc, {
       head: [headers],
       body: tableData,
-      startY: 45,
+      startY: yPos + 40,
+      theme: 'striped',
+      headStyles: { fillColor: [63, 81, 181], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
     });
+
+    // --- Footer ---
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Thank you for your business!", 105, finalY, { align: "center" });
+
     doc.save(`Order_${vendor.vendor_name}_${dayjs().format('YYYY-MM-DD')}.pdf`);
   };
 
@@ -193,48 +255,138 @@ export default function OrderManagementPage(): JSX.Element {
     setVendorDialogOpen(true);
   };
 
-  // Vendor Selection, WhatsApp & API Call
-  const handleSelectVendor = async (vendor: any) => {
-    const selectedProducts = ordersList.filter(p => selected.includes(p._id) && (qtyMap[p._id] || 0) > 0);
+  // Generic Action Handler
+  const handleOrderAction = async (type: "whatsapp" | "pdf" | "excel" | "csv") => {
+    // 1. Identify selected vendor (assuming single vendor selection enforced by UI logic)
+    // If mixed vendors, we might need a distinct check. But current UI enforces single vendor for valid order.
+    // We can pick the vendor from the first selected product or the filter.
 
+    // Safer to rely on the filter 'vendorId' being set.
+    const currentVendor = vendorsData.find(v => v._id === vendorId);
+    if (!currentVendor) {
+      alert("Please select a vendor first.");
+      return;
+    }
+
+    const selectedProducts = ordersList.filter(p => selected.includes(p._id) && (qtyMap[p._id] || 0) > 0);
     if (selectedProducts.length === 0) return;
 
-    // 1. Prepare API Payload
+    // 2. Prepare Payload
     const payload = {
-      vendorsId: vendor._id,
+      vendorsId: currentVendor._id,
       products: selectedProducts.map(p => ({
         productId: p._id,
         orderQty: qtyMap[p._id]
       }))
     };
 
-    // 2. Dispatch to Backend (Makes it show up in Vendor Orders)
-    await dispatch(addOrder(payload)).unwrap();
+    // 3. Save Order to Backend (Always save when "Creating" an order record)
+    try {
+      await dispatch(addOrder(payload)).unwrap();
+    } catch (err) {
+      console.error("Failed to save order", err);
+      // Optional: continue to download even if save fails? Better to stop.
+      // return; 
+    }
 
-    // 3. Perform specific action
-    if (actionType === "whatsapp") {
+    // 4. Execute Specific Action
+    if (type === "whatsapp") {
       // Construct WhatsApp message
-      let message = `📦 *Order for ${vendor.vendor_name}*\n\n`;
+      // Header with My Info (Placeholder) & Vendor Info
+      let message = `📋 *PURCHASE ORDER*\n`;
+      message += `📅 Date: ${dayjs().format("DD/MM/YYYY")}\n`;
+      message += `🏪 *From:* My Restaurant / Store Name\n`; // Replace with dynamic Store Name
+      message += `👤 *To Vendor:* ${currentVendor.vendor_name}\n`;
+      message += `📱 Mobile: ${currentVendor.vendor_mobileNo}\n`;
+      message += `--------------------------------\n\n`;
+
+      message += `*Order Details:*\n`;
       selectedProducts.forEach((p, index) => {
         const qty = qtyMap[p._id];
         const brand = p.companyId?.brandName || "N/A";
-        message += `${index + 1}. *${p.productName}*\n   Brand: ${brand}\n   Qty: ${qty}\n\n`;
+        message += `${index + 1}. *${p.productName}* (${p.unit})\n`;
+        message += `   Brand: ${brand} | Qty: *${qty}*\n`;
       });
 
-      const phoneNumber = vendor.vendor_mobileNo || "";
+      message += `\n--------------------------------\n`;
+      message += `Thank you!`;
+
+      const phoneNumber = currentVendor.vendor_mobileNo || "";
       if (phoneNumber) {
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, "_blank");
+        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
       }
-    } else {
-      // Generate PDF
-      generatePDF(vendor);
+    } else if (type === "pdf") {
+      generatePDF(currentVendor);
+    } else if (type === "excel") {
+      // 1. Header Info
+      const headerRows = [
+        ["PURCHASE ORDER"],
+        [],
+        ["BILL FROM:", "", "BILL TO (VENDOR):"],
+        ["My Restaurant / Store Name", "", currentVendor.vendor_name || "N/A"],
+        ["123, Main Street, City, State", "", `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`],
+        ["Contact: +91 9876543210", "", `Address: ${currentVendor.vendor_address || "N/A"}`],
+        [],
+        [`Date: ${dayjs().format("DD/MM/YYYY")}`, "", "Order Status: Created/Draft"],
+        []
+      ];
+
+      // 2. Table Headers
+      const tableHeaders = ["Product", "Category", "Brand", "Unit", "Quantity"];
+
+      // 3. Product Data
+      const productRows = selectedProducts.map(p => [
+        p.productName,
+        p.categoryId?.categoryName || "-",
+        p.companyId?.brandName || "-",
+        p.unit,
+        qtyMap[p._id]
+      ]);
+
+      // 4. Combine
+      const sheetData = [...headerRows, tableHeaders, ...productRows];
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Set Column Widths (Approx)
+      ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Order");
+      XLSX.writeFile(wb, `Order_${currentVendor.vendor_name}.xlsx`);
+
+    } else if (type === "csv") {
+      const preamble = [
+        "PURCHASE ORDER",
+        "",
+        "BILL FROM:,,BILL TO (VENDOR):",
+        "My Restaurant / Store Name,," + (currentVendor.vendor_name || "N/A"),
+        "123 Main Street City State,," + `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`,
+        "Contact: +91 9876543210,," + `Address: ${currentVendor.vendor_address || "N/A"}`,
+        "",
+        `Date: ${dayjs().format("DD/MM/YYYY")},,Order Status: Created/Draft`,
+        ""
+      ].join("\n");
+
+      const headers = ["Product,Category,Brand,Unit,Quantity"].join(",");
+      const rows = selectedProducts.map(p =>
+        `"${p.productName}","${p.categoryId?.categoryName || "-"}","${p.companyId?.brandName || "-"}","${p.unit}",${qtyMap[p._id]}`
+      ).join("\n");
+
+      const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(preamble + "\n" + headers + "\n" + rows);
+      const link = document.createElement("a");
+      link.setAttribute("href", csvContent);
+      link.setAttribute("download", `Order_${currentVendor.vendor_name}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
-    setVendorDialogOpen(false);
+    // 5. Cleanup
+    setCreateOrderOpen(false);
     setSelected([]);
     setQtyMap({});
   };
+
 
   // Filter Search Logic
   const filteredCats = useMemo(() =>
@@ -252,53 +404,115 @@ export default function OrderManagementPage(): JSX.Element {
     [companies, brandSearch]
   );
 
+  // Determine if we should show the table
+  const shouldShowTable = useMemo(() => {
+    if (mode === 'vendor' && !vendorId) return false;
+    if (mode === 'category' && !categoryId) return false;
+    if (mode === 'brand' && !companyId) return false;
+    return true;
+  }, [mode, vendorId, categoryId, companyId]);
+
   return (
     <AdminLayout>
-      <Box>
-        {/* Top Header Row with Tabs */}
-        <Box className="flex flex-col sm:flex-row items-center justify-between pt-4 pr-6 gap-4 border-b border-gray-200">
-          <Tabs
-            value={activeTab}
-            onChange={(_, val) => setActiveTab(val)}
-            textColor="primary"
-            indicatorColor="primary"
-          >
-            <Tab label="Inventory Items" value="Inventory Items" className="normal-case font-semibold" sx={{ fontSize: "12px" }} />
-            <Tab label="Packaging Items" value="Packaging Items" className="normal-case font-semibold" sx={{ fontSize: "12px" }} />
-          </Tabs>
+      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
 
-          <Box className="flex items-center gap-2 mb-2">
-            <Button
-              variant="outlined"
-              startIcon={<FiFileText />}
-              onClick={handleExportPDF}
-              disabled={selected.length === 0}
-              className="normal-case border-blue-600 text-blue-600 hover:bg-blue-50"
+        {/* Header Section */}
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+
+          {/* Filters */}
+          <Box className="flex items-center gap-4 flex-wrap w-full md:w-auto">
+            <Autocomplete
               size="small"
-            >
-              Export to PDF
-            </Button>
+              options={vendorsData}
+              getOptionLabel={(option) => option.vendor_name || ""}
+              value={vendorsData.find(v => v._id === vendorId) || null}
+              onChange={(_, newValue) => {
+                const newVal = newValue ? newValue._id : "";
+                setVendorId(newVal);
+                // Preserve other params when updating
+                const currentParams = Object.fromEntries(searchParams.entries());
+                if (newVal) {
+                  setSearchParams({ ...currentParams, vendorId: newVal });
+                } else {
+                  delete currentParams.vendorId;
+                  delete currentParams.mode;
+                  delete currentParams.id;
+                  setSearchParams(currentParams);
+                }
+              }}
+              renderInput={(params) => <TextField {...params} label="Select Vendor" placeholder="Select Vendor" />}
+              sx={{ width: 220 }}
+            />
+            <Autocomplete
+              size="small"
+              options={categories}
+              getOptionLabel={(option) => option.categoryName || ""}
+              value={categories.find(c => c._id === categoryId) || null}
+              onChange={(_, newValue) => {
+                const newVal = newValue ? newValue._id : "";
+                setCategoryId(newVal);
+                // Preserve other params when updating
+                const currentParams = Object.fromEntries(searchParams.entries());
+                if (newVal) {
+                  setSearchParams({ ...currentParams, categoryId: newVal });
+                } else {
+                  delete currentParams.categoryId;
+                  delete currentParams.mode;
+                  delete currentParams.id;
+                  setSearchParams(currentParams);
+                }
+              }}
+              renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Select Category" />}
+              sx={{ width: 220 }}
+            />
+            <Autocomplete
+              size="small"
+              options={companies}
+              getOptionLabel={(option) => option.brandName || ""}
+              value={companies.find(c => c._id === companyId) || null}
+              onChange={(_, newValue) => {
+                const newVal = newValue ? newValue._id : "";
+                setCompanyId(newVal);
+                // Preserve other params when updating
+                const currentParams = Object.fromEntries(searchParams.entries());
+                if (newVal) {
+                  setSearchParams({ ...currentParams, companyId: newVal });
+                } else {
+                  delete currentParams.companyId;
+                  delete currentParams.mode;
+                  delete currentParams.id;
+                  setSearchParams(currentParams);
+                }
+              }}
+              renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Select Brand" />}
+              sx={{ width: 220 }}
+            />
+          </Box>
+
+          {/* Actions */}
+          <Box className="flex items-center gap-2">
             <Button
               variant="contained"
               startIcon={<FiSend />}
-              disabled={selected.length === 0 || selected.some(id => !(qtyMap[id]))}
-              onClick={() => {
-                setActionType("whatsapp");
-                setVendorDialogOpen(true);
-              }}
-              size="small"
+              disabled={
+                !vendorId ||
+                selected.length === 0 ||
+                selected.some(id => !qtyMap[id] || qtyMap[id] <= 0)
+              }
+              onClick={() => setCreateOrderOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md"
             >
-              Send Order ({selected.length})
+              Create Order ({selected.length})
             </Button>
           </Box>
         </Box>
 
-        {/* Clean Table */}
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table>
-              <TableHead className="bg-gray-50">
-                <TableRow>
+        {/* Table Section */}
+        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+          <TableContainer className="flex-1 overflow-auto">
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow className="bg-gray-50">
                   <TableCell padding="checkbox">
                     <Checkbox
                       color="primary"
@@ -309,7 +523,7 @@ export default function OrderManagementPage(): JSX.Element {
                       onChange={toggleAll}
                     />
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="font-bold text-gray-700">
                     <Box className="flex items-center gap-2">
                       Product
                       <IconButton size="small" onClick={(e) => setProductAnchor(e.currentTarget)}>
@@ -335,7 +549,7 @@ export default function OrderManagementPage(): JSX.Element {
                       </Box>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="font-bold text-gray-700">
                     <Box className="flex items-center gap-2">
                       Category
                       <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
@@ -371,7 +585,7 @@ export default function OrderManagementPage(): JSX.Element {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="font-bold text-gray-700">
                     <Box className="flex items-center gap-2">
                       Vendor
                       <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
@@ -407,7 +621,7 @@ export default function OrderManagementPage(): JSX.Element {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">
+                  <TableCell className="font-bold text-gray-700">
                     <Box className="flex items-center gap-2">
                       Brand
                       <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
@@ -443,31 +657,35 @@ export default function OrderManagementPage(): JSX.Element {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">Unit</TableCell>
-                  {activeTab === "Packaging Items" && (
-                    <>
-                      <TableCell className="font-bold">Shape</TableCell>
-                      <TableCell className="font-bold">Colour</TableCell>
-                    </>
-                  )}
-                  <TableCell className="font-bold">Current Qty</TableCell>
-                  <TableCell className="font-bold" style={{ width: 140 }}>Order Qty</TableCell>
-                  <TableCell className="font-bold">Created</TableCell>
+                  <TableCell className="font-bold text-gray-700">Unit</TableCell>
+                  <TableCell className="font-bold text-gray-700">Current Store Qty</TableCell>
+                  <TableCell className="font-bold text-gray-700" style={{ width: 140 }}>Order Qty</TableCell>
+                  <TableCell className="font-bold text-gray-700">Created</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {orderState.loading ? (
                   <TableRow>
-                    <TableCell colSpan={activeTab === "Packaging Items" ? 11 : 9} align="center" className="py-10">
+                    <TableCell colSpan={9} align="center" className="py-20">
                       <CircularProgress size={30} />
-                      <Typography className="mt-2 text-gray-500 text-sm">Loading products...</Typography>
+                      <Typography className="mt-2 text-gray-500">Loading products...</Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : !shouldShowTable ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" className="py-20">
+                      <Typography variant="h6" className="text-gray-400 font-medium">
+                        {mode === 'vendor' ? "Please select a Vendor" :
+                          mode === 'category' ? "Please select a Category" :
+                            mode === 'brand' ? "Please select a Brand" : "Please select filters from the sidebar"}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 ) : ordersList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={activeTab === "Packaging Items" ? 11 : 9} align="center" className="py-10 text-gray-500">
-                      No products found.
+                    <TableCell colSpan={9} align="center" className="py-10 text-gray-500">
+                      No products found matching criteria.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -476,29 +694,24 @@ export default function OrderManagementPage(): JSX.Element {
                     const isSelected = selected.includes(pid);
 
                     return (
-                      <TableRow key={pid} hover selected={isSelected}>
+                      <TableRow key={pid} hover selected={isSelected} className="transition-colors hover:bg-gray-50">
                         <TableCell padding="checkbox">
                           <Checkbox color="primary" checked={isSelected} onChange={() => toggleRow(pid)} />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" className="font-medium">{p.productName}</Typography>
+                          <Typography variant="body2" className="font-medium text-gray-800">{p.productName}</Typography>
                           <Typography variant="caption" className="text-gray-500">{p.packSize} | {p.unit}</Typography>
                         </TableCell>
-                        <TableCell className="capitalize text-gray-600">{p.categoryId?.categoryName || "N/A"}</TableCell>
+                        <TableCell className="text-gray-600 font-medium">{p.categoryId?.categoryName || "N/A"}</TableCell>
                         <TableCell className="text-gray-600">{p.vendorsId?.vendor_name}</TableCell>
-                        <TableCell className="text-gray-600 italic">{p.companyId?.brandName}</TableCell>
+                        <TableCell className="text-gray-600">{p.companyId?.brandName}</TableCell>
                         <TableCell className="text-gray-600">{p.unit}</TableCell>
-                        {activeTab === "Packaging Items" && (
-                          <>
-                            <TableCell className="text-gray-600">{p.shape || "-"}</TableCell>
-                            <TableCell className="text-gray-600">{p.colour || "-"}</TableCell>
-                          </>
-                        )}
-                        <TableCell className="text-center">{p.currentPurchaseQty ?? "-"}</TableCell>
+                        <TableCell className="text-center font-semibold text-gray-700">{p.currentPurchaseQty ?? "-"}</TableCell>
                         <TableCell>
                           <TextField
                             size="small"
                             type="number"
+                            placeholder="0"
                             value={qtyMap[pid] || ""}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                               const val = Number(e.target.value);
@@ -509,7 +722,15 @@ export default function OrderManagementPage(): JSX.Element {
                                 setSelected(prev => prev.filter(id => id !== pid));
                               }
                             }}
-                            sx={{ "& .MuiInputBase-input": { py: 0.5, px: 1, textAlign: 'center' } }}
+                            sx={{
+                              "& .MuiInputBase-input": { py: 0.5, px: 1, textAlign: 'center' },
+                              "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+                                display: "none",
+                              },
+                              "& input[type=number]": {
+                                MozAppearance: "textfield",
+                              },
+                            }}
                           />
                         </TableCell>
                         <TableCell className="text-gray-500 text-xs">
@@ -523,38 +744,31 @@ export default function OrderManagementPage(): JSX.Element {
             </Table>
           </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={ordersResponse?.total ?? 0}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setPage(0);
-            }}
-            className="border-t bg-gray-50"
-          />
+          <Box className="border-t border-gray-200 bg-gray-50">
+            <TablePagination
+              component="div"
+              count={ordersResponse?.total ?? 0}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+            />
+          </Box>
         </Paper>
       </Box>
 
-      {/* Vendor Selection Dialog */}
-      <Dialog open={vendorDialogOpen} onClose={() => setVendorDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle className="font-bold">Select Vendor</DialogTitle>
-        <DialogContent>
-          <List>
-            {vendorsData.map((vendor: any) => (
-              <ListItemButton key={vendor._id} onClick={() => handleSelectVendor(vendor)} className="border-b">
-                <ListItemText
-                  primary={vendor.vendor_name}
-                  secondary={vendor.vendor_mobileNo}
-                  primaryTypographyProps={{ fontWeight: 'bold' }}
-                />
-              </ListItemButton>
-            ))}
-          </List>
-        </DialogContent>
-      </Dialog>
+      <CreateOrderModal
+        open={createOrderOpen}
+        onClose={() => setCreateOrderOpen(false)}
+        productCount={selected.length}
+        onSendWhatsapp={() => handleOrderAction("whatsapp")}
+        onDownloadPDF={() => handleOrderAction("pdf")}
+        onDownloadExcel={() => handleOrderAction("excel")}
+        onDownloadCSV={() => handleOrderAction("csv")}
+      />
     </AdminLayout>
   );
 }
