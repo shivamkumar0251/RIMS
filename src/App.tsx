@@ -15,7 +15,7 @@ import FranchisePage from "./pages/Franchise";
 import NotFound from "./pages/NotFound";
 import OurOutlets from "./pages/Outlet";
 import AccountSetting from "./pages/admin/AccountSettings";
-import AddProductAdvanced from "./pages/admin/AddProduct";
+// import AddProductAdvanced from "./pages/admin/AddProduct";
 import ProfilePage from "./pages/admin/AdminProfile";
 import ProductCategories from "./pages/admin/Categories";
 import CompanyBrand from "./pages/admin/CompanyBrand";
@@ -74,7 +74,7 @@ function App() {
             <Route path="/admin/kitchen-consumption" element={<KitchenConsumption />} />
             <Route path="/admin/consumables" element={<Consumables />} />
             <Route path="/admin/restaurant-setup" element={<RestaurantSetup />} />
-            <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} />
+            {/* <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} /> */}
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
             <Route path="/userdashboard" element={<LazyUserDashboard />} />

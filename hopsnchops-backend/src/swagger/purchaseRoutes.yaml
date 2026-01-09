@@ -1,0 +1,543 @@
+tags:
+  - name: Purchases
+    description: Purchase management endpoints
+
+paths:
+  /v1/purchase:
+    post:
+      summary: Send stock to store from latest purchase (admin)
+      description: |
+        Accepts productId (or productId._id) and sendToStoreQty.
+        Finds the latest purchase for the product in this franchise, deducts sendToStoreQty from its currentPurchaseQty,
+        increments its sendToStoreQty, and updates/creates StoreStocks by adding sendToStoreQty to rcvdStoreQty and openingStock.
+      tags:
+        - Purchases
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+                - sendToStoreQty
+              properties:
+                productId:
+                  oneOf:
+                    - type: string
+                    - type: object
+                      properties:
+                        _id:
+                          type: string
+                  description: Product ID (may be provided as string or object with _id)
+                  example: "65af12c98cd34bcdef112233"
+                sendToStoreQty:
+                  type: number
+                  description: Quantity sent to store
+                  example: 25
+            example:
+              productId: "65af12c98cd34bcdef112233"
+              sendToStoreQty: 25
+      responses:
+        '201':
+          description: Purchase updated and stock sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Updated purchase object
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      rcvdPurchaseQty:
+                        type: number
+                      sendToStoreQty:
+                        type: number
+                      currentPurchaseQty:
+                        type: number
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid productId or missing required fields
+        '500':
+          description: Server Error
+
+    get:
+      summary: Get purchases with search, filters, pagination, and sorting
+      description: |
+        Retrieve purchases with advanced filtering options. Supports search by product name,
+        filtering by category, vendor, company, date range, pagination, and sorting.
+        All purchases are populated with full product details including category, vendor, and company.
+      tags:
+        - Purchases
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by product name (case-insensitive)
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+          description: Filter by category ID
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+          description: Filter by vendor ID
+        - in: query
+          name: companyId
+          schema:
+            type: string
+          description: Filter by company ID
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: Filter purchases from this date (YYYY-MM-DD)
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: Filter purchases up to this date (YYYY-MM-DD)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 500
+          description: Items per page (max 500)
+          example: 50
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, productName, sendToStoreQty]
+            default: createdAt
+          description: Field to sort by
+          example: "createdAt"
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+          example: "desc"
+      responses:
+        '200':
+          description: List of purchases with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        franchiseId:
+                          type: string
+                        productId:
+                          type: object
+                          description: Populated product object with limited nested fields
+                          properties:
+                            _id:
+                              type: string
+                            productName:
+                              type: string
+                            unit:
+                              type: string
+                            packSize:
+                              type: string
+                            taxableValue:
+                              type: number
+                            perUnitRate:
+                              type: number
+                            stockAlert:
+                              type: number
+                            categoryId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                categoryName:
+                                  type: string
+                            vendorsId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                vendor_name:
+                                  type: string
+                            companyId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                brandName:
+                                  type: string
+                        rcvdPurchaseQty:
+                          type: number
+                        sendToStoreQty:
+                          type: number
+                        currentPurchaseQty:
+                          type: number
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+        '500':
+          description: Server Error
+
+  /v1/purchase/{id}:
+    put:
+      summary: Update a purchase (admin)
+      description: |
+        Update sendToStoreQty for a purchase. Updates StoreStocks by adjusting rcvdStoreQty and openingStock
+        based on the delta between old and new sendToStoreQty values.
+      tags:
+        - Purchases
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Purchase ID
+          example: "65b012c98cd34bcdef112233"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sendToStoreQty
+              properties:
+                sendToStoreQty:
+                  type: number
+                  description: New sent-to-store quantity
+                  example: 150
+            example:
+              sendToStoreQty: 150
+      responses:
+        '200':
+          description: Purchase updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Updated purchase object
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      productId:
+                        type: object
+                        description: Populated product object
+                      rcvdPurchaseQty:
+                        type: number
+                      sendToStoreQty:
+                        type: number
+                      currentPurchaseQty:
+                        type: number
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Missing sendToStoreQty or bad request
+        '404':
+          description: Purchase not found
+        '500':
+          description: Server Error
+
+    delete:
+      summary: Delete a purchase (admin)
+      description: |
+        Deletes a purchase and rolls back its effect on StoreStocks by subtracting sendToStoreQty
+        from rcvdStoreQty and openingStock.
+      tags:
+        - Purchases
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Purchase ID
+          example: "65b012c98cd34bcdef112233"
+      responses:
+        '200':
+          description: Purchase deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Purchase deleted"
+                  data:
+                    type: object
+                    description: Deleted purchase object
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      productId:
+                        type: string
+                      rcvdPurchaseQty:
+                        type: number
+                      sendToStoreQty:
+                        type: number
+                      currentPurchaseQty:
+                        type: number
+        '404':
+          description: Purchase not found
+        '500':
+          description: Server Error
+
+  /v1/purchase/bulk/create:
+    post:
+      summary: Create multiple purchases at once (admin)
+      description: |
+        Bulk create purchases. Accepts an array of purchase objects.
+        Each object contains productId (or productId._id) and sendToStoreQty.
+        For each item, finds the latest purchase for the product, deducts sendToStoreQty from currentPurchaseQty,
+        increments sendToStoreQty, and updates/creates StoreStocks records.
+        Returns detailed success and failure information for each item.
+      tags:
+        - Purchases
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    purchases:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - productId
+                          - sendToStoreQty
+                        properties:
+                          productId:
+                            oneOf:
+                              - type: string
+                              - type: object
+                                properties:
+                                  _id:
+                                    type: string
+                            description: Product ID (may be provided as string or object with _id)
+                            example: "65af12c98cd34bcdef112233"
+                          sendToStoreQty:
+                            type: number
+                            description: Quantity sent to store
+                            example: 25
+                - type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - sendToStoreQty
+                    properties:
+                      productId:
+                        oneOf:
+                          - type: string
+                          - type: object
+                            properties:
+                              _id:
+                                type: string
+                        description: Product ID (may be provided as string or object with _id)
+                        example: "65af12c98cd34bcdef112233"
+                      sendToStoreQty:
+                        type: number
+                        description: Quantity sent to store
+                        example: 25
+            examples:
+              format1:
+                summary: Array of purchases directly
+                value:
+                  - productId: "65af12c98cd34bcdef112233"
+                    sendToStoreQty: 25
+                  - productId: "65af12c98cd34bcdef112234"
+                    sendToStoreQty: 30
+              format2:
+                summary: Object with purchases property
+                value:
+                  purchases:
+                    - productId: "65af12c98cd34bcdef112233"
+                      sendToStoreQty: 25
+                    - productId: "65af12c98cd34bcdef112234"
+                      sendToStoreQty: 30
+      responses:
+        '201':
+          description: All purchases created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      successful:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                              description: Index of the purchase in the input array
+                            productId:
+                              type: string
+                            data:
+                              type: object
+                              description: Updated purchase object
+                              properties:
+                                _id:
+                                  type: string
+                                franchiseId:
+                                  type: string
+                                productId:
+                                  type: string
+                                rcvdPurchaseQty:
+                                  type: number
+                                sendToStoreQty:
+                                  type: number
+                                currentPurchaseQty:
+                                  type: number
+                                createdAt:
+                                  type: string
+                                  format: date-time
+                                updatedAt:
+                                  type: string
+                                  format: date-time
+                      failed:
+                        type: array
+                        example: []
+        '207':
+          description: Partial success - some purchases were created, some failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      successful:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                            productId:
+                              type: string
+                            data:
+                              type: object
+                      failed:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                            productId:
+                              type: string
+                            error:
+                              type: string
+                              example: "No purchase found for this product"
+        '400':
+          description: Invalid request - purchases array is empty or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "purchases must be an array"
+        '500':
+          description: Server Error

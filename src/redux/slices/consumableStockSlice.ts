@@ -17,7 +17,7 @@ export interface ConsumableStock {
   productId: ProductInterface;
   openingStock: number;
   rcvdKitchenQty: number;
-  transfersInUse: number;
+  transfersToUsage: number;
   transfersToWastage: number;
   closingStock: number;
   createdAt: string;
@@ -59,7 +59,7 @@ export const getConsumableStocks = createAsyncThunk<
   { rejectValue: { message: string } }
 >(
   'consumableStock/getConsumableStocks',
-   async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_CONSUMABLE}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 

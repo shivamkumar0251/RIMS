@@ -1,0 +1,15 @@
+tags:
+  - name: Franchise
+    description: Franchise endpoints
+
+paths:
+  /v1/franchise:
+    get:
+      summary: Get list of franchises
+      tags:
+        - Franchise
+      responses:
+        '200':
+          description: OK
+        '500':
+          description: Server Error

@@ -1,0 +1,390 @@
+tags:
+  - name: KitchenStocks
+    description: Kitchen stock endpoints
+
+paths:
+  /v1/kitchenStock:
+    post:
+      summary: Transfer stock from kitchen to consumable (admin)
+      description: |
+        Subtracts qty from the latest KitchenStocks.closingStock for the product and records transfersToConsumable.
+        If ConsumableStocks exists for the product, adds qty to openingStock and rcvdConsumableQty; otherwise creates it.
+      tags:
+        - KitchenStocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+                - qty
+              properties:
+                productId:
+                  oneOf:
+                    - type: string
+                    - type: object
+                      properties:
+                        _id:
+                          type: string
+                  description: Product ID (string or object with _id)
+                  example: "65af12c98cd34bcdef112233"
+                qty:
+                  type: number
+                  description: Quantity to move to consumable stock
+                  example: 5
+      responses:
+        '201':
+          description: Transfer recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      kitchenStock:
+                        type: object
+                        description: Updated kitchen stock
+                      consumableStock:
+                        type: object
+                        description: Updated/created consumable stock
+
+    get:
+      summary: Get kitchen stock entries with filters, search, pagination, sort
+      description: |
+        Returns kitchen stock with populated product details.
+        categoryId/vendorsId/companyId are populated with only _id and names.
+        Supports search, category/vendor/company filters, date range, pagination, and sorting.
+
+        Daily rollover:
+        If last updated before today, `openingStock = closingStock` is reset internally.
+      tags:
+        - KitchenStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by product name
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+          description: Filter by category
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+          description: Filter by vendor
+        - in: query
+          name: companyId
+          schema:
+            type: string
+          description: Filter by company
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: From date (inclusive, YYYY-MM-DD)
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: To date (inclusive, YYYY-MM-DD)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, openingStock, closingStock, rcvdKitchenQty, transfersToConsumable]
+            default: createdAt
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of kitchen stocks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        productId:
+                          type: object
+                          properties:
+                            _id: { type: string }
+                            productName: { type: string }
+                            unit: { type: string }
+                            packSize: { type: string }
+                            taxableValue: { type: number }
+                            perUnitRate: { type: number }
+                            stockAlert: { type: number }
+
+                            categoryId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                categoryName: { type: string }
+
+                            vendorsId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                vendor_name: { type: string }
+
+                            companyId:
+                              type: object
+                              properties:
+                                _id: { type: string }
+                                brandName: { type: string }
+
+                        openingStock: { type: number }
+                        rcvdKitchenQty: { type: number }
+                        transfersToConsumable: { type: number }
+                        closingStock: { type: number }
+                        createdAt: { type: string, format: date-time }
+                        updatedAt: { type: string, format: date-time }
+                  pagination:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      pages: { type: integer }
+
+  /v1/kitchenStock/{id}:
+    put:
+      summary: Update a kitchen stock record (admin)
+      tags:
+        - KitchenStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+
+    delete:
+      summary: Delete a kitchen stock record (admin)
+      tags:
+        - KitchenStocks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+  /v1/kitchenStock/bulk/create:
+    post:
+      summary: Bulk transfer stock from kitchen to consumable (admin)
+      description: |
+        Bulk transfer multiple products from kitchen to consumable. Accepts an array of transfer objects.
+        Each object contains productId (or productId._id) and qty.
+        For each item, subtracts qty from the latest KitchenStocks.closingStock and records transfersToConsumable.
+        If ConsumableStocks exists, adds qty to openingStock and rcvdConsumableQty; otherwise creates it.
+        Returns detailed success and failure information for each transfer.
+      tags:
+        - KitchenStocks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    transfers:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - productId
+                          - qty
+                        properties:
+                          productId:
+                            oneOf:
+                              - type: string
+                              - type: object
+                                properties:
+                                  _id:
+                                    type: string
+                            description: Product ID (string or object with _id)
+                            example: "65af12c98cd34bcdef112233"
+                          qty:
+                            type: number
+                            description: Quantity to transfer to consumable stock
+                            example: 5
+                - type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - qty
+                    properties:
+                      productId:
+                        oneOf:
+                          - type: string
+                          - type: object
+                            properties:
+                              _id:
+                                type: string
+                        description: Product ID (string or object with _id)
+                        example: "65af12c98cd34bcdef112233"
+                      qty:
+                        type: number
+                        description: Quantity to transfer to consumable stock
+                        example: 5
+            examples:
+              format1:
+                summary: Array of transfers directly
+                value:
+                  - productId: "65af12c98cd34bcdef112233"
+                    qty: 5
+                  - productId: "65af12c98cd34bcdef112234"
+                    qty: 8
+              format2:
+                summary: Object with transfers property
+                value:
+                  transfers:
+                    - productId: "65af12c98cd34bcdef112233"
+                      qty: 5
+                    - productId: "65af12c98cd34bcdef112234"
+                      qty: 8
+      responses:
+        '201':
+          description: All transfers completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Bulk kitchen transfer completed"
+                  data:
+                    type: object
+                    properties:
+                      successful:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                              description: Index of the transfer in the input array
+                            productId:
+                              type: string
+                            data:
+                              type: object
+                              description: Updated kitchen stock
+                      failed:
+                        type: array
+                        example: []
+        '207':
+          description: Partial success - some transfers completed, some failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Bulk kitchen transfer completed"
+                  data:
+                    type: object
+                    properties:
+                      successful:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                            productId:
+                              type: string
+                            data:
+                              type: object
+                      failed:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            index:
+                              type: integer
+                            productId:
+                              type: string
+                            error:
+                              type: string
+                              example: "qty must be > 0"
+        '400':
+          description: Invalid request - transfers array is empty or invalid format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "transfers must be an array"
+        '500':
+          description: Server Error

@@ -1,0 +1,529 @@
+tags:
+  - name: Orders
+    description: Order management endpoints
+
+paths:
+  /v1/order/products:
+    get:
+      summary: Get all products with currentPurchaseQty from Purchase model
+      description: Retrieve all products with additional field currentPurchaseQty from Purchase model. Supports search, filters (brand, category, vendor), date range, pagination and sorting.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search text in productName
+        - in: query
+          name: brand
+          schema:
+            type: string
+          description: Filter by brand name or brand ID
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category name or category ID
+        - in: query
+          name: vendor
+          schema:
+            type: string
+          description: Filter by vendor name or vendor ID
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: Filter products created from this date
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: Filter products created until this date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Number of items per page
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: List of products with currentPurchaseQty
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '500':
+          description: Server Error
+
+  /v1/order:
+    post:
+      summary: Create bulk orders (admin)
+      description: Create orders in bulk with productId and orderQty. OrderNumber is auto-generated. totalAmount is calculated as sum of (taxableValue * orderQty) and totelOrderQty is sum of all orderQty.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                  - productId
+                  - orderQty
+                properties:
+                  productId:
+                    type: string
+                    description: Product ID
+                  orderQty:
+                    type: number
+                    description: Order quantity (must be > 0)
+              example:
+                - productId: "65af12c98cd34bcdef112233"
+                  orderQty: 10
+                - productId: "65af1acd9ef45bbeae998877"
+                  orderQty: 5
+      responses:
+        '201':
+          description: Orders created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      orderNumber:
+                        type: string
+                      products:
+                        type: array
+                      totalAmount:
+                        type: number
+                      totelOrderQty:
+                        type: number
+        '400':
+          description: Bad Request - Invalid input
+        '500':
+          description: Server Error
+
+    get:
+      summary: Get all orders with populated products
+      description: Retrieve all orders with full product details. Supports search, filters (brand, category, vendor), date range, pagination and sorting.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search text in productName
+        - in: query
+          name: brand
+          schema:
+            type: string
+          description: Filter by brand name or brand ID
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category name or category ID
+        - in: query
+          name: vendor
+          schema:
+            type: string
+          description: Filter by vendor name or vendor ID
+        - in: query
+          name: fromDate
+          schema:
+            type: string
+            format: date
+          description: Filter orders created from this date
+        - in: query
+          name: toDate
+          schema:
+            type: string
+            format: date
+          description: Filter orders created until this date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Number of items per page
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: List of orders with populated products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '500':
+          description: Server Error
+
+  /v1/order/{id}/send-to-purchase:
+    put:
+      summary: Update multiple products sendToPurchaseQty and remarks in order (admin)
+      description: Update sendToPurchaseQty and remarks for multiple products in an order. Automatically calculates totalClosingAmount (sum of sendToPurchaseQty * productMRP for all products) and updates paymentStatus (Paid if totalAmount = totalClosingAmount, Partial if totalClosingAmount > 0 and != totalAmount, otherwise Pending). Also creates or updates Purchase records with rcvdPurchaseQty and adds sendToPurchaseQty to currentPurchaseQty.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Order ID
+          example: "65af12c98cd34bcdef112233"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - products
+              properties:
+                products:
+                  type: array
+                  description: Array of products to update with sendToPurchaseQty and remarks
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - sendToPurchaseQty
+                    properties:
+                      productId:
+                        type: string
+                        description: Product ID (must exist in the order)
+                        example: "65af1acd9ef45bbeae998877"
+                      sendToPurchaseQty:
+                        type: number
+                        description: Quantity to send to purchase (must be non-negative)
+                        minimum: 0
+                        example: 10
+                      remarks:
+                        type: string
+                        description: Optional remarks for the product
+                        example: "Urgent delivery required"
+              example:
+                products:
+                  - productId: "65af1acd9ef45bbeae998877"
+                    sendToPurchaseQty: 10
+                    remarks: "Urgent delivery required"
+                  - productId: "65af12c98cd34bcdef112233"
+                    sendToPurchaseQty: 5
+                    remarks: "Standard delivery"
+      responses:
+        '200':
+          description: Order products updated and purchase records created/updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Order products updated and purchase records created/updated"
+                  data:
+                    type: object
+                    description: Updated order with populated products
+                    properties:
+                      _id:
+                        type: string
+                      franchiseId:
+                        type: string
+                      orderNumber:
+                        type: string
+                      products:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            productId:
+                              type: object
+                              description: Populated product object
+                            orderQty:
+                              type: number
+                            sendToPurchaseQty:
+                              type: number
+                            remarks:
+                              type: string
+                      totalAmount:
+                        type: number
+                      totalClosingAmount:
+                        type: number
+                      paymentStatus:
+                        type: string
+                        enum: [Paid, Pending, Partial]
+                      totelOrderQty:
+                        type: number
+                      orderDate:
+                        type: string
+                        format: date-time
+                  purchaseUpdates:
+                    type: integer
+                    description: Number of purchase records created/updated
+                    example: 2
+        '400':
+          description: Bad Request - Missing required fields or invalid sendToPurchaseQty
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "products array is required with at least one product"
+        '404':
+          description: Not Found - Order or product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Order not found"
+        '500':
+          description: Server Error
+
+  /v1/order/{id}:
+    put:
+      summary: Update products array in order (admin)
+      description: Edit the products array in an existing order. totalAmount and totelOrderQty are recalculated automatically.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - products
+              properties:
+                products:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - orderQty
+                    properties:
+                      productId:
+                        type: string
+                        description: Product ID
+                      orderQty:
+                        type: number
+                        description: Order quantity (must be > 0)
+              example:
+                products:
+                  - productId: "65af12c98cd34bcdef112233"
+                    orderQty: 15
+                  - productId: "65af1acd9ef45bbeae998877"
+                    orderQty: 8
+      responses:
+        '200':
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        '400':
+          description: Bad Request - Invalid input
+        '404':
+          description: Order not found
+        '500':
+          description: Server Error
+
+    delete:
+      summary: Delete whole order (admin)
+      description: Delete the entire order with all its products.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        '200':
+          description: Order deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+        '404':
+          description: Order not found
+        '500':
+          description: Server Error
+
+  /v1/order/{id}/items:
+    delete:
+      summary: Delete order items (products) from order (admin)
+      description: Delete specific products from order array by providing productIds in body. If all products are removed, the order is automatically deleted. totalAmount and totelOrderQty are recalculated automatically.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productIds
+              properties:
+                productIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of product IDs to remove from order
+              example:
+                productIds: ["65af12c98cd34bcdef112233", "65af1acd9ef45bbeae998877"]
+      responses:
+        '200':
+          description: Products removed from order or order deleted if no products remain
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+        '400':
+          description: Bad Request - productIds array required
+        '404':
+          description: Order not found
+        '500':
+          description: Server Error
+

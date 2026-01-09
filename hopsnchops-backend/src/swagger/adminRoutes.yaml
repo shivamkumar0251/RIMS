@@ -1,0 +1,56 @@
+tags:
+  - name: Admin
+    description: Admin endpoints
+
+paths:
+  /v1/admin/usersRegistration:
+    post:
+      summary: Register a new user (admin or super_admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                full_name:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                gst_no:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+
+  /v1/admin/getusers:
+    get:
+      summary: Get users for franchise (admin/super_admin)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden

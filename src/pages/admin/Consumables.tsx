@@ -118,16 +118,13 @@ const Consumables: React.FC = () => {
     const productBreakdown: Record<string, { name: string; consumed: number; wastage: number; usage: number }> = {};
 
     filteredData.forEach((row) => {
-      const isWastage = (row.transfersToWastage || 0) > 0;
-      const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
+      const usageQty = row.transfersToUsage || 0;
+      const wastageQty = row.transfersToWastage || 0;
+      const consumedQty = usageQty + wastageQty;
 
-      totalConsumed += consumedQty || 0;
-
-      if (isWastage) {
-        totalWastage += consumedQty || 0;
-      } else {
-        totalUsage += consumedQty || 0;
-      }
+      totalConsumed += consumedQty;
+      totalWastage += wastageQty;
+      totalUsage += usageQty;
 
       // Product breakdown
       const productId = row.productId?._id;
@@ -143,12 +140,9 @@ const Consumables: React.FC = () => {
           };
         }
 
-        productBreakdown[productId].consumed += consumedQty || 0;
-        if (isWastage) {
-          productBreakdown[productId].wastage += consumedQty || 0;
-        } else {
-          productBreakdown[productId].usage += consumedQty || 0;
-        }
+        productBreakdown[productId].consumed += consumedQty;
+        productBreakdown[productId].wastage += wastageQty;
+        productBreakdown[productId].usage += usageQty;
       }
     });
 
@@ -165,9 +159,10 @@ const Consumables: React.FC = () => {
   const handleExportCSV = () => {
     const headers = ["Date", "Product", "Category", "Consumed Qty", "Unit", "Purpose", "User", "Remarks"];
     const rows = filteredData.map((row) => {
-      const isWastage = (row.transfersToWastage || 0) > 0;
-      const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
-      const purpose = isWastage ? "Wastage" : "Usage";
+      const usageQty = row.transfersToUsage || 0;
+      const wastageQty = row.transfersToWastage || 0;
+      const consumedQty = usageQty + wastageQty;
+      const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
 
       return [
         dayjs(row.createdAt).format("DD/MM/YYYY HH:mm"),
@@ -252,9 +247,10 @@ const Consumables: React.FC = () => {
 
         // Consumption Records Table
         const tableData = filteredData.map((row) => {
-          const isWastage = (row.transfersToWastage || 0) > 0;
-          const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
-          const purpose = isWastage ? "Wastage" : "Usage";
+          const usageQty = row.transfersToUsage || 0;
+          const wastageQty = row.transfersToWastage || 0;
+          const consumedQty = usageQty + wastageQty;
+          const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
 
           return [
             dayjs(row.createdAt).format("DD/MM/YY HH:mm"),
@@ -462,9 +458,11 @@ const Consumables: React.FC = () => {
                   </TableRow>
                 ) : (
                   filteredData.map((row) => {
-                    const isWastage = (row.transfersToWastage || 0) > 0;
-                    const consumedQty = isWastage ? row.transfersToWastage : row.transfersInUse;
-                    const purpose = isWastage ? "Wastage" : "Usage";
+                    const usageQty = row.transfersToUsage || 0;
+                    const wastageQty = row.transfersToWastage || 0;
+                    const consumedQty = usageQty + wastageQty;
+                    const isWastage = wastageQty > 0 && usageQty === 0;
+                    const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
 
                     return (
                       <TableRow key={row._id} hover>

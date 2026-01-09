@@ -22,9 +22,9 @@ export interface CompanyRef {
 
 export interface ProductInterface {
   _id: string;
-  categoryId: CategoryRef ;
-  vendorsId: VendorRef;
-  companyId: CompanyRef;
+  categoryId?: CategoryRef;
+  vendorsId?: VendorRef;
+  companyId?: CompanyRef;
   productName: string;
   packSize: string;
   unit: string;
@@ -40,6 +40,7 @@ export interface ProductInterface {
   perUnitRate: number;
   // totalMRP: number;
   stockAlert: number;
+  isActive?: boolean;
   createdAt: string;
 }
 
@@ -79,11 +80,11 @@ const initialState: ProductState = {
 // GET PRODUCTS
 export const getProducts = createAsyncThunk<
   GetProductsResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, company?:string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, company?: string, },
   { rejectValue: { message: string } }
 >(
   'product/getProducts',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '',  category = '',  vendor = '',  company = '',}, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', company = '', }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_PRODUCTS}?search=${search}&category=${category}&vendor=${vendor}&company=${company}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
@@ -94,7 +95,7 @@ export const getProducts = createAsyncThunk<
       }
 
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message  || 'Failed to fetch products',
+        message: (response.data as { message?: string })?.message || 'Failed to fetch products',
       });
 
     } catch (error) {
@@ -126,7 +127,7 @@ export const addProduct = createAsyncThunk<
       }
 
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message  || 'Add product failed',
+        message: (response.data as { message?: string })?.message || 'Add product failed',
       });
 
     } catch (error) {
@@ -158,7 +159,7 @@ export const addProductBulkExcel = createAsyncThunk<
       }
 
       return thunkAPI.rejectWithValue({
-        message: (response.data as { message?: string })?.message  || 'Bulk product upload failed',
+        message: (response.data as { message?: string })?.message || 'Bulk product upload failed',
       });
 
     } catch (error) {

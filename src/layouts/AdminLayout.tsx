@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AdminSidebar } from "./AdminSidebar";
+import { AdminSidebar } from "./Adminsidebar";
 import { AdminHeader } from "./AdminHeader";
 
 interface LayoutProps {
@@ -8,7 +8,7 @@ interface LayoutProps {
 
 export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false); 
+  const [collapsed, setCollapsed] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -34,12 +34,11 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          collapsed ? "md:ml-20" : "md:ml-64"
-        }`}
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${collapsed ? "md:ml-20" : "md:ml-64"
+          }`}
       >
         <AdminHeader toggleSidebar={toggleSidebar} />
-        <div className="flex-1 bg-gray-200 overflow-y-auto p-0">{children}</div>
+        <div className="flex-1 bg-white overflow-y-auto p-0">{children}</div>
       </main>
     </div>
   );

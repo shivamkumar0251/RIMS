@@ -39,7 +39,7 @@ interface MenuItemBase {
 }
 
 interface MenuItemWithChildren extends MenuItemBase {
-  children: string[];
+  children: (string | { name: string; to: string; type?: "group" | "link"; subChildren?: { name: string; to: string }[] })[];
 }
 
 type MenuItem = MenuItemBase | MenuItemWithChildren;
@@ -51,12 +51,21 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
   setCollapsed,
 }) => {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [subExpanded, setSubExpanded] = useState<string | null>(null); // For 3rd level menu
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
 
+
+
   const toggleExpand = (name: string) => {
     setExpanded(expanded === name ? null : name);
+    setSubExpanded(null); // Reset sub-menu when main menu changes
+  };
+
+  const toggleSubExpand = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSubExpanded(subExpanded === name ? null : name);
   };
 
   const toggleCollapse = () => {
@@ -66,10 +75,28 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
   const menuItems: MenuItem[] = [
     { icon: <FaHome />, name: "Dashboard", to: "/admin-dashboard" },
     { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
-    { icon: <FaBorderAll />, name: "Order Management", to: "/admin/orders" },
+    {
+      icon: <FaBorderAll />,
+      name: "Order Management",
+      to: "/admin/orders",
+      children: [
+        {
+          name: "By Vendor",
+          to: "/admin/orders?mode=vendor",
+        },
+        {
+          name: "By Category",
+          to: "/admin/orders?mode=category",
+        },
+        {
+          name: "By Brand",
+          to: "/admin/orders?mode=brand",
+        }
+      ]
+    },
     {
       icon: <PiOvenDuotone />,
-      name: "Vendor Orders",
+      name: "Order History",
       to: "/admin/vendorsOrder",
     },
     { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },
@@ -96,14 +123,13 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     },
     {
       icon: <FaProductHunt />,
-      name: "Product Categories",
+      name: "Categories List",
       to: "/admin/categories",
     },
     { icon: <MdBrandingWatermark />, name: "Brand List", to: "/admin/company" },
     { icon: <FaShop />, name: "Vendor List", to: "/admin/vendorList" },
 
     { icon: <FaTh />, name: "Restaurant Setup", to: "/admin/restaurant-setup" },
-    // { icon: <SiHiveBlockchain />, name: "Assets", to: "/assets" },
   ];
 
   const handleLogout = () => {
@@ -122,7 +148,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     <div
       className={`bg-gray-800 text-white ${collapsed ? "w-20" : "w-64"
         } h-screen p-3 sm:p-4 flex flex-col justify-between overflow-hidden
-        fixed inset-y-0 left-0 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
+          fixed inset-y-0 left-0 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
         } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50`}
     >
       {/* FULL HEIGHT CONTAINER */}
@@ -146,7 +172,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* SCROLLABLE MENU */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
           <nav>
             <ul>
               {menuItems.map((item, index) => {
@@ -180,19 +206,68 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                         {!collapsed && expanded === item.name && (
                           <ul className="ml-10 mt-1 space-y-1">
                             {item.children.map((sub, subIndex) => {
-                              const subPath = `${item.to}/${sub.toLowerCase()}`;
-                              const isSubActive = location.pathname === subPath;
+                              let subName = "";
+                              let subPath = "";
+                              let isGroup = false;
+                              let subChildrenResults: { name: string; to: string }[] = [];
+
+                              if (typeof sub === 'string') {
+                                subName = sub;
+                                subPath = `${item.to}/${sub.toLowerCase()}`;
+                              } else {
+                                subName = sub.name;
+                                subPath = sub.to;
+                                isGroup = sub.type === "group";
+                                subChildrenResults = sub.subChildren || [];
+                              }
+
+                              const isSubActive = location.pathname + location.search === subPath;
+                              const isGroupExpanded = subExpanded === subName;
+
+                              if (isGroup) {
+                                return (
+                                  <li key={subIndex}>
+                                    <button
+                                      onClick={(e) => toggleSubExpand(subName, e)}
+                                      className={`flex items-center justify-between w-full p-2 rounded-lg text-sm transition-colors duration-200 text-gray-300 hover:bg-gray-600`}
+                                    >
+                                      <span className="truncate">{subName}</span>
+                                      {isGroupExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                                    </button>
+
+                                    {isGroupExpanded && (
+                                      <ul className="ml-4 mt-1 space-y-1 border-l border-gray-600 pl-2 max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
+                                        {subChildrenResults.map((child, childIndex) => {
+                                          const isChildActive = location.pathname + location.search === child.to;
+                                          return (
+                                            <li key={childIndex}>
+                                              <Link
+                                                to={child.to}
+                                                className={`block p-2 rounded text-xs transition-colors duration-200
+                                                ${isChildActive ? "text-blue-400 font-semibold" : "text-gray-400 hover:text-white"}`}
+                                              >
+                                                {child.name}
+                                              </Link>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </li>
+                                );
+                              }
+
                               return (
                                 <li key={subIndex}>
                                   <Link
                                     to={subPath}
-                                    className={`block p-2 rounded-lg text-sm transition-colors duration-200 
+                                    className={`block p-2 rounded-lg text-sm transition-colors duration-200
                                     ${isSubActive
                                         ? "bg-blue-600/40 text-white"
                                         : "text-gray-300 hover:bg-gray-600"
                                       }`}
                                   >
-                                    {sub}
+                                    {subName}
                                   </Link>
                                 </li>
                               );

@@ -44,29 +44,9 @@ import {
   selectAllVendorsData,
   selectVendorLoading,
   updateVendor,
+  type GetVendorData,
 } from "../../redux/slices/vendorSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-
-interface VendorForm {
-  vendor_name: string;
-  vendor_mobileNo: string;
-  vendor_address: string;
-  vendor_state: string;
-  vendor_country: string;
-  vendor_pinCode: string;
-  vendor_bankName: string;
-  vendor_accountNumber: string;
-  vendor_ifscCode: string;
-  vendor_paymentTerms: string;
-  vendor_preferredPaymentMode: string;
-  vendor_creditLimit: number;
-  vendor_outstandingBalance: number;
-  vendor_gstType: string;
-  vendor_registrationType: string;
-  vendor_gstNumber: string;
-  vendor_openingBalance: number;
-  franchiseId?: string;
-}
 
 function VendorList() {
   const dispatch = useAppDispatch();
@@ -82,7 +62,7 @@ function VendorList() {
   const [limit, setLimit] = useState(10);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingVendor, setEditingVendor] = useState<any>(null);
-  const [formData, setFormData] = useState<VendorForm>({
+  const [formData, setFormData] = useState<GetVendorData>({
     vendor_name: "",
     vendor_mobileNo: "",
     vendor_address: "",
@@ -96,6 +76,9 @@ function VendorList() {
     vendor_preferredPaymentMode: "",
     vendor_creditLimit: 0,
     vendor_outstandingBalance: 0,
+    vendor_contactPerson_name: "",
+    vendor_email: "",
+    vendor_contactPerson_mobileNo: "",
     vendor_gstType: "",
     vendor_registrationType: "",
     vendor_gstNumber: "",
@@ -135,7 +118,8 @@ function VendorList() {
         vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
         vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
         vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
-        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
+        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "", vendor_contactPerson_name: "",
+        vendor_contactPerson_mobileNo: "", vendor_email: "",
         vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
         franchiseId,
       });
@@ -194,11 +178,12 @@ function VendorList() {
   const handleDownloadTemplate = () => {
     const sample = [
       {
-        vendor_name: "John Doe", vendor_mobileNo: "1234567890", vendor_address: "123 Street",
+        vendor_name: "John Doe", vendor_mobileNo: "1234567890", vendor_email: "", vendor_address: "123 Street",
         vendor_state: "State", vendor_country: "Country", vendor_pinCode: "123456",
         vendor_bankName: "Bank", vendor_accountNumber: "1234567890", vendor_ifscCode: "IFSC001",
         vendor_paymentTerms: "Net 30", vendor_preferredPaymentMode: "Cash",
-        vendor_creditLimit: 10000, vendor_outstandingBalance: 0, vendor_gstType: "Igst",
+        vendor_creditLimit: 10000, vendor_outstandingBalance: 0, vendor_contactPerson_name: "",
+        vendor_contactPerson_mobileNo: "", vendor_gstType: "Igst",
         vendor_registrationType: "Registered", vendor_gstNumber: "GSTIN123", vendor_openingBalance: 0,
       },
     ];
@@ -217,130 +202,177 @@ function VendorList() {
 
   return (
     <AdminLayout>
-      <div>
-        {/* Combined Tool Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
-          {/* Filters Area */}
-          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <TextField
-              placeholder="Search vendor by name..."
-              size="small"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <FiSearch className="text-gray-400" />
-                  </InputAdornment>
-                ),
-              }}
-              className="w-full sm:w-64"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "#fcfcfc" } }}
-            />
-            
-            <Box className="flex items-center gap-2">
+
+      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+        {/* Header Section */}
+        <Box className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+          <Box className="flex flex-col xl:flex-row items-center justify-between gap-4">
+            {/* Filters */}
+            <Box className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
               <TextField
-                type="date"
+                placeholder="Search vendor..."
                 size="small"
-                label="From"
-                InputLabelProps={{ shrink: true }}
-                value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
-                className="w-64"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FiSearch className="text-gray-400" />
+                    </InputAdornment>
+                  ),
+                }}
+                className="w-full sm:w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#f8fafc" } }}
               />
-              <TextField
-                type="date"
+
+              <Box className="flex items-center gap-2">
+                <TextField
+                  type="date"
+                  size="small"
+                  label="From"
+                  InputLabelProps={{ shrink: true }}
+                  value={fromDate}
+                  onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+                  className="w-40"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                />
+                <TextField
+                  type="date"
+                  size="small"
+                  label="To"
+                  InputLabelProps={{ shrink: true }}
+                  value={toDate}
+                  onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+                  className="w-40"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                />
+              </Box>
+
+              <Button
                 size="small"
-                label="To"
-                InputLabelProps={{ shrink: true }}
-                value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setPage(0); }}
-                className="w-64"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-              />
+                variant="text"
+                startIcon={<FiRefreshCw />}
+                onClick={handleResetFilters}
+                className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-9"
+              >
+                Reset
+              </Button>
             </Box>
 
-            <Button 
-              size="small" 
-              variant="text" 
-              startIcon={<FiRefreshCw />} 
-              onClick={handleResetFilters}
-              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
-            >
-              Reset
-            </Button>
-          </Box>
-
-          {/* Actions Area */}
-          <Box className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
-              Template
-            </Button>
-            <input type="file" ref={fileInputRef} hidden accept=".xlsx,.xls" onChange={handleExcelUpload} />
-            <Button variant="outlined" startIcon={<FiDownload />} onClick={() => fileInputRef.current?.click()} size="small" className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50">
-              Import
-            </Button>
-            <Button variant="contained" startIcon={<FiPlus />} onClick={() => handleOpenDialog()}  size="small">
-              Add Vendor
-            </Button>
+            {/* Actions */}
+            <Box className="flex items-center gap-2 w-full xl:w-auto justify-end">
+              <input type="file" ref={fileInputRef} hidden accept=".xlsx,.xls" onChange={handleExcelUpload} />
+              <Button
+                variant="outlined"
+                startIcon={<FiDownload />}
+                onClick={handleDownloadTemplate}
+                size="small"
+                className="normal-case border-gray-200 text-gray-600 hover:bg-gray-50 h-9"
+              >
+                Template
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<FiDownload />}
+                onClick={() => fileInputRef.current?.click()}
+                size="small"
+                className="normal-case border-gray-200 text-gray-600 hover:bg-gray-50 h-9"
+              >
+                Import
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<FiPlus />}
+                onClick={() => handleOpenDialog()}
+                size="small"
+                className="bg-blue-600 hover:bg-blue-700 text-white normal-case px-4 h-9 shadow-sm"
+              >
+                Add Vendor
+              </Button>
+            </Box>
           </Box>
         </Box>
 
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table size="small">
-              <TableHead className="bg-gray-50">
+        {/* Table Section */}
+        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+          <TableContainer className="flex-1 overflow-auto">
+            <Table stickyHeader size="medium">
+              <TableHead>
                 <TableRow>
-                  <TableCell className="font-bold py-4">Vendor Info</TableCell>
-                  <TableCell className="font-bold">Contact Details</TableCell>
-                  <TableCell className="font-bold">Location</TableCell>
-                  <TableCell className="font-bold">Bank Info</TableCell>
-                  <TableCell className="font-bold">Terms</TableCell>
-                  <TableCell className="font-bold text-center">Credit</TableCell>
-                  <TableCell className="font-bold text-center">Outstanding</TableCell>
-                  <TableCell className="font-bold">Created</TableCell>
-                  <TableCell align="right" className="font-bold">Actions</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Vendor Info</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Contact Details</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Location</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Bank Info</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Terms</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Credit</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Outstanding</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Created</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3" align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-10"><CircularProgress size={30} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
                 ) : vendorsData.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-10 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} align="center" className="py-20 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
                 ) : (
                   vendorsData.map((vendor) => (
-                    <TableRow key={vendor._id} hover>
-                      <TableCell>
-                        <Typography variant="body2" className="font-bold">{vendor.vendor_name}</Typography>
-                        <Typography variant="caption" className="text-gray-500">GST: {vendor.vendor_gstNumber || "N/A"}</Typography>
+                    <TableRow key={vendor._id} hover className="transition-colors">
+                      <TableCell className="py-3">
+                        <Typography variant="body2" className="font-bold text-gray-800">{vendor.vendor_name}</Typography>
+                        <Box className="flex items-center gap-1 mt-0.5">
+                          <Typography variant="caption" className="text-gray-400 font-medium">GST:</Typography>
+                          <Typography variant="caption" className="text-gray-600">{vendor.vendor_gstNumber || "N/A"}</Typography>
+                        </Box>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" className="block text-gray-700">{vendor.vendor_mobileNo}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_registrationType}</Typography>
+                      <TableCell className="py-3">
+                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_mobileNo}</Typography>
+                        <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
+                          {vendor.vendor_registrationType}
+                        </Typography>
+                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "raj@gmail.com"}</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" className="block max-w-[150px] truncate">{vendor.vendor_address}</Typography>
+                      <TableCell className="py-3 max-w-[200px]">
+                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || 'Raj'}</Typography>
+                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || 9966332211}</Typography>
+                      </TableCell>
+                      <TableCell className="py-3 max-w-[200px]">
+                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
                         <Typography variant="caption" className="text-gray-500">{vendor.vendor_state}, {vendor.vendor_country}</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" className="block font-medium">{vendor.vendor_bankName}</Typography>
-                        <Typography variant="caption" className="text-gray-400">Acc: {vendor.vendor_accountNumber}</Typography>
+                      <TableCell className="py-3">
+                        <Typography variant="body2" className="font-medium text-gray-700">{vendor.vendor_bankName}</Typography>
+                        <Typography variant="caption" className="text-gray-400 font-mono">Acc: {vendor.vendor_accountNumber || "N/A"}</Typography>
                       </TableCell>
-                      <TableCell>
-                        <Box className="bg-blue-50 text-blue-700 rounded px-2 py-0.5 inline-block text-[10px] font-bold uppercase mb-1">{vendor.vendor_paymentTerms}</Box>
-                        <Typography variant="caption" className="block text-gray-500 text-[10px]">{vendor.vendor_preferredPaymentMode}</Typography>
+                      <TableCell className="py-3">
+                        <Box className="flex flex-col items-start gap-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                            {vendor.vendor_paymentTerms}
+                          </span>
+                          <Typography variant="caption" className="text-gray-500 font-medium">{vendor.vendor_preferredPaymentMode}</Typography>
+                        </Box>
                       </TableCell>
-                      <TableCell className="text-center font-medium">₹{vendor.vendor_creditLimit}</TableCell>
-                      <TableCell className="text-center text-red-600 font-bold">₹{vendor.vendor_outstandingBalance}</TableCell>
-                      <TableCell className="text-gray-500 text-xs text-nowrap">
-                        {dayjs(vendor.createdAt).format("DD/MM/YYYY")}
+                      <TableCell className="py-3 text-center">
+                        <span className="font-medium text-gray-700">₹{vendor.vendor_creditLimit?.toLocaleString()}</span>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell className="py-3 text-center">
+                        <span className={`font-bold ${vendor.vendor_outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          ₹{vendor.vendor_outstandingBalance?.toLocaleString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-3 text-gray-500 text-sm">
+                        {dayjs(vendor.createdAt).format("DD MMM, YYYY")}
+                      </TableCell>
+                      <TableCell className="py-3" align="right">
                         <Box className="flex gap-1 justify-end">
-                          <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600"><FiEdit size={16} /></IconButton>
-                          <IconButton onClick={() => handleDelete(vendor._id)} size="small" className="text-red-500"><FiTrash2 size={16} /></IconButton>
+                          <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
+                            <FiEdit size={15} />
+                          </IconButton>
+                          <IconButton onClick={() => handleDelete(vendor?._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
+                            <FiTrash2 size={15} />
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -350,88 +382,114 @@ function VendorList() {
             </Table>
           </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={vendorsResponse?.total || 0}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(e) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            className="border-t bg-gray-50"
-          />
+          <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
+            <TablePagination
+              component="div"
+              count={vendorsResponse?.total || 0}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(e) => {
+                setLimit(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              className="text-sm text-gray-600"
+            />
+          </Box>
         </Paper>
 
         {/* Dialogs */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3 } }}>
-          <DialogTitle className="font-bold flex justify-between items-center">
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+          <DialogTitle className="font-bold flex justify-between items-center text-gray-800 pb-2 border-b border-gray-100">
             {editingVendor ? "Edit Vendor Profile" : "Create New Vendor"}
-            <IconButton onClick={() => setOpenDialog(false)} size="small">×</IconButton>
+            <IconButton onClick={() => setOpenDialog(false)} size="small" className="text-gray-400 hover:text-gray-600">×</IconButton>
           </DialogTitle>
-          <Divider />
-          <DialogContent className="space-y-6 pt-6">
-            <Typography variant="subtitle2" className="text-blue-600 font-bold uppercase tracking-wider">Basic Information</Typography>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField fullWidth size="small" label="Vendor Name" value={formData.vendor_name} onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })} />
-              <TextField fullWidth size="small" label="Mobile Number" value={formData.vendor_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_mobileNo: e.target.value })} />
-              <TextField fullWidth size="small" label="GST Number" value={formData.vendor_gstNumber} onChange={(e) => setFormData({ ...formData, vendor_gstNumber: e.target.value })} />
-              <FormControl fullWidth size="small">
-                <InputLabel>Registration Type</InputLabel>
-                <Select value={formData.vendor_registrationType} label="Registration Type" onChange={(e) => setFormData({ ...formData, vendor_registrationType: e.target.value })}>
-                  {REGISTRATION_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </div>
+          <DialogContent className="space-y-6 pt-6 px-4">
+            <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+              <Typography variant="subtitle2" className="text-blue-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                Basic Information
+              </Typography>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <TextField fullWidth size="small" label="Vendor Name" required value={formData.vendor_name} onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Mobile Number" value={formData.vendor_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="GST Number" value={formData.vendor_gstNumber} onChange={(e) => setFormData({ ...formData, vendor_gstNumber: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+                <FormControl fullWidth size="small">
+                  <InputLabel>Registration Type</InputLabel>
+                  <Select value={formData.vendor_registrationType} label="Registration Type" onChange={(e) => setFormData({ ...formData, vendor_registrationType: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    {REGISTRATION_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <TextField fullWidth size="small" label="Vendor Email" value={formData.vendor_email} onChange={(e) => setFormData({ ...formData, vendor_email: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+              </div>
+            </Box>
+            <Box className="bg-green-50/50 p-4 rounded-xl border border-green-100/50">
+              <Typography variant="subtitle2" className="text-green-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                Contact Person Information
+              </Typography>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <TextField fullWidth size="small" label="Contact Person Name" required value={formData.vendor_contactPerson_name} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Contact Person Mobile Number" value={formData.vendor_contactPerson_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+              </div>
+            </Box>
 
-            <Typography variant="subtitle2" className="text-blue-600 font-bold uppercase tracking-wider mt-4">Address & Location</Typography>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField fullWidth size="small" label="Address" value={formData.vendor_address} onChange={(e) => setFormData({ ...formData, vendor_address: e.target.value })} />
-              <TextField fullWidth size="small" label="Pin Code" value={formData.vendor_pinCode} onChange={(e) => setFormData({ ...formData, vendor_pinCode: e.target.value })} />
-              <TextField fullWidth size="small" label="State" value={formData.vendor_state} onChange={(e) => setFormData({ ...formData, vendor_state: e.target.value })} />
-              <TextField fullWidth size="small" label="Country" value={formData.vendor_country} onChange={(e) => setFormData({ ...formData, vendor_country: e.target.value })} />
-            </div>
+            <Box className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50">
+              <Typography variant="subtitle2" className="text-purple-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                Address & Location
+              </Typography>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField fullWidth size="small" label="Address" value={formData.vendor_address} onChange={(e) => setFormData({ ...formData, vendor_address: e.target.value })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Pin Code" value={formData.vendor_pinCode} onChange={(e) => setFormData({ ...formData, vendor_pinCode: e.target.value })} sx={{ bgcolor: 'white' }} className="md:col-span-1" />
+                <TextField fullWidth size="small" label="State" value={formData.vendor_state} onChange={(e) => setFormData({ ...formData, vendor_state: e.target.value })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Country" value={formData.vendor_country} onChange={(e) => setFormData({ ...formData, vendor_country: e.target.value })} sx={{ bgcolor: 'white' }} />
+              </div>
+            </Box>
 
-            <Typography variant="subtitle2" className="text-blue-600 font-bold uppercase tracking-wider mt-4">Financial Details</Typography>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <TextField fullWidth size="small" label="Bank Name" value={formData.vendor_bankName} onChange={(e) => setFormData({ ...formData, vendor_bankName: e.target.value })} />
-              <TextField fullWidth size="small" label="Account Number" value={formData.vendor_accountNumber} onChange={(e) => setFormData({ ...formData, vendor_accountNumber: e.target.value })} />
-              <TextField fullWidth size="small" label="IFSC Code" value={formData.vendor_ifscCode} onChange={(e) => setFormData({ ...formData, vendor_ifscCode: e.target.value })} />
-              
-              <FormControl fullWidth size="small">
-                <InputLabel>Payment Terms</InputLabel>
-                <Select value={formData.vendor_paymentTerms} label="Payment Terms" onChange={(e) => setFormData({ ...formData, vendor_paymentTerms: e.target.value })}>
-                  {PAYMENT_TERMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth size="small">
-                <InputLabel>Payment Mode</InputLabel>
-                <Select value={formData.vendor_preferredPaymentMode} label="Payment Mode" onChange={(e) => setFormData({ ...formData, vendor_preferredPaymentMode: e.target.value })}>
-                  {PAYMENT_MODES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth size="small">
-                <InputLabel>GST Type</InputLabel>
-                <Select value={formData.vendor_gstType} label="GST Type" onChange={(e) => setFormData({ ...formData, vendor_gstType: e.target.value })}>
-                  {GST_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                </Select>
-              </FormControl>
+            <Box className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
+              <Typography variant="subtitle2" className="text-amber-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Financial Details
+              </Typography>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <TextField fullWidth size="small" label="Bank Name" value={formData.vendor_bankName} onChange={(e) => setFormData({ ...formData, vendor_bankName: e.target.value })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Account Number" value={formData.vendor_accountNumber} onChange={(e) => setFormData({ ...formData, vendor_accountNumber: e.target.value })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="IFSC Code" value={formData.vendor_ifscCode} onChange={(e) => setFormData({ ...formData, vendor_ifscCode: e.target.value })} sx={{ bgcolor: 'white' }} />
 
-              <TextField fullWidth size="small" type="number" label="Credit Limit" value={formData.vendor_creditLimit} onChange={(e) => setFormData({ ...formData, vendor_creditLimit: Number(e.target.value) })} />
-              <TextField fullWidth size="small" type="number" label="Opening Balance" value={formData.vendor_openingBalance} onChange={(e) => setFormData({ ...formData, vendor_openingBalance: Number(e.target.value) })} />
-              <TextField fullWidth size="small" type="number" label="Outstanding Balance" value={formData.vendor_outstandingBalance} onChange={(e) => setFormData({ ...formData, vendor_outstandingBalance: Number(e.target.value) })} />
-            </div>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Payment Terms</InputLabel>
+                  <Select value={formData.vendor_paymentTerms} label="Payment Terms" onChange={(e) => setFormData({ ...formData, vendor_paymentTerms: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    {PAYMENT_TERMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Payment Mode</InputLabel>
+                  <Select value={formData.vendor_preferredPaymentMode} label="Payment Mode" onChange={(e) => setFormData({ ...formData, vendor_preferredPaymentMode: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    {PAYMENT_MODES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small">
+                  <InputLabel>GST Type</InputLabel>
+                  <Select value={formData.vendor_gstType} label="GST Type" onChange={(e) => setFormData({ ...formData, vendor_gstType: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    {GST_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                  </Select>
+                </FormControl>
+
+                <TextField fullWidth size="small" type="number" label="Credit Limit" value={formData.vendor_creditLimit} onChange={(e) => setFormData({ ...formData, vendor_creditLimit: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" type="number" label="Opening Balance" value={formData.vendor_openingBalance} onChange={(e) => setFormData({ ...formData, vendor_openingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" type="number" label="Outstanding Balance" value={formData.vendor_outstandingBalance} onChange={(e) => setFormData({ ...formData, vendor_outstandingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
+              </div>
+            </Box>
           </DialogContent>
-          <Divider />
-          <DialogActions className="p-4 bg-gray-50">
-            <Button onClick={() => setOpenDialog(false)} className="normal-case">Cancel</Button>
-            <Button variant="contained" onClick={handleSaveVendor} className="!bg-blue-600 normal-case px-6">
+          <DialogActions className="p-4 pt-2">
+            <Button onClick={() => setOpenDialog(false)} className="normal-case text-gray-500 hover:bg-gray-100" size="large">Cancel</Button>
+            <Button variant="contained" onClick={handleSaveVendor} className="!bg-blue-600 normal-case px-8 rounded-lg shadow-blue-200 shadow-md" size="large">
               {editingVendor ? "Update Vendor" : "Create Vendor"}
             </Button>
           </DialogActions>
         </Dialog>
-      </div>
+      </Box>
     </AdminLayout>
   );
 }
