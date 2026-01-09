@@ -17,17 +17,13 @@ import {
 import { FaShop } from "react-icons/fa6";
 import { MdBrandingWatermark } from "react-icons/md";
 import { SiMaterialdesignicons } from "react-icons/si";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
 import { PiOvenDuotone } from "react-icons/pi";
 import { BiSolidPurchaseTag } from "react-icons/bi";
 import { FiSend } from "react-icons/fi";
-import { useEffect } from "react";
-import { getVendorNameList, selectVendorNames } from "../redux/slices/vendorSlice";
-import { getCategories, selectCategories } from "../redux/slices/categorySlice";
-import { getCompanies, selectCompanies } from "../redux/slices/companySlice";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -60,16 +56,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
 
-  // Fetch Data for Sidebar
-  const vendors = useSelector(selectVendorNames) || [];
-  const categories = useSelector(selectCategories) || [];
-  const brands = useSelector(selectCompanies) || [];
 
-  useEffect(() => {
-    dispatch(getVendorNameList());
-    dispatch(getCategories({ page: 1, limit: 100 }));
-    dispatch(getCompanies({ page: 1, limit: 100 }));
-  }, [dispatch]);
 
   const toggleExpand = (name: string) => {
     setExpanded(expanded === name ? null : name);
@@ -95,21 +82,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       children: [
         {
           name: "By Vendor",
-          to: "#",
-          type: "group",
-          subChildren: vendors.map(v => ({ name: v.vendor_name || "Unknown", to: `/admin/orders?mode=vendor&id=${v._id}` }))
+          to: "/admin/orders?mode=vendor",
         },
         {
           name: "By Category",
-          to: "#",
-          type: "group",
-          subChildren: categories.map(c => ({ name: c.categoryName || "Unknown", to: `/admin/orders?mode=category&id=${c._id}` }))
+          to: "/admin/orders?mode=category",
         },
         {
           name: "By Brand",
-          to: "#",
-          type: "group",
-          subChildren: brands.map(b => ({ name: b.brandName || "Unknown", to: `/admin/orders?mode=brand&id=${b._id}` }))
+          to: "/admin/orders?mode=brand",
         }
       ]
     },
