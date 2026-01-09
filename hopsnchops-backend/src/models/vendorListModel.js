@@ -15,6 +15,8 @@ const VendorListSchema = new mongoose.Schema({
     ]
   },
   vendor_pinCode: { type: String },
+  vendor_contactPerson_name: { type: String },
+  vendor_contactPerson_mobileNo: { type: String },
   vendor_bankName: { type: String },
   vendor_accountNumber: { type: String },
   vendor_ifscCode: { type: String },
