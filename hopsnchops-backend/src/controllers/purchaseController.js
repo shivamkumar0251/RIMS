@@ -111,7 +111,14 @@ exports.createMultiplePurchases = async (req, res) => {
     // Process each purchase
     for (let i = 0; i < purchases.length; i++) {
       try {
-        const { productId: rawProductId, sendToStoreQty } = purchases[i];
+        const { 
+          productId: rawProductId, 
+          sendToStoreQty,
+          price,
+          tax,
+          rcvdPurchaseQty,
+          currentPurchaseQty 
+        } = purchases[i];
 
         // Accept productId or nested productId._id
         const productId = rawProductId?._id || rawProductId;
@@ -157,6 +164,12 @@ exports.createMultiplePurchases = async (req, res) => {
           });
           continue;
         }
+
+        // Update purchase with new values if provided (Editable fields)
+        if (typeof price !== 'undefined') purchase.price = Number(price);
+        if (typeof tax !== 'undefined') purchase.tax = Number(tax);
+        if (typeof rcvdPurchaseQty !== 'undefined') purchase.rcvdPurchaseQty = Number(rcvdPurchaseQty);
+        if (typeof currentPurchaseQty !== 'undefined') purchase.currentPurchaseQty = Number(currentPurchaseQty);
 
         // Update purchase: subtract from currentPurchaseQty and add to sendToStoreQty
         purchase.currentPurchaseQty = Math.max(0, (purchase.currentPurchaseQty || 0) - sendQty);

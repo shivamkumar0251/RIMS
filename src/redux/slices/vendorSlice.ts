@@ -43,6 +43,9 @@ export interface GetVendorData {
   vendor_registrationType: string,
   vendor_gstNumber: string,
   vendor_openingBalance: number,
+  vendor_email?: string,
+  vendor_contactPerson_name?: string,
+  vendor_contactPerson_mobileNo?: string,
   createdAt: string
 }
 export type VendorFormType = Omit<

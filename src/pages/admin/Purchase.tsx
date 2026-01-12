@@ -230,7 +230,33 @@ const Purchase: React.FC = () => {
 
   // ---------------- Selection & Inputs ----------------
   const [selected, setSelected] = useState<string[]>([]);
-  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
+  const [itemsData, setItemsData] = useState<Record<string, {
+    price: number;
+    tax: number;
+    received: number;
+    current: number;
+  }>>({});
+
+  // Sync purchases to itemsData
+  useEffect(() => {
+    if (purchases.length > 0) {
+      setItemsData(prev => {
+        const updated = { ...prev };
+        purchases.forEach(p => {
+          const pid = p.productId?._id;
+          if (pid && !updated[pid]) {
+            updated[pid] = {
+              price: p.price || p.productId?.perUnitRate || 0,
+              tax: p.tax || p.productId?.gstPct || 0,
+              received: p.rcvdPurchaseQty || 0,
+              current: p.currentPurchaseQty || 0
+            };
+          }
+        });
+        return updated;
+      });
+    }
+  }, [purchases]);
 
   // ---------------- Popover States ----------------
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
@@ -284,18 +310,22 @@ const Purchase: React.FC = () => {
 
   // ---------------- Bulk Post ----------------
   const handlePost = () => {
-    const payload: PurchasePostData[] = selected
-      .filter(id => (qtyMap[id] || 0) > 0)
-      .map(id => ({
-        productId: id,
-        sendToStoreQty: qtyMap[id]
+    const payload: any[] = selected
+      .filter(pid => (itemsData[pid]?.current || 0) > 0)
+      .map(pid => ({
+        productId: pid,
+        sendToStoreQty: itemsData[pid].current,
+        price: itemsData[pid].price,
+        tax: itemsData[pid].tax,
+        rcvdPurchaseQty: itemsData[pid].received,
+        currentPurchaseQty: itemsData[pid].current
       }));
 
     if (!payload.length) return;
 
     dispatch(addBulkPurchases(payload)).then(() => {
       setSelected([]);
-      setQtyMap({});
+      setItemsData({});
       dispatch(getPurchases({ page: page + 1, limit }));
     });
   };
@@ -308,6 +338,7 @@ const Purchase: React.FC = () => {
     setFromDate("");
     setToDate("");
     setPage(0);
+    setItemsData({});
   };
 
   // ---------------- Filter Search Logic ----------------
@@ -490,7 +521,7 @@ const Purchase: React.FC = () => {
             <Button
               variant="contained"
               startIcon={<FiSend />}
-              disabled={selected.length === 0 || selected.some(id => !(qtyMap[id]))}
+              disabled={selected.length === 0 || selected.some(pid => !(itemsData[pid]?.current) || itemsData[pid]?.current <= 0)}
               onClick={handlePost}
             >
               Send To Store
@@ -665,9 +696,11 @@ const Purchase: React.FC = () => {
                       </List>
                     </Popover>
                   </TableCell>
-                  <TableCell className="font-bold">Received</TableCell>
-                  <TableCell className="font-bold">Current</TableCell>
-                  <TableCell className="font-bold" style={{ width: 140 }}>Send Qty</TableCell>
+                  <TableCell className="font-bold">Received Qty</TableCell>
+                  <TableCell className="font-bold">Current Qty</TableCell>
+                  <TableCell className="font-bold" style={{ width: 110 }}>Price (per unit)</TableCell>
+                  <TableCell className="font-bold" style={{ width: 90 }}>Tax (%)</TableCell>
+                  <TableCell className="font-bold">SubTotal</TableCell>
                   <TableCell className="font-bold">Date</TableCell>
                 </TableRow>
               </TableHead>
@@ -684,6 +717,33 @@ const Purchase: React.FC = () => {
                   purchases.map((row) => {
                     const pid = row.productId?._id;
                     const isSelected = selected.includes(pid);
+                    const data = itemsData[pid] || { price: 0, tax: 0, received: 0, current: 0 };
+
+                    // subTotal = (Price * current) + (Price * current * Tax / 100)
+                    const subTotal = (data.price * data.current) + (data.price * data.current * data.tax / 100);
+
+                    const handleCellChange = (field: keyof typeof data, value: number) => {
+                      setItemsData(prev => ({
+                        ...prev,
+                        [pid]: { ...prev[pid], [field]: value }
+                      }));
+                      // Update selection based on 'current' quantity
+                      if (field === 'current') {
+                        if (value > 0) {
+                          if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
+                        } else {
+                          setSelected(prev => prev.filter(id => id !== pid));
+                        }
+                      }
+                    };
+
+                    const inputSx = {
+                      "& .MuiInputBase-input": {
+                        py: 0.5, px: 1, textAlign: 'center', fontSize: '0.875rem',
+                        "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": { display: "none" },
+                        "&": { MozAppearance: "textfield" }
+                      }
+                    };
 
                     return (
                       <TableRow key={row._id} hover selected={isSelected}>
@@ -698,41 +758,42 @@ const Purchase: React.FC = () => {
                           <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
                           <Typography variant="caption" className="text-gray-500">{row.productId?.packSize} | {row.productId?.unit}</Typography>
                         </TableCell>
-                        <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600">{row.productId?.vendorsId?.vendor_name}</TableCell>
-                        <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName}</TableCell>
-                        <TableCell>{row.rcvdPurchaseQty}</TableCell>
-                        <TableCell>{row.currentPurchaseQty}</TableCell>
+                        <TableCell className="capitalize text-gray-600 text-xs">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                        <TableCell className="text-gray-600 text-xs">{row.productId?.vendorsId?.vendor_name}</TableCell>
+                        <TableCell className="text-gray-600 italic text-xs">{row.productId?.companyId?.brandName}</TableCell>
                         <TableCell>
                           <TextField
-                            size="small"
-                            type="number"
-                            value={qtyMap[pid] || ""}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              const val = Number(e.target.value);
-                              setQtyMap(prev => ({ ...prev, [pid]: val }));
-                              if (val > 0) {
-                                if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
-                              } else {
-                                setSelected(prev => prev.filter(id => id !== pid));
-                              }
-                            }}
-                            sx={{
-                              "& .MuiInputBase-input": {
-                                py: 0.5,
-                                px: 1,
-                                textAlign: 'center',
-                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                                  display: "none",
-                                },
-                                "&": {
-                                  MozAppearance: "textfield",
-                                },
-                              }
-                            }}
+                            size="small" type="number" value={data.received}
+                            onChange={(e) => handleCellChange('received', Number(e.target.value))}
+                            sx={{ ...inputSx, width: 70 }}
                           />
                         </TableCell>
-                        <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small" type="number" value={data.current}
+                            onChange={(e) => handleCellChange('current', Number(e.target.value))}
+                            sx={{ ...inputSx, width: 70 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small" type="number" value={data.price}
+                            onChange={(e) => handleCellChange('price', Number(e.target.value))}
+                            sx={{ ...inputSx, width: 90 }}
+                            InputProps={{ startAdornment: <Typography variant="caption" sx={{ mr: 0.5 }}>₹</Typography> }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small" type="number" value={data.tax}
+                            onChange={(e) => handleCellChange('tax', Number(e.target.value))}
+                            sx={{ ...inputSx, width: 70 }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-bold text-blue-600">
+                          ₹{subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-[10px]">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
                       </TableRow>
                     );
                   })

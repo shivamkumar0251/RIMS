@@ -27,7 +27,9 @@ const purchaseSchema = new mongoose.Schema({
         default: 0
     },
     // computed current qty remaining with purchase (rcvd - sent)
-    currentPurchaseQty: { type: Number, default: 0 }
+    currentPurchaseQty: { type: Number, default: 0 },
+    price: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 }
 
 }, { timestamps: true });
 

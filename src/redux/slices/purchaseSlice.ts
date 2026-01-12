@@ -8,10 +8,16 @@ import type { ProductInterface } from './productSlice';
 // ---------------- Types ----------------
 export interface PurchasePostData {
   productId: string;
-  sendToStoreQty: number
+  sendToStoreQty: number;
+  price?: number;
+  tax?: number;
+  rcvdPurchaseQty?: number;
+  currentPurchaseQty?: number;
 }
 export interface PurchasePUpdateData {
-  sendToStoreQty: number
+  sendToStoreQty: number;
+  price?: number;
+  tax?: number;
 }
 
 export interface PurchaseItem {
@@ -21,6 +27,8 @@ export interface PurchaseItem {
   rcvdPurchaseQty: number;
   sendToStoreQty: number;
   currentPurchaseQty: number;
+  price: number;
+  tax: number;
   createdAt: string;
 }
 
@@ -54,11 +62,11 @@ const initialState: PurchaseState = {
 // ---------------- Thunks ----------------
 export const getPurchases = createAsyncThunk<
   GetPurchasesResponse,
-   { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  categoryId?: string, vendorId?: string, companyId?:string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, categoryId?: string, vendorId?: string, companyId?: string, },
   { rejectValue: { message: string } }
 >(
   'purchase/getPurchases',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '',  vendorId = '',  companyId = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_PURCHASE}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 

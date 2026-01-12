@@ -11,8 +11,6 @@ import {
   Paper,
   TablePagination,
   TextField,
-  Tabs,
-  Tab,
   Typography,
   IconButton,
   Popover,
@@ -20,14 +18,11 @@ import {
   ListItemButton,
   ListItemText,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   Autocomplete,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSearch, FiFilter, FiGrid, FiList } from "react-icons/fi";
+import { FiSearch, FiFilter } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { useSearchParams } from "react-router-dom";
@@ -35,6 +30,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "jspdf-autotable";
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 import {
   addOrder,
@@ -109,7 +106,6 @@ export default function OrderManagementPage(): JSX.Element {
   // Vendor Selection Dialog
   // Create Order Modal
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"whatsapp" | "pdf" | "excel" | "csv" | null>(null);
 
   // Popover States
   const [productAnchor, setProductAnchor] = useState<null | HTMLElement>(null);
@@ -203,9 +199,10 @@ export default function OrderManagementPage(): JSX.Element {
     doc.setFont("helvetica", "bold");
     doc.text("BILL FROM:", 14, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text("My Restaurant / Store Name", 14, yPos + 5); // Replace with dynamic Store Name
-    doc.text("123, Main Street, City, State", 14, yPos + 10); // Replace with dynamic Address
-    doc.text("Contact: +91 9876543210", 14, yPos + 15); // Replace with dynamic Phone
+    doc.text("HopsNChops", 14, yPos + 5);
+    doc.text("Dharamshala, Palampur, Rd.Sidhpur Fatepur H.P, 176215", 14, yPos + 10);
+    doc.text("Contact: +91 9876543210", 14, yPos + 15);
+    doc.text("Email: social@hopsnchops.com", 14, yPos + 20);
 
     // Right Side: Bill To (Vendor)
     const rightX = 120;
@@ -214,8 +211,10 @@ export default function OrderManagementPage(): JSX.Element {
     doc.setFont("helvetica", "normal");
     doc.text(vendor.vendor_name || "N/A", rightX, yPos + 5);
     doc.text(`Mobile: ${vendor.vendor_mobileNo || "N/A"}`, rightX, yPos + 10);
-    doc.text(`Address: ${vendor.vendor_address || "N/A"}`, rightX, yPos + 15); // Assuming address exists
-    if (vendor.vendor_gstNo) doc.text(`GSTIN: ${vendor.vendor_gstNo}`, rightX, yPos + 20);
+    doc.text(`Contact Person: ${vendor.vendor_contactPerson_name || "N/A"} (${vendor.vendor_contactPerson_mobileNo || "N/A"})`, rightX, yPos + 15);
+    doc.text(`Address: ${vendor.vendor_address || "N/A"}`, rightX, yPos + 20);
+    doc.text(`Email: ${vendor.vendor_email || "N/A"}`, rightX, yPos + 25);
+    if (vendor.vendor_gstNumber) doc.text(`GSTIN: ${vendor.vendor_gstNumber}`, rightX, yPos + 30);
 
     // Order Details
     doc.setFont("helvetica", "bold");
@@ -306,7 +305,7 @@ export default function OrderManagementPage(): JSX.Element {
       // Header with My Info (Placeholder) & Vendor Info
       let message = `📋 *PURCHASE ORDER*\n`;
       message += `📅 Date: ${dayjs().format("DD/MM/YYYY")}\n`;
-      message += `🏪 *From:* My Restaurant / Store Name\n`; // Replace with dynamic Store Name
+      message += `🏪 *From:* HopsNChops\n`; // Replace with dynamic Store Name
       message += `👤 *To Vendor:* ${currentVendor.vendor_name}\n`;
       message += `📱 Mobile: ${currentVendor.vendor_mobileNo}\n`;
       message += `--------------------------------\n\n`;
@@ -329,58 +328,121 @@ export default function OrderManagementPage(): JSX.Element {
     } else if (type === "pdf") {
       generatePDF(currentVendor);
     } else if (type === "excel") {
-      // 1. Header Info
-      const headerRows = [
-        ["PURCHASE ORDER"],
-        [],
-        ["BILL FROM:", "", "BILL TO (VENDOR):"],
-        ["My Restaurant / Store Name", "", currentVendor.vendor_name || "N/A"],
-        ["123, Main Street, City, State", "", `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`],
-        ["Contact: +91 9876543210", "", `Address: ${currentVendor.vendor_address || "N/A"}`],
-        [],
-        [`Date: ${dayjs().format("DD/MM/YYYY")}`, "", "Order Status: Created/Draft"],
-        []
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Purchase Order');
+
+      // 1. Set Column Widths
+      sheet.columns = [
+        { key: 'A', width: 12 },
+        { key: 'B', width: 35 },
+        { key: 'C', width: 20 },
+        { key: 'D', width: 20 },
+        { key: 'E', width: 15 },
+        { key: 'F', width: 12 },
+        { key: 'G', width: 12 },
+        { key: 'H', width: 12 }
       ];
 
-      // 2. Table Headers
-      const tableHeaders = ["Product", "Category", "Brand", "Unit", "Quantity"];
+      // 2. Title Section
+      const titleRow = sheet.addRow(['PURCHASE ORDER']);
+      sheet.mergeCells('A1:H1');
+      titleRow.getCell(1).font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF444444' } }; // Dark Gray
+      sheet.addRow([]); // Empty Row
 
-      // 3. Product Data
-      const productRows = selectedProducts.map(p => [
-        p.productName,
-        p.categoryId?.categoryName || "-",
-        p.companyId?.brandName || "-",
-        p.unit,
-        qtyMap[p._id]
-      ]);
+      // 3. Billing Sections
+      // BILL FROM
+      sheet.addRow(['BILL From:', 'HopsNChops']).getCell(1).font = { bold: true };
+      sheet.addRow(['Address:', 'Dharamshala, Palampur, Rd.Sidhpur Fatepur H.P']).getCell(1).font = { bold: true };
+      sheet.addRow(['', '176215']);
+      sheet.addRow(['Contact:', '+91 9876543210']).getCell(1).font = { bold: true };
+      sheet.addRow(['Email:', 'social@hopsnchops.com']).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Separator
 
-      // 4. Combine
-      const sheetData = [...headerRows, tableHeaders, ...productRows];
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      // BILL TO
+      sheet.addRow(['BILL TO (VENDOR):', currentVendor.vendor_name || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact Person:', currentVendor.vendor_contactPerson_name || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact Mobile:', currentVendor.vendor_contactPerson_mobileNo || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Address:', currentVendor.vendor_address || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact:', currentVendor.vendor_mobileNo || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Email:', currentVendor.vendor_email || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Separator
 
-      // Set Column Widths (Approx)
-      ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }];
+      // Metadata
+      sheet.addRow(['Date:', dayjs().format("DD/MM/YYYY")]).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Space before table
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Order");
-      XLSX.writeFile(wb, `Order_${currentVendor.vendor_name}.xlsx`);
+      // 4. Table Header
+      const tableHeaderRow = sheet.addRow(["Sr.No", "Product", "Category", "Brand", "Quantity", "Unit", "MRP", "Price"]);
+      tableHeaderRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF666666' } }; // Medium Gray
+        cell.alignment = { horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // 5. Product Data
+      selectedProducts.forEach((p, index) => {
+        const rowData = [
+          index + 1,
+          p.productName,
+          p.categoryId?.categoryName || "-",
+          p.companyId?.brandName || "-",
+          qtyMap[p._id],
+          p.unit,
+          "", // MRP
+          p.perUnitRate || "" // Price
+        ];
+        const row = sheet.addRow(rowData);
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle' };
+        });
+      });
+
+      // 6. Generate and save
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(new Blob([buffer]), `Purchase_Order_${currentVendor.vendor_name || 'Vendor'}.xlsx`);
+      });
 
     } else if (type === "csv") {
       const preamble = [
         "PURCHASE ORDER",
         "",
-        "BILL FROM:,,BILL TO (VENDOR):",
-        "My Restaurant / Store Name,," + (currentVendor.vendor_name || "N/A"),
-        "123 Main Street City State,," + `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`,
-        "Contact: +91 9876543210,," + `Address: ${currentVendor.vendor_address || "N/A"}`,
         "",
-        `Date: ${dayjs().format("DD/MM/YYYY")},,Order Status: Created/Draft`,
+        "",
+        "BILL From:,HopsNChops",
+        "Address : Dharamshala",
+        "Palampur",
+        "Rd.Sidhpur Fatepur H.P",
+        "176215",
+        "Contact: +91 9876543210",
+        "Email: social@hopsnchops.com",
+        "",
+        `BILL TO (VENDOR):,${currentVendor.vendor_name || "N/A"}`,
+        `Contact Person:,${currentVendor.vendor_contactPerson_name || "N/A"} (${currentVendor.vendor_contactPerson_mobileNo || "N/A"})`,
+        `Address : ${currentVendor.vendor_address || "N/A"}`,
+        `Contact: ${currentVendor.vendor_mobileNo || "N/A"}`,
+        `Email: ${currentVendor.vendor_email || "N/A"}`,
+        "",
+        `Date: ${dayjs().format("DD/MM/YYYY")}`,
         ""
       ].join("\n");
 
-      const headers = ["Product,Category,Brand,Unit,Quantity"].join(",");
-      const rows = selectedProducts.map(p =>
-        `"${p.productName}","${p.categoryId?.categoryName || "-"}","${p.companyId?.brandName || "-"}","${p.unit}",${qtyMap[p._id]}`
+      const headers = ["Sr.No", "Product", "Category", "Brand", "Quantity", "Unit", "MRP", "Price"].join(",");
+      const rows = selectedProducts.map((p, index) =>
+        `${index + 1},"${p.productName}","${p.categoryId?.categoryName || "-"}","${p.companyId?.brandName || "-"}",${qtyMap[p._id]},"${p.unit}","","${p.perUnitRate || ""}"`
       ).join("\n");
 
       const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(preamble + "\n" + headers + "\n" + rows);
@@ -512,7 +574,7 @@ export default function OrderManagementPage(): JSX.Element {
                 size="medium"
                 onClick={() => setCreateOrderOpen(true)}
                 disabled={selected.length === 0}
-                className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
+              // className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
               >
                 Create Order
               </Button>
