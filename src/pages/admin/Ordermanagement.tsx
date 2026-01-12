@@ -69,14 +69,14 @@ export default function OrderManagementPage(): JSX.Element {
   const paramId = searchParams.get("id");
 
   // Derive initial state from URL (Persistence Logic)
-  const initialCategoryId = (mode === 'category' && paramId) ? paramId : (searchParams.get("categoryId") || "");
+  const initialCategoryId = (mode === 'category' && paramId) ? [paramId] : (searchParams.get("categoryId") ? searchParams.get("categoryId")!.split(',') : []);
   const initialVendorId = (mode === 'vendor' && paramId) ? paramId : (searchParams.get("vendorId") || "");
-  const initialCompanyId = (mode === 'brand' && paramId) ? paramId : (searchParams.get("companyId") || "");
+  const initialCompanyId = (mode === 'brand' && paramId) ? [paramId] : (searchParams.get("companyId") ? searchParams.get("companyId")!.split(',') : []);
 
   const [search] = useState("");
-  const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [categoryId, setCategoryId] = useState<string[]>(initialCategoryId);
   const [vendorId, setVendorId] = useState(initialVendorId);
-  const [companyId, setCompanyId] = useState(initialCompanyId);
+  const [companyId, setCompanyId] = useState<string[]>(initialCompanyId);
   const [fromDate] = useState("");
   const [toDate] = useState("");
 
@@ -86,13 +86,13 @@ export default function OrderManagementPage(): JSX.Element {
     else if (searchParams.get("vendorId")) setVendorId(searchParams.get("vendorId") || "");
     else if (!mode) setVendorId(""); // Clear if no relevant params
 
-    if (mode === 'category' && paramId) setCategoryId(paramId);
-    else if (searchParams.get("categoryId")) setCategoryId(searchParams.get("categoryId") || "");
-    else if (!mode) setCategoryId("");
+    if (mode === 'category' && paramId) setCategoryId([paramId]);
+    else if (searchParams.get("categoryId")) setCategoryId(searchParams.get("categoryId")?.split(',') || []);
+    else if (!mode) setCategoryId([]);
 
-    if (mode === 'brand' && paramId) setCompanyId(paramId);
-    else if (searchParams.get("companyId")) setCompanyId(searchParams.get("companyId") || "");
-    else if (!mode) setCompanyId("");
+    if (mode === 'brand' && paramId) setCompanyId([paramId]);
+    else if (searchParams.get("companyId")) setCompanyId(searchParams.get("companyId")?.split(',') || []);
+    else if (!mode) setCompanyId([]);
   }, [mode, paramId, searchParams]);
 
   // Pagination
@@ -122,8 +122,8 @@ export default function OrderManagementPage(): JSX.Element {
   const shouldShowTable = useMemo(() => {
     if (!mode) return false;
     if (mode === 'vendor' && !vendorId) return false;
-    if (mode === 'category' && !categoryId) return false;
-    if (mode === 'brand' && !companyId) return false;
+    if (mode === 'category' && categoryId.length === 0) return false;
+    if (mode === 'brand' && companyId.length === 0) return false;
     return true;
   }, [mode, vendorId, categoryId, companyId]);
 
@@ -147,9 +147,9 @@ export default function OrderManagementPage(): JSX.Element {
         search: productSearch || search,
         page: page + 1,
         limit: rowsPerPage,
-        category: categoryId,
+        category: categoryId.join(','),
         vendor: vendorId,
-        brand: companyId,
+        brand: companyId.join(','),
         productType: "", // Fetch all
         fromDate,
         toDate
@@ -522,16 +522,17 @@ export default function OrderManagementPage(): JSX.Element {
 
             {mode === 'category' && (
               <Autocomplete
+                multiple
                 size="small"
                 options={categories}
                 getOptionLabel={(option) => option.categoryName || ""}
-                value={categories.find(c => c._id === categoryId) || null}
+                value={categories.filter(c => categoryId.includes(c._id))}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
-                  setCategoryId(newVal);
+                  const newVals = newValue.map(v => v._id);
+                  setCategoryId(newVals);
                   const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVal) {
-                    setSearchParams({ ...currentParams, categoryId: newVal });
+                  if (newVals.length > 0) {
+                    setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
                   } else {
                     delete currentParams.categoryId;
                     delete currentParams.mode;
@@ -539,23 +540,24 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams(currentParams);
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Choose a category..." />}
-                sx={{ width: 280 }}
+                renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Choose categories..." />}
+                sx={{ width: 320 }}
               />
             )}
 
             {mode === 'brand' && (
               <Autocomplete
+                multiple
                 size="small"
                 options={companies}
                 getOptionLabel={(option) => option.brandName || ""}
-                value={companies.find(c => c._id === companyId) || null}
+                value={companies.filter(c => companyId.includes(c._id))}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
-                  setCompanyId(newVal);
+                  const newVals = newValue.map(v => v._id);
+                  setCompanyId(newVals);
                   const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVal) {
-                    setSearchParams({ ...currentParams, companyId: newVal });
+                  if (newVals.length > 0) {
+                    setSearchParams({ ...currentParams, companyId: newVals.join(',') });
                   } else {
                     delete currentParams.companyId;
                     delete currentParams.mode;
@@ -563,8 +565,8 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams(currentParams);
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Choose a brand..." />}
-                sx={{ width: 280 }}
+                renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Choose brands..." />}
+                sx={{ width: 320 }}
               />
             )}
 
@@ -594,14 +596,14 @@ export default function OrderManagementPage(): JSX.Element {
               <Typography variant="h6" className="text-gray-700 font-semibold mb-2">
                 {!mode && 'Select an Order Type'}
                 {mode === 'vendor' && !vendorId && 'Select a Vendor'}
-                {mode === 'category' && !categoryId && 'Select a Category'}
-                {mode === 'brand' && !companyId && 'Select a Brand'}
+                {mode === 'category' && categoryId.length === 0 && 'Select a Category'}
+                {mode === 'brand' && companyId.length === 0 && 'Select a Brand'}
               </Typography>
               <Typography variant="body2" className="text-gray-500 max-w-md mx-auto">
                 {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to get started.'}
                 {mode === 'vendor' && !vendorId && 'Please select a vendor from the dropdown above to view available products.'}
-                {mode === 'category' && !categoryId && 'Please select a category from the dropdown above to view available products.'}
-                {mode === 'brand' && !companyId && 'Please select a brand from the dropdown above to view available products.'}
+                {mode === 'category' && categoryId.length === 0 && 'Please select a category from the dropdown above to view available products.'}
+                {mode === 'brand' && companyId.length === 0 && 'Please select a brand from the dropdown above to view available products.'}
               </Typography>
             </Box>
           </Paper>
@@ -651,7 +653,7 @@ export default function OrderManagementPage(): JSX.Element {
                       <Box className="flex items-center gap-2">
                         Category
                         <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
+                          <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
                         </IconButton>
                       </Box>
                       <Popover
@@ -672,14 +674,34 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton onClick={() => { setCategoryId(""); setCatAnchor(null); }} selected={!categoryId}>
+                          <ListItemButton 
+                            onClick={() => { setCategoryId([]); }} 
+                            selected={categoryId.length === 0}
+                          >
+                            <Checkbox 
+                              size="small" 
+                              checked={categoryId.length === 0} 
+                              indeterminate={categoryId.length > 0 && categoryId.length < categories.length}
+                            />
                             <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
                           </ListItemButton>
-                          {filteredCats.map((c) => (
-                            <ListItemButton key={c._id} onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} selected={categoryId === c._id}>
-                              <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                          ))}
+                          {filteredCats.map((c) => {
+                            const isSelected = categoryId.includes(c._id);
+                            return (
+                              <ListItemButton 
+                                key={c._id} 
+                                onClick={() => { 
+                                  setCategoryId(prev => 
+                                    isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id]
+                                  ); 
+                                }} 
+                                selected={isSelected}
+                              >
+                                <Checkbox size="small" checked={isSelected} />
+                                <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                            );
+                          })}
                         </List>
                       </Popover>
                     </TableCell>
@@ -723,7 +745,7 @@ export default function OrderManagementPage(): JSX.Element {
                       <Box className="flex items-center gap-2">
                         Brand
                         <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
+                          <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
                         </IconButton>
                       </Box>
                       <Popover
@@ -744,14 +766,34 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton onClick={() => { setCompanyId(""); setBrandAnchor(null); }} selected={!companyId}>
+                          <ListItemButton 
+                            onClick={() => { setCompanyId([]); }} 
+                            selected={companyId.length === 0}
+                          >
+                            <Checkbox 
+                              size="small" 
+                              checked={companyId.length === 0} 
+                              indeterminate={companyId.length > 0 && companyId.length < companies.length}
+                            />
                             <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
                           </ListItemButton>
-                          {filteredBrands.map((b) => (
-                            <ListItemButton key={b._id} onClick={() => { setCompanyId(b._id); setBrandAnchor(null); }} selected={companyId === b._id}>
-                              <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                          ))}
+                          {filteredBrands.map((b) => {
+                            const isSelected = companyId.includes(b._id);
+                            return (
+                              <ListItemButton 
+                                key={b._id} 
+                                onClick={() => { 
+                                  setCompanyId(prev => 
+                                    isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id]
+                                  ); 
+                                }} 
+                                selected={isSelected}
+                              >
+                                <Checkbox size="small" checked={isSelected} />
+                                <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                            );
+                          })}
                         </List>
                       </Popover>
                     </TableCell>

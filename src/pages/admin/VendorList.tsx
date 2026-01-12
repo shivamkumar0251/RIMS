@@ -44,29 +44,9 @@ import {
   selectAllVendorsData,
   selectVendorLoading,
   updateVendor,
+  type GetVendorData,
 } from "../../redux/slices/vendorSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-
-interface VendorForm {
-  vendor_name: string;
-  vendor_mobileNo: string;
-  vendor_address: string;
-  vendor_state: string;
-  vendor_country: string;
-  vendor_pinCode: string;
-  vendor_bankName: string;
-  vendor_accountNumber: string;
-  vendor_ifscCode: string;
-  vendor_paymentTerms: string;
-  vendor_preferredPaymentMode: string;
-  vendor_creditLimit: number;
-  vendor_outstandingBalance: number;
-  vendor_gstType: string;
-  vendor_registrationType: string;
-  vendor_gstNumber: string;
-  vendor_openingBalance: number;
-  franchiseId?: string;
-}
 
 function VendorList() {
   const dispatch = useAppDispatch();
@@ -82,7 +62,7 @@ function VendorList() {
   const [limit, setLimit] = useState(10);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingVendor, setEditingVendor] = useState<any>(null);
-  const [formData, setFormData] = useState<VendorForm>({
+  const [formData, setFormData] = useState<GetVendorData>({
     vendor_name: "",
     vendor_mobileNo: "",
     vendor_address: "",
@@ -96,6 +76,9 @@ function VendorList() {
     vendor_preferredPaymentMode: "",
     vendor_creditLimit: 0,
     vendor_outstandingBalance: 0,
+    vendor_contactPerson_name: "",
+    vendor_email: "",
+    vendor_contactPerson_mobileNo: "",
     vendor_gstType: "",
     vendor_registrationType: "",
     vendor_gstNumber: "",
@@ -135,7 +118,8 @@ function VendorList() {
         vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
         vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
         vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
-        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
+        vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "", vendor_contactPerson_name: "",
+        vendor_contactPerson_mobileNo: "", vendor_email: "",
         vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
         franchiseId,
       });
@@ -194,11 +178,12 @@ function VendorList() {
   const handleDownloadTemplate = () => {
     const sample = [
       {
-        vendor_name: "John Doe", vendor_mobileNo: "1234567890", vendor_address: "123 Street",
+        vendor_name: "John Doe", vendor_mobileNo: "1234567890", vendor_email: "", vendor_address: "123 Street",
         vendor_state: "State", vendor_country: "Country", vendor_pinCode: "123456",
         vendor_bankName: "Bank", vendor_accountNumber: "1234567890", vendor_ifscCode: "IFSC001",
         vendor_paymentTerms: "Net 30", vendor_preferredPaymentMode: "Cash",
-        vendor_creditLimit: 10000, vendor_outstandingBalance: 0, vendor_gstType: "Igst",
+        vendor_creditLimit: 10000, vendor_outstandingBalance: 0, vendor_contactPerson_name: "",
+        vendor_contactPerson_mobileNo: "", vendor_gstType: "Igst",
         vendor_registrationType: "Registered", vendor_gstNumber: "GSTIN123", vendor_openingBalance: 0,
       },
     ];
@@ -316,6 +301,7 @@ function VendorList() {
                 <TableRow>
                   <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Vendor Info</TableCell>
                   <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Contact Details</TableCell>
+                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
                   <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Location</TableCell>
                   <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Bank Info</TableCell>
                   <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Terms</TableCell>
@@ -346,6 +332,11 @@ function VendorList() {
                         <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
                           {vendor.vendor_registrationType}
                         </Typography>
+                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "raj@gmail.com"}</Typography>
+                      </TableCell>
+                      <TableCell className="py-3 max-w-[200px]">
+                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || 'Raj'}</Typography>
+                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || 9966332211}</Typography>
                       </TableCell>
                       <TableCell className="py-3 max-w-[200px]">
                         <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
@@ -379,7 +370,7 @@ function VendorList() {
                           <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
                             <FiEdit size={15} />
                           </IconButton>
-                          <IconButton onClick={() => handleDelete(vendor._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
+                          <IconButton onClick={() => handleDelete(vendor?._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
                             <FiTrash2 size={15} />
                           </IconButton>
                         </Box>
@@ -429,6 +420,17 @@ function VendorList() {
                     {REGISTRATION_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
                   </Select>
                 </FormControl>
+                <TextField fullWidth size="small" label="Vendor Email" value={formData.vendor_email} onChange={(e) => setFormData({ ...formData, vendor_email: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+              </div>
+            </Box>
+            <Box className="bg-green-50/50 p-4 rounded-xl border border-green-100/50">
+              <Typography variant="subtitle2" className="text-green-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                Contact Person Information
+              </Typography>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <TextField fullWidth size="small" label="Contact Person Name" required value={formData.vendor_contactPerson_name} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
+                <TextField fullWidth size="small" label="Contact Person Mobile Number" value={formData.vendor_contactPerson_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
               </div>
             </Box>
 

@@ -24,8 +24,8 @@ export interface BulkVendorExcelResponse {
 }
 
 export interface GetVendorData {
-  _id: string,
-  franchiseId: string,
+  _id?: string,
+  franchiseId?: string,
   vendor_name: string,
   vendor_mobileNo: string,
   vendor_address: string,
@@ -39,15 +39,17 @@ export interface GetVendorData {
   vendor_preferredPaymentMode: string,
   vendor_creditLimit: number,
   vendor_outstandingBalance: number,
+  vendor_contactPerson_name?: string,
+  vendor_contactPerson_mobileNo?: string,
+  vendor_email?: string,
   vendor_gstType: string,
   vendor_registrationType: string,
   vendor_gstNumber: string,
   vendor_openingBalance: number,
-  vendor_email?: string,
-  vendor_contactPerson_name?: string,
-  vendor_contactPerson_mobileNo?: string,
-  createdAt: string
+  createdAt?: string
 }
+
+
 export type VendorFormType = Omit<
   GetVendorData,
   "_id" | "createdAt" | "franchiseId"

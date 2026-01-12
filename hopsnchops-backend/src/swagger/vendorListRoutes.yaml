@@ -90,6 +90,10 @@ paths:
                   type: string
                 vendor_pinCode:
                   type: string
+                vendor_contactPerson_name:
+                  type: string
+                vendor_contactPerson_mobileNo:
+                  type: string
                 vendor_bankName:
                   type: string
                 vendor_accountNumber:
