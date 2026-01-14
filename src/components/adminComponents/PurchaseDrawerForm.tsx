@@ -8,13 +8,10 @@ import {
     TextField,
     Typography,
     Autocomplete,
-    CircularProgress,
-    Divider,
     ToggleButton,
-    ToggleButtonGroup,
-    Paper
+    ToggleButtonGroup
 } from "@mui/material";
-import { FiX, FiShoppingCart, FiPlus, FiSearch, FiPackage, FiInfo, FiCreditCard } from "react-icons/fi";
+import { FiX, FiPlus, FiSearch } from "react-icons/fi";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { getProducts, selectProducts, selectProductLoading, addProduct } from "../../redux/slices/productSlice";
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
@@ -108,7 +105,7 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
 
             if (mode === "new") {
                 if (!newProductData.productName || !newProductData.categoryId || !newProductData.vendorsId || !newProductData.unit) {
-                    toast.error("Please fill all required fields (*)");
+                    toast.error("Please fill all required fields");
                     setIsSaving(false);
                     return;
                 }
@@ -161,250 +158,102 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
             anchor="right"
             open={open}
             onClose={onClose}
-            PaperProps={{
-                sx: {
-                    width: { xs: '100vw', sm: 580 },
-                    bgcolor: '#f8fafc',
-                    boxShadow: '-10px 0 30px rgba(0,0,0,0.05)'
-                }
-            }}
+            PaperProps={{ sx: { width: { xs: '100vw', sm: 480 }, bgcolor: '#fff' } }}
         >
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                {/* Header Section */}
-                <Box className="px-6 py-5 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                    <Box className="flex items-center gap-4">
-                        <Box className="p-2.5 bg-indigo-50 rounded-xl">
-                            <FiShoppingCart className="text-indigo-600 text-xl" />
-                        </Box>
-                        <Box>
-                            <Typography variant="h6" className="font-extrabold text-slate-800 leading-none">
-                                Direct Purchase
-                            </Typography>
-                            <Typography variant="caption" className="text-slate-400 font-medium">
-                                Manual Inventory Entry
-                            </Typography>
-                        </Box>
-                    </Box>
-                    <IconButton
-                        onClick={onClose}
-                        className="bg-slate-50 hover:bg-slate-100 transition-all rounded-lg"
-                        size="small"
-                    >
-                        <FiX size={20} className="text-slate-600" />
-                    </IconButton>
+                <Box className="px-4 py-2 border-b flex items-center justify-between bg-white sticky top-0 z-10">
+                    <Typography className="font-bold text-slate-800">Direct Purchase</Typography>
+                    <IconButton onClick={onClose} size="small"><FiX size={18} /></IconButton>
                 </Box>
 
-                <Box className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-                    {/* Method Selector */}
-                    <Box className="space-y-4">
-                        <Box className="flex items-center justify-between">
-                            <Typography className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                <FiInfo size={14} className="text-indigo-500" /> 1. Entry Method
-                            </Typography>
-                        </Box>
+                <Box className="flex-1 overflow-y-auto p-2 bg-slate-50/20">
+                    {/* 1. ENTRY METHOD */}
+                    <Box className="mb-3">
+                        <Typography className="text-[11px] font-bold text-[#8fa3ba] uppercase mb-1 px-1">1. Entry Method</Typography>
                         <ToggleButtonGroup
                             value={mode}
                             exclusive
                             onChange={(_, v) => v && setMode(v)}
                             fullWidth
-                            size="medium"
-                            className="bg-slate-100/50 p-1 rounded-2xl border-none"
+                            size="small"
+                            className="bg-white"
+                            sx={{ '& .MuiToggleButton-root': { py: 0.75, borderRadius: '4px !important', border: '1px solid #e1e8ef !important', '&.Mui-selected': { bgcolor: '#f1f5f9' } } }}
                         >
-                            <ToggleButton
-                                value="search"
-                                className={`normal-case font-bold py-2.5 rounded-xl border-none transition-all duration-300 flex-1 gap-2 ${mode === 'search' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}
-                            >
-                                <FiSearch size={16} /> Search Existing
-                            </ToggleButton>
-                            <ToggleButton
-                                value="new"
-                                className={`normal-case font-bold py-2.5 rounded-xl border-none transition-all duration-300 flex-1 gap-2 ${mode === 'new' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}
-                            >
-                                <FiPlus size={16} /> Create New Product
-                            </ToggleButton>
+                            <ToggleButton value="search" className="normal-case font-bold text-[11px]"><FiSearch className="mr-2" /> SEARCH EXISTING</ToggleButton>
+                            <ToggleButton value="new" className="normal-case font-bold text-[11px]"><FiPlus className="mr-2" /> CREATE NEW PRODUCT</ToggleButton>
                         </ToggleButtonGroup>
                     </Box>
 
-                    {/* Product Details Section */}
-                    {mode === "search" ? (
-                        <Paper elevation={0} className="p-5 border border-slate-200/60 rounded-2xl bg-white space-y-5 animate-in fade-in duration-500">
-                            <Typography className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Select Product</Typography>
-                            <Autocomplete
-                                options={products || []}
-                                getOptionLabel={(option) => `${option.productName} (${option.companyId?.brandName || 'N/A'}) - ${option.packSize} ${option.unit}`}
-                                loading={productLoading}
-                                value={selectedProduct}
-                                onChange={(_, newValue) => setSelectedProduct(newValue)}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label="Product Name"
-                                        placeholder="Start typing to search..."
-                                        fullWidth
-                                        size="medium"
-                                        InputProps={{
-                                            ...params.InputProps,
-                                            sx: { borderRadius: '12px' }
-                                        }}
-                                    />
-                                )}
-                            />
-                            {selectedProduct && (
-                                <Box className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 grid grid-cols-2 gap-y-3 gap-x-4 text-[13px] text-slate-600">
-                                    <Box className="flex flex-col"><span className="text-[10px] text-slate-400 font-bold uppercase">Category</span> {selectedProduct.categoryId?.categoryName}</Box>
-                                    <Box className="flex flex-col"><span className="text-[10px] text-slate-400 font-bold uppercase">Brand</span> {selectedProduct.companyId?.brandName || 'N/A'}</Box>
-                                    <Box className="flex flex-col"><span className="text-[10px] text-slate-400 font-bold uppercase">Vendor</span> {selectedProduct.vendorsId?.vendor_name || 'N/A'}</Box>
-                                    <Box className="flex flex-col"><span className="text-[10px] text-slate-400 font-bold uppercase">Packaging</span> {selectedProduct.packSize} {selectedProduct.unit}</Box>
-                                </Box>
-                            )}
-                        </Paper>
-                    ) : (
-                        <Paper elevation={0} className="p-6 border border-slate-200/60 rounded-3xl bg-white space-y-6 animate-in slide-in-from-right-10 duration-500 shadow-sm">
-                            <Typography className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Product Discovery</Typography>
-
-                            <TextField
-                                label="Product Name *"
-                                fullWidth
-                                variant="outlined"
-                                value={newProductData.productName}
-                                onChange={(e) => setNewProductData(p => ({ ...p, productName: e.target.value }))}
-                                InputProps={{ sx: { borderRadius: '14px', bgcolor: '#fcfdfe' } }}
-                            />
-
-                            <Box className="grid grid-cols-2 gap-4">
+                    {/* PRODUCT DISCOVERY */}
+                    <Box className="p-2 border border-[#eef2f6] rounded-md bg-white mb-3">
+                        <Typography className="text-[10px] font-bold text-[#8fa3ba] uppercase mb-2">PRODUCT DISCOVERY</Typography>
+                        <Box className="space-y-1.5">
+                            {mode === "search" ? (
                                 <Autocomplete
-                                    options={categories || []}
-                                    getOptionLabel={(o) => o.categoryName || ""}
-                                    value={newProductData.categoryId}
-                                    onChange={(_, v) => setNewProductData(p => ({ ...p, categoryId: v }))}
-                                    renderInput={(params) => <TextField {...params} label="Category *" size="small" InputProps={{ ...params.InputProps, sx: { borderRadius: '12px' } }} />}
+                                    options={products || []}
+                                    getOptionLabel={(o) => `${o.productName} (${o.companyId?.brandName || 'N/A'})`}
+                                    loading={productLoading}
+                                    value={selectedProduct}
+                                    onChange={(_, v) => setSelectedProduct(v)}
+                                    renderInput={(params) => <TextField {...params} label="Product Name *" size="small" variant="outlined" />}
                                 />
-                                <Autocomplete
-                                    options={companies || []}
-                                    getOptionLabel={(o) => o.brandName || ""}
-                                    value={newProductData.companyId}
-                                    onChange={(_, v) => setNewProductData(p => ({ ...p, companyId: v }))}
-                                    renderInput={(params) => <TextField {...params} label="Brand" size="small" InputProps={{ ...params.InputProps, sx: { borderRadius: '12px' } }} />}
-                                />
-                                <Autocomplete
-                                    options={vendors || []}
-                                    getOptionLabel={(o) => o.vendor_name || ""}
-                                    value={newProductData.vendorsId}
-                                    onChange={(_, v) => setNewProductData(p => ({ ...p, vendorsId: v }))}
-                                    renderInput={(params) => <TextField {...params} label="Buying From *" size="small" InputProps={{ ...params.InputProps, sx: { borderRadius: '12px' } }} />}
-                                />
-                                <Box className="flex gap-2">
-                                    <TextField
-                                        select
-                                        label="Unit *"
-                                        size="small"
-                                        fullWidth
-                                        value={newProductData.unit}
-                                        onChange={(e) => setNewProductData(p => ({ ...p, unit: e.target.value }))}
-                                        InputProps={{ sx: { borderRadius: '12px 0 0 12px' } }}
-                                    >
-                                        {COMMON_UNITS.map(u => <MenuItem key={u} value={u}>{u}</MenuItem>)}
-                                    </TextField>
-                                    <TextField
-                                        label="Pack *"
-                                        size="small"
-                                        fullWidth
-                                        placeholder="e.g. 5"
-                                        value={newProductData.packSize}
-                                        onChange={(e) => setNewProductData(p => ({ ...p, packSize: e.target.value }))}
-                                        InputProps={{ sx: { borderRadius: '0 12px 12px 0' } }}
-                                    />
-                                </Box>
-                            </Box>
-                        </Paper>
-                    )}
-
-                    {/* Billing Details Section */}
-                    <Box className="space-y-4">
-                        <Typography className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <FiCreditCard size={14} className="text-indigo-500" /> 2. Billing & Quantity
-                        </Typography>
-
-                        <Paper elevation={0} className="p-6 border border-slate-200 shadow-sm rounded-3xl bg-white space-y-6">
-                            <Box className="grid grid-cols-3 gap-4">
-                                <TextField
-                                    label="Received Qty *"
-                                    type="number"
-                                    fullWidth
-                                    variant="filled"
-                                    value={rcvdQty || ""}
-                                    onChange={(e) => setRcvdQty(Number(e.target.value))}
-                                    InputProps={{ disableUnderline: true, sx: { borderRadius: '14px', border: '1px solid #e2e8f0' } }}
-                                />
-                                <TextField
-                                    label="Unit Price *"
-                                    type="number"
-                                    fullWidth
-                                    variant="filled"
-                                    value={price || ""}
-                                    onChange={(e) => setPrice(Number(e.target.value))}
-                                    InputProps={{
-                                        disableUnderline: true,
-                                        startAdornment: <Typography variant="caption" sx={{ mr: 0.5, fontWeight: 'bold' }}>₹</Typography>,
-                                        sx: { borderRadius: '14px', border: '1px solid #e2e8f0' }
-                                    }}
-                                />
-                                <TextField
-                                    label="Tax (%)"
-                                    type="number"
-                                    fullWidth
-                                    variant="filled"
-                                    value={tax || ""}
-                                    onChange={(e) => setTax(Number(e.target.value))}
-                                    InputProps={{ disableUnderline: true, sx: { borderRadius: '14px', border: '1px solid #e2e8f0' } }}
-                                />
-                            </Box>
-
-                            {rcvdQty > 0 && price > 0 && (
-                                <Box className="p-5 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl text-white shadow-xl animate-in zoom-in duration-300">
-                                    <Box className="space-y-2.5">
-                                        <Box className="flex justify-between items-center text-slate-400 text-xs font-semibold">
-                                            <span>NET REVENUE (QTY x PRICE)</span>
-                                            <span>₹{(price * rcvdQty).toLocaleString()}</span>
+                            ) : (
+                                <>
+                                    <TextField label="Product Name *" fullWidth size="small" variant="outlined" value={newProductData.productName} onChange={(e) => setNewProductData(p => ({ ...p, productName: e.target.value }))} />
+                                    <Box className="grid grid-cols-2 gap-1.5">
+                                        <Autocomplete options={categories} getOptionLabel={(o) => o.categoryName} value={newProductData.categoryId} onChange={(_, v) => setNewProductData(p => ({ ...p, categoryId: v }))} renderInput={(params) => <TextField {...params} label="Category *" size="small" />} />
+                                        <Autocomplete options={companies} getOptionLabel={(o) => o.brandName} value={newProductData.companyId} onChange={(_, v) => setNewProductData(p => ({ ...p, companyId: v }))} renderInput={(params) => <TextField {...params} label="Brand" size="small" />} />
+                                    </Box>
+                                    <Box className="grid grid-cols-12 gap-1.5">
+                                        <Box className="col-span-6">
+                                            <Autocomplete options={vendors} getOptionLabel={(o) => o.vendor_name} value={newProductData.vendorsId} onChange={(_, v) => setNewProductData(p => ({ ...p, vendorsId: v }))} renderInput={(params) => <TextField {...params} label="Vendor *" size="small" />} />
                                         </Box>
-                                        <Box className="flex justify-between items-center text-slate-400 text-xs font-semibold">
-                                            <span>TOTAL TAX ({tax}%)</span>
-                                            <span>₹{(price * rcvdQty * tax / 100).toLocaleString()}</span>
+                                        <Box className="col-span-3">
+                                            <TextField select label="Unit *" size="small" fullWidth value={newProductData.unit} onChange={(e) => setNewProductData(p => ({ ...p, unit: e.target.value }))}>
+                                                {COMMON_UNITS.map(u => <MenuItem key={u} value={u} sx={{ fontSize: '12px' }}>{u}</MenuItem>)}
+                                            </TextField>
                                         </Box>
-                                        <Divider className="opacity-10 my-2" />
-                                        <Box className="flex justify-between items-end">
-                                            <Box>
-                                                <Typography className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest italic">Inventory Impact</Typography>
-                                                <Typography className="text-2xl font-black leading-tight">₹{(price * rcvdQty * (1 + tax / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
-                                            </Box>
-                                            <Box className="bg-indigo-600/20 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-400/20">
-                                                TOTAL PAYABLE
-                                            </Box>
+                                        <Box className="col-span-3">
+                                            <TextField label="Pack *" size="small" fullWidth value={newProductData.packSize} onChange={(e) => setNewProductData(p => ({ ...p, packSize: e.target.value }))} />
                                         </Box>
                                     </Box>
-                                </Box>
+                                </>
                             )}
-                        </Paper>
+                        </Box>
+                    </Box>
+
+                    {/* 2. BILLING & QUANTITY */}
+                    <Box className="p-2 border border-[#eef2f6] rounded-md bg-white">
+                        <Typography className="text-[11px] font-bold text-[#8fa3ba] uppercase mb-2">2. Billing & Quantity</Typography>
+                        <Box className="grid grid-cols-3 gap-1.5">
+                            <TextField label="Qty *" type="number" size="small" value={rcvdQty || ""} onChange={(e) => setRcvdQty(Number(e.target.value))} />
+                            <TextField label="Price *" type="number" size="small" value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} />
+                            <TextField label="Tax (%)" type="number" size="small" value={tax || ""} onChange={(e) => setTax(Number(e.target.value))} />
+                        </Box>
+
+                        {rcvdQty > 0 && price > 0 && (
+                            <Box className="mt-2 pt-2 border-t border-slate-50 flex justify-between items-center px-1">
+                                <Box>
+                                    <Typography className="text-[10px] text-slate-400 font-bold uppercase">Payable Amount</Typography>
+                                    <Typography className="text-xl font-black text-indigo-600">₹{(price * rcvdQty * (1 + tax / 100)).toLocaleString()}</Typography>
+                                </Box>
+                                <Box className="text-right">
+                                    <Typography className="text-[9px] text-slate-400 font-bold">Tax: ₹{(price * rcvdQty * tax / 100).toLocaleString()}</Typography>
+                                </Box>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
 
-                {/* Footer Section */}
-                <Box className="p-6 border-t border-slate-200 bg-white flex justify-end gap-4 sticky bottom-0 z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-                    <Button
-                        variant="text"
-                        onClick={onClose}
-                        className="normal-case px-6 font-bold text-slate-500 hover:bg-slate-50 rounded-xl"
-                    >
-                        Cancel
-                    </Button>
+                <Box className="p-3 border-t flex justify-end items-center gap-6 bg-white">
+                    <Button onClick={onClose} className="text-indigo-500 font-bold text-xs p-0 min-w-0 hover:bg-transparent">CANCEL</Button>
                     <Button
                         variant="contained"
                         onClick={handleSave}
                         disabled={isSaving || (mode === "search" && !selectedProduct) || rcvdQty <= 0}
-                        className={`normal-case px-10 py-3 font-extrabold text-[15px] rounded-2xl shadow-lg transition-all duration-300 ${mode === 'new' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}
-                        startIcon={isSaving ? <CircularProgress size={18} color="inherit" /> : mode === 'new' ? <FiPackage /> : <FiPlus />}
+                        className={`text-[11px] px-4 py-1.5 rounded shadow-none font-bold ${isSaving || (mode === "search" && !selectedProduct) || rcvdQty <= 0 ? 'bg-slate-200 text-slate-400' : 'bg-[#e1e8ef] text-slate-700 hover:bg-slate-300'}`}
                     >
-                        {isSaving ? "Processing..." : mode === "new" ? "Create & Save Purchase" : "Complete Purchase"}
+                        {isSaving ? "SAVING..." : mode === "new" ? "CREATE & SAVE PURCHASE" : "ADD PURCHASE"}
                     </Button>
                 </Box>
             </Box>
