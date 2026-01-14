@@ -20,12 +20,13 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { FiFilter, FiRefreshCw, FiSearch, FiSend } from "react-icons/fi";
+import { FiFilter, FiRefreshCw, FiSearch, FiSend, FiPlus } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
@@ -60,6 +61,7 @@ import {
 } from "../../redux/slices/vendorOrderSlice";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
 
 const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -119,21 +121,14 @@ const Purchase: React.FC = () => {
       return;
     }
 
-    console.log("Starting receipt confirmation...");
-    console.log("Vendor Order:", vendorOrder);
-    console.log("Receipt Data:", receiptData);
-
     setIsProcessing(true);
 
     // Validate
     const errors: string[] = [];
     const validItems: any[] = [];
-    const storeStockPayload: any[] = [];
 
     // Filter products that were actually sent to purchase
     const productsToReceive = vendorOrder.products.filter((p: any) => receiptData[p.productId?._id]);
-
-    console.log("Products to receive:", productsToReceive);
 
     if (productsToReceive.length === 0) {
       toast.error("No products to receive");
@@ -147,14 +142,6 @@ const Purchase: React.FC = () => {
       const orderedQty = p.sendToPurchaseQty || p.orderQty;
       const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
 
-      console.log(`Product ${p.productId.productName}:`, {
-        orderedQty,
-        receivedQty: data.receivedQty,
-        damagedQty: data.damagedQty,
-        acceptedQty,
-        remarks: data.remarks
-      });
-
       if (data.damagedQty > 0 && !data.remarks.trim()) {
         errors.push(`Remarks required for ${p.productId.productName} (Damaged Qty > 0)`);
       }
@@ -167,27 +154,16 @@ const Purchase: React.FC = () => {
         ...data,
         acceptedQty
       });
-
-      storeStockPayload.push({
-        productId: pid,
-        qty: acceptedQty
-      });
     });
 
     if (errors.length > 0) {
-      console.error("Validation errors:", errors);
       errors.forEach(e => toast.error(e));
       setIsProcessing(false);
       return;
     }
 
-    console.log("Store Stock Payload:", storeStockPayload);
-
     try {
-      // 1. Mark Vendor Order as Received and update received quantities
-      // This backend call also creates/updates the Purchase records for these items.
-      console.log("Updating vendor order status and items...");
-      const updateResult = await dispatch(updateVendorOrder({
+      await dispatch(updateVendorOrder({
         vendorOrderId: vendorOrder._id,
         status: 'Received',
         products: validItems.map(item => ({
@@ -196,11 +172,9 @@ const Purchase: React.FC = () => {
           remarks: item.remarks
         }))
       })).unwrap();
-      console.log("Vendor order updated:", updateResult);
 
       toast.success("Order received and stock updated successfully!");
 
-      // Small delay before navigation to ensure toast is visible
       setTimeout(() => {
         navigate('/admin/vendorsOrder');
       }, 500);
@@ -226,7 +200,9 @@ const Purchase: React.FC = () => {
 
   // ---------------- Pagination ----------------
   const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(25);
+
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
 
   // ---------------- Selection & Inputs ----------------
   const [selected, setSelected] = useState<string[]>([]);
@@ -341,6 +317,16 @@ const Purchase: React.FC = () => {
     setItemsData({});
   };
 
+  const handleAddPurchase = async (data: any) => {
+    try {
+      await dispatch(addBulkPurchases([data])).unwrap();
+      toast.success("Purchase added successfully");
+      dispatch(getPurchases({ page: page + 1, limit }));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add purchase");
+    }
+  };
+
   // ---------------- Filter Search Logic ----------------
   const filteredCats = useMemo(() =>
     categories.filter(c => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
@@ -380,7 +366,7 @@ const Purchase: React.FC = () => {
               variant="contained"
               onClick={handleConfirmReceipt}
               disabled={isProcessing}
-              className="bg-blue-600"
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold"
             >
               {isProcessing ? "Processing..." : "Confirm Receipt"}
             </Button>
@@ -512,17 +498,26 @@ const Purchase: React.FC = () => {
             variant="text"
             startIcon={<FiRefreshCw />}
             onClick={handleResetFilters}
-            className="text-blue-600 normal-case"
+            className="text-indigo-600 normal-case font-bold"
           >
             Reset
           </Button>
 
-          <Box className="ml-auto">
+          <Box className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outlined"
+              startIcon={<FiPlus />}
+              onClick={() => setIsAddDrawerOpen(true)}
+              className="normal-case border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold"
+            >
+              Add Purchase
+            </Button>
             <Button
               variant="contained"
               startIcon={<FiSend />}
               disabled={selected.length === 0 || selected.some(pid => !(itemsData[pid]?.current) || itemsData[pid]?.current <= 0)}
               onClick={handlePost}
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold shadow-lg shadow-indigo-100"
             >
               Send To Store
             </Button>
@@ -802,16 +797,24 @@ const Purchase: React.FC = () => {
             </Table>
           </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={allPurchasesData?.pagination.total || 0}
-            page={page}
-            onPageChange={(_: React.MouseEvent<HTMLButtonElement> | null, p: number) => setPage(p)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
-            className="border-t bg-gray-50"
-          />
+          <Box className="border-t bg-gray-50">
+            <TablePagination
+              component="div"
+              count={allPurchasesData?.pagination.total || 0}
+              page={page}
+              onPageChange={(_: React.MouseEvent<HTMLButtonElement> | null, p: number) => setPage(p)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[25, 50, 100]}
+            />
+          </Box>
         </Paper>
+
+        <PurchaseDrawerForm
+          open={isAddDrawerOpen}
+          onClose={() => setIsAddDrawerOpen(false)}
+          onSave={handleAddPurchase}
+        />
       </div>
     </AdminLayout>
   );

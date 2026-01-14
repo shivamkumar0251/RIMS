@@ -19,6 +19,7 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
@@ -72,7 +73,7 @@ export default function ProductTable() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   // Popover States
   const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
@@ -378,9 +379,9 @@ export default function ProductTable() {
 
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+      <Box className="flex flex-col h-[calc(100vh-80px)]">
         {/* Combined Tool Bar */}
-        <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white rounded-xl mb-4">
+        <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white mb-4">
           {/* Filters Area */}
           <Box className="flex flex-col sm:flex-row xl:flex-row items-start sm:items-end gap-3 w-full lg:w-auto">
             <TextField
@@ -434,13 +435,17 @@ export default function ProductTable() {
 
           {/* Actions Area */}
           <Box className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0">
-            <Button variant="outlined" startIcon={<FiDownload />} onClick={handleDownloadTemplate} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px]">
-              Template
-            </Button>
+            <Tooltip title="Download Template">
+              <Button variant="outlined" onClick={handleDownloadTemplate} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
+                <FiDownload size={18} />
+              </Button>
+            </Tooltip>
             <input id="product-excel" type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleExcelUpload} />
-            <Button variant="outlined" startIcon={<FiUpload />} onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px]">
-              Import
-            </Button>
+            <Tooltip title="Import Products">
+              <Button variant="outlined" onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
+                <FiUpload size={18} />
+              </Button>
+            </Tooltip>
             <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="w-full sm:w-auto !bg-blue-600 hover:!bg-blue-700 normal-case shadow-none h-[40px]">
               Add Product
             </Button>
@@ -631,6 +636,7 @@ export default function ProductTable() {
               onPageChange={(_, newPage) => setPage(newPage)}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[25, 50, 100]}
               className="text-sm text-gray-600"
             />
           </Box>

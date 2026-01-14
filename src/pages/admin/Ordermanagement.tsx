@@ -97,7 +97,7 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Pagination
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   // Selection & Qty
   const [selected, setSelected] = useState<string[]>([]);
@@ -479,10 +479,10 @@ export default function OrderManagementPage(): JSX.Element {
 
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+      <Box className="flex flex-col h-[calc(100vh-80px)]">
 
         {/* Header Section */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 shadow-sm border border-gray-100">
 
           {/* Left Side - Title */}
           <Box className="flex items-center gap-3">
@@ -674,13 +674,13 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton 
-                            onClick={() => { setCategoryId([]); }} 
+                          <ListItemButton
+                            onClick={() => { setCategoryId([]); }}
                             selected={categoryId.length === 0}
                           >
-                            <Checkbox 
-                              size="small" 
-                              checked={categoryId.length === 0} 
+                            <Checkbox
+                              size="small"
+                              checked={categoryId.length === 0}
                               indeterminate={categoryId.length > 0 && categoryId.length < categories.length}
                             />
                             <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
@@ -688,13 +688,13 @@ export default function OrderManagementPage(): JSX.Element {
                           {filteredCats.map((c) => {
                             const isSelected = categoryId.includes(c._id);
                             return (
-                              <ListItemButton 
-                                key={c._id} 
-                                onClick={() => { 
-                                  setCategoryId(prev => 
+                              <ListItemButton
+                                key={c._id}
+                                onClick={() => {
+                                  setCategoryId(prev =>
                                     isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id]
-                                  ); 
-                                }} 
+                                  );
+                                }}
                                 selected={isSelected}
                               >
                                 <Checkbox size="small" checked={isSelected} />
@@ -766,13 +766,13 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton 
-                            onClick={() => { setCompanyId([]); }} 
+                          <ListItemButton
+                            onClick={() => { setCompanyId([]); }}
                             selected={companyId.length === 0}
                           >
-                            <Checkbox 
-                              size="small" 
-                              checked={companyId.length === 0} 
+                            <Checkbox
+                              size="small"
+                              checked={companyId.length === 0}
                               indeterminate={companyId.length > 0 && companyId.length < companies.length}
                             />
                             <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
@@ -780,13 +780,13 @@ export default function OrderManagementPage(): JSX.Element {
                           {filteredBrands.map((b) => {
                             const isSelected = companyId.includes(b._id);
                             return (
-                              <ListItemButton 
-                                key={b._id} 
-                                onClick={() => { 
-                                  setCompanyId(prev => 
+                              <ListItemButton
+                                key={b._id}
+                                onClick={() => {
+                                  setCompanyId(prev =>
                                     isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id]
-                                  ); 
-                                }} 
+                                  );
+                                }}
                                 selected={isSelected}
                               >
                                 <Checkbox size="small" checked={isSelected} />
@@ -895,6 +895,7 @@ export default function OrderManagementPage(): JSX.Element {
                   setRowsPerPage(parseInt(e.target.value, 10));
                   setPage(0);
                 }}
+                rowsPerPageOptions={[25, 50, 100]}
               />
             </Box>
           </Paper>
