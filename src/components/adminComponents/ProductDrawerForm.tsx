@@ -286,29 +286,27 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                     </div>
 
                     {/* 2. Common Details */}
-                    <div>
-                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-4  pb-1">
+                    <Box className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm">
+                        <Typography variant="subtitle2" className="text-slate-500 font-bold mb-4 uppercase text-xs tracking-wider border-b border-slate-100 pb-2">
                             COMMON DETAILS (REQUIRED)
                         </Typography>
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-5">
                             <TextField
                                 fullWidth size="small" label="Product Name *"
                                 value={form.productName || ""}
                                 onChange={(e) => handleInputChange('productName', e.target.value)}
                                 error={Boolean(errors.productName)}
                                 helperText={errors.productName}
-                                className="bg-white"
                                 variant="outlined"
+                                InputLabelProps={{ shrink: true }}
                             />
 
                             <TextField
                                 fullWidth size="small" label="Product Description"
                                 value={form.productDescription || ""}
                                 onChange={(e) => handleInputChange('productDescription', e.target.value)}
-                                className="bg-white"
                                 variant="outlined"
-                                multiline
-                                minRows={2}
+                                InputLabelProps={{ shrink: true }}
                             />
 
                             <Autocomplete
@@ -322,7 +320,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                 value={form.categoryId || null}
                                 onChange={(_, val) => handleInputChange('categoryId', val)}
                                 renderInput={(params) => (
-                                    <TextField {...params} size="small" label="Category *" error={Boolean(errors.categoryId)} helperText={errors.categoryId} />
+                                    <TextField {...params} size="small" label="Category *" error={Boolean(errors.categoryId)} helperText={errors.categoryId} InputLabelProps={{ shrink: true }} />
                                 )}
                             />
 
@@ -332,7 +330,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                     value={form.unit || ""}
                                     onChange={(_, val) => handleInputChange('unit', val)}
                                     renderInput={(params) => (
-                                        <TextField {...params} size="small" label="Unit *" error={Boolean(errors.unit)} helperText={errors.unit} />
+                                        <TextField {...params} size="small" label="Unit *" error={Boolean(errors.unit)} helperText={errors.unit} InputLabelProps={{ shrink: true }} />
                                     )}
                                 />
                                 <Autocomplete
@@ -340,27 +338,28 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                     value={form.packSize || ""}
                                     onChange={(_, val) => handleInputChange('packSize', val)}
                                     renderInput={(params) => (
-                                        <TextField {...params} size="small" label="Pack Size *" error={Boolean(errors.packSize)} />
+                                        <TextField {...params} size="small" label="Pack Size *" error={Boolean(errors.packSize)} InputLabelProps={{ shrink: true }} />
                                     )}
                                 />
                             </div>
 
-                            <div className="w-full md:w-1/2">
+                            <div className="w-full md:w-1/2 pr-0 md:pr-2.5">
                                 <TextField
                                     select fullWidth size="small" label="Active Status *"
                                     value={form.isActive === undefined ? "true" : String(form.isActive)}
                                     onChange={(e) => handleInputChange('isActive', e.target.value === 'true')}
+                                    InputLabelProps={{ shrink: true }}
                                 >
                                     <MenuItem value="true">Active</MenuItem>
                                     <MenuItem value="false">Inactive</MenuItem>
                                 </TextField>
                             </div>
                         </div>
-                    </div>
+                    </Box>
 
                     {/* 3. Additional Details */}
-                    <div>
-                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-4 pb-1">
+                    <Box className="border border-slate-200 rounded-lg p-5 bg-white shadow-sm mt-6">
+                        <Typography variant="subtitle2" className="text-slate-500 font-bold mb-4 uppercase text-xs tracking-wider border-b border-slate-100 pb-2">
                             ADDITIONAL DETAILS (OPTIONAL)
                         </Typography>
                         <div className="space-y-5">
@@ -370,14 +369,14 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                     getOptionLabel={(opt) => typeof opt === 'string' ? opt : (opt.brandName || "")}
                                     value={form.companyId || null}
                                     onChange={(_, val) => handleInputChange('companyId', val)}
-                                    renderInput={(params) => <TextField {...params} size="small" label="Brand" />}
+                                    renderInput={(params) => <TextField {...params} size="small" label="Brand" InputLabelProps={{ shrink: true }} />}
                                 />
                                 <Autocomplete
                                     options={vendors}
                                     getOptionLabel={(v) => v.vendor_name || ""}
                                     value={vendors.find(v => v._id === (typeof form.vendorsId === 'object' ? form.vendorsId?._id : form.vendorsId)) || null}
                                     onChange={(_, val) => handleInputChange('vendorsId', val ? val._id : "")}
-                                    renderInput={(params) => <TextField {...params} size="small" label="Vendor" />}
+                                    renderInput={(params) => <TextField {...params} size="small" label="Vendor" InputLabelProps={{ shrink: true }} />}
                                 />
                             </div>
 
@@ -387,6 +386,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                     value={form.perUnitRate ?? ""}
                                     onChange={(e) => handleInputChange('perUnitRate', e.target.value)}
                                     InputProps={{ startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
+                                    InputLabelProps={{ shrink: true }}
                                     sx={numberInputStyle}
                                 />
                                 <TextField
@@ -394,27 +394,30 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                     value={form.gstPct ?? ""}
                                     onChange={(e) => handleInputChange('gstPct', e.target.value)}
                                     InputProps={{ endAdornment: <span className="text-gray-400 ml-1">%</span> }}
+                                    InputLabelProps={{ shrink: true }}
                                     sx={numberInputStyle}
                                 />
                             </div>
 
-                            <TextField
-                                fullWidth size="small" label="Computed Taxable Value"
-                                value={form.taxableValue ?? ""}
-                                InputProps={{ readOnly: true, startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
-                                helperText="Automatically calculated based on rate and GST"
-                                className="bg-gray-50"
-                            />
-
-                            <TextField
-                                fullWidth size="small" label="Stock Alert Limit" type="number"
-                                value={form.stockAlert ?? ""}
-                                onChange={(e) => handleInputChange('stockAlert', e.target.value)}
-                                sx={numberInputStyle}
-                                className="md:w-1/2"
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <TextField
+                                    fullWidth size="small" label="Computed Taxable Value"
+                                    value={form.taxableValue ?? ""}
+                                    InputProps={{ readOnly: true, startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
+                                    InputLabelProps={{ shrink: true }}
+                                    helperText="Automatic"
+                                    className="bg-gray-50"
+                                />
+                                <TextField
+                                    fullWidth size="small" label="Stock Alert Limit" type="number"
+                                    value={form.stockAlert ?? ""}
+                                    onChange={(e) => handleInputChange('stockAlert', e.target.value)}
+                                    InputLabelProps={{ shrink: true }}
+                                    sx={numberInputStyle}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </Box>
 
                     {/* 4. Packaging Specifics (Conditional) */}
                     {form.productType === "Packaging Item" && (

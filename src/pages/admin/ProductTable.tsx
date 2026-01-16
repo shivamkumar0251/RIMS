@@ -361,7 +361,7 @@ export default function ProductTable() {
   };
 
   // Save handler for Vendor Modal
-  const handleSaveVendor = async (data: VendorFormData) => {
+  const handleSaveVendor = async (data: any) => {
     try {
       const mappedData: any = {
         vendor_name: data.name,
