@@ -83,7 +83,7 @@ const Purchase: React.FC = () => {
   // Initial Load
   useEffect(() => {
     if (!vendorOrder) {
-      dispatch(getVendorOrders({ page: page + 1, limit }));
+      dispatch(getVendorOrders({ page: page + 1, limit, orderStatus: "Delivered" }));
     }
   }, [dispatch, vendorOrder, page, limit]);
 
@@ -130,7 +130,7 @@ const Purchase: React.FC = () => {
     try {
       await dispatch(updateVendorOrder({
         vendorOrderId: vendorOrder._id,
-        status: 'Received',
+        orderStatus: 'Delivered',
         products: validItems.map(item => ({
           productId: item.productId._id,
           sendToPurchaseQty: item.receivedQty,
@@ -161,7 +161,7 @@ const Purchase: React.FC = () => {
       }
       setIsFormOpen(false);
       setEditingOrder(null);
-      dispatch(getVendorOrders({ page: page + 1, limit }));
+      dispatch(getVendorOrders({ page: page + 1, limit, orderStatus: "Delivered" }));
     } catch (err: any) {
       toast.error(err.message || "Failed to save order");
     }
@@ -173,12 +173,9 @@ const Purchase: React.FC = () => {
   );
 
   const getStatusColor = (status: string) => {
-    const s = (status || "").toUpperCase();
-    if (s === 'DRAFT') return 'text-gray-500 bg-gray-50 border-gray-100';
-    if (s === 'CLOSED') return 'text-emerald-500 bg-emerald-50 border-emerald-100';
-    if (s === 'OPEN' || s === 'SENT') return 'text-blue-500 bg-blue-50 border-blue-100';
-    if (s === 'CANCELLED') return 'text-rose-500 bg-rose-50 border-rose-100';
-    if (s === 'BILLED') return 'text-indigo-500 bg-indigo-50 border-indigo-100';
+    const s = (status || "").toLowerCase();
+    if (s === 'draft') return 'text-gray-500 bg-gray-50 border-gray-100';
+    if (s === 'delivered') return 'text-indigo-500 bg-indigo-50 border-indigo-100';
     return 'text-gray-400 bg-gray-50 border-gray-100';
   };
 
@@ -456,7 +453,7 @@ const Purchase: React.FC = () => {
                         <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4">{row.orderNumber}</TableCell>
                         <TableCell className="py-4 font-bold text-slate-800">{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
                         <TableCell className="py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.status)}`}>{row.status}</span>
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus}</span>
                         </TableCell>
                         <TableCell align="right" className="py-4 font-black text-slate-900">₹{row.totalAmount?.toLocaleString()}</TableCell>
                         <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>

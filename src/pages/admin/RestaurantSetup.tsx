@@ -24,7 +24,7 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, type ProductInterface } from "../../redux/slices/productSlice";
+import { addProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-hot-toast";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
@@ -69,6 +69,8 @@ export default function RestaurantSetup() {
   const categoriesList = useAppSelector(selectCategories) ?? [];
   const companies = useAppSelector(selectCompanies) ?? [];
   const vendors = useAppSelector(selectVendorNames) ?? [];
+  const productState = useAppSelector(selectProductState);
+  const products = productState?.products ?? [];
 
   // Local State for Modals
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -79,6 +81,7 @@ export default function RestaurantSetup() {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
+    dispatch(getProducts({ page: 1, limit: 1000 }));
   }, [dispatch]);
 
 
@@ -88,12 +91,21 @@ export default function RestaurantSetup() {
 
   const categories = ["Equipment", "Crockery", "Furniture"];
 
+  // Filter products by type
+  const equipmentProducts = products.filter((p: ProductInterface) => p.productType === "Equipment");
+  const crockeryProducts = products.filter((p: ProductInterface) => p.productType === "Crockery");
+  const furnitureProducts = products.filter((p: ProductInterface) => p.productType === "Furniture");
+
+  const currentCategory = categories[value] as string;
+
   // Action Handling
   const action = searchParams.get("action");
   const isAddMode = action === "add";
 
   const handleCloseForm = () => {
     navigate("/admin/restaurant-setup");
+    // Refresh products after closing form
+    dispatch(getProducts({ page: 1, limit: 1000 }));
   };
 
   const handleSaveProduct = async (productData: ProductInterface) => {
@@ -111,13 +123,14 @@ export default function RestaurantSetup() {
 
       await dispatch(addProduct(payload)).unwrap();
       toast.success("Item added successfully");
+      dispatch(getProducts({ page: 1, limit: 1000 }));
       navigate("/admin/restaurant-setup");
     } catch (err: any) {
       toast.error(err.message || "Failed to save item");
     }
   };
 
-  // Quick Add Handlers (Reusing logic from ProductTable roughly)
+  // Quick Add Handlers
   const handleSaveCategory = async (name: string) => {
     try {
       await dispatch(addCategory({ categoryName: name })).unwrap();
@@ -125,6 +138,7 @@ export default function RestaurantSetup() {
       toast.success("Category added");
     } catch (e: any) { toast.error(e.message); }
   };
+
   const handleSaveBrand = async (name: string) => {
     try {
       await dispatch(addCompany({ brandName: name })).unwrap();
@@ -132,8 +146,8 @@ export default function RestaurantSetup() {
       toast.success("Brand added");
     } catch (e: any) { toast.error(e.message); }
   };
+
   const handleSaveVendor = async (data: any) => {
-    // Simplified mapping for brevity, assuming data matches API needs or similar to ProductTable
     try {
       await dispatch(addVendor(data)).unwrap();
       dispatch(getVendorNameList());
@@ -141,62 +155,6 @@ export default function RestaurantSetup() {
       setVendorDrawerOpen(false);
     } catch (e: any) { toast.error(e.message); }
   };
-
-
-
-  // Mock data for tables
-  const mockData = {
-    Equipment: [
-      {
-        id: 1,
-        name: "Baking Oven",
-        brand: "LG",
-        quantity: 2,
-        status: "Active",
-      },
-      {
-        id: 2,
-        name: "Refrigerator",
-        brand: "Samsung",
-        quantity: 5,
-        status: "Active",
-      },
-    ],
-    Crockery: [
-      {
-        id: 1,
-        name: "Dinner Plate",
-        material: "Ceramic",
-        quantity: 100,
-        status: "Active",
-      },
-      {
-        id: 2,
-        name: "Soup Bowl",
-        material: "Glass",
-        quantity: 50,
-        status: "Active",
-      },
-    ],
-    Furniture: [
-      {
-        id: 1,
-        name: "Wooden Chair",
-        type: "Dining",
-        quantity: 40,
-        status: "In Stock",
-      },
-      {
-        id: 2,
-        name: "Round Table",
-        type: "Dining",
-        quantity: 10,
-        status: "In Stock",
-      },
-    ],
-  };
-
-  const currentCategory = categories[value] as keyof typeof mockData;
 
   return (
     <AdminLayout>
@@ -262,40 +220,61 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Equipment Name</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
                         <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
                         <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
                         <TableCell className="font-bold" align="right">
                           Actions
                         </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {mockData.Equipment.map((item, idx) => (
-                        <TableRow key={item.id} hover>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-blue-600">
-                            {item.name}
-                          </TableCell>
-                          <TableCell>{item.brand}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                              {item.status}
-                            </span>
-                          </TableCell>
-                          <TableCell align="right">
-                            <div className="flex justify-end gap-2">
-                              <IconButton size="small" className="text-blue-600">
-                                <FiEdit size={18} />
-                              </IconButton>
-                              <IconButton size="small" className="text-red-600">
-                                <FiTrash2 size={18} />
-                              </IconButton>
-                            </div>
+                      {equipmentProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center" className="py-8 text-gray-500">
+                            No equipment found. Click "Add Equipment" to get started.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        equipmentProducts.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell className="font-medium text-blue-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600">
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -308,40 +287,61 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Item Name</TableCell>
-                        <TableCell className="font-bold">Material</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
                         <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
                         <TableCell className="font-bold" align="right">
                           Actions
                         </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {mockData.Crockery.map((item, idx) => (
-                        <TableRow key={item.id} hover>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-orange-600">
-                            {item.name}
-                          </TableCell>
-                          <TableCell>{item.material}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                              {item.status}
-                            </span>
-                          </TableCell>
-                          <TableCell align="right">
-                            <div className="flex justify-end gap-2">
-                              <IconButton size="small" className="text-blue-600">
-                                <FiEdit size={18} />
-                              </IconButton>
-                              <IconButton size="small" className="text-red-600">
-                                <FiTrash2 size={18} />
-                              </IconButton>
-                            </div>
+                      {crockeryProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} align="center" className="py-8 text-gray-500">
+                            No crockery found. Click "Add Crockery" to get started.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        crockeryProducts.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell className="font-medium text-orange-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600">
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -354,40 +354,61 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Furniture Name</TableCell>
-                        <TableCell className="font-bold">Type</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
                         <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
                         <TableCell className="font-bold" align="right">
                           Actions
                         </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {mockData.Furniture.map((item, idx) => (
-                        <TableRow key={item.id} hover>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-purple-600">
-                            {item.name}
-                          </TableCell>
-                          <TableCell>{item.type}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-                              {item.status}
-                            </span>
-                          </TableCell>
-                          <TableCell align="right">
-                            <div className="flex justify-end gap-2">
-                              <IconButton size="small" className="text-blue-600">
-                                <FiEdit size={18} />
-                              </IconButton>
-                              <IconButton size="small" className="text-red-600">
-                                <FiTrash2 size={18} />
-                              </IconButton>
-                            </div>
+                      {furnitureProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={10} align="center" className="py-8 text-gray-500">
+                            No furniture found. Click "Add Furniture" to get started.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        furnitureProducts.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell className="font-medium text-purple-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600">
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
                     </TableBody>
                   </Table>
                 </TableContainer>

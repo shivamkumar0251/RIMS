@@ -20,7 +20,7 @@ export interface VendorOrder {
   products: VendorOrderProduct[];
   totalAmount: number;
   totalClosingAmount: number;
-  paymentStatus: string;
+  orderStatus: string;
   status: string; // Added status field (Draft / Sent / Delivered)
   totelOrderQty: number;
   orderDate: string;
@@ -62,13 +62,13 @@ const initialState: VendorOrderState = {
 // GET VENDOR ORDERS
 export const getVendorOrders = createAsyncThunk<
   GetVendorOrdersResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, paymentStatus?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, orderStatus?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/getVendorOrders',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', paymentStatus = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', orderStatus = '' }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&paymentStatus=${paymentStatus}`;
+      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&orderStatus=${orderStatus}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -92,16 +92,16 @@ export const getVendorOrders = createAsyncThunk<
 // UPDATE VENDOR ORDER
 export const updateVendorOrder = createAsyncThunk<
   VendorOrder,
-  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; status?: string },
+  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; orderStatus?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/updateVendorOrder',
-  async ({ vendorOrderId, products, status }, thunkAPI) => {
+  async ({ vendorOrderId, products, orderStatus }, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.UPDATE_VENDOR_ORDER(vendorOrderId),
         method: 'PUT',
-        data: { products, status },
+        data: { products, orderStatus },
       });
 
       if (response.status === 200) {

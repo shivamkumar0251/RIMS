@@ -38,10 +38,10 @@ const OrderRequiredSchema = new mongoose.Schema(
     orderNumber: { type: String, unique: true },
     totalAmount: { type: Number, default: 0 },
     totalClosingAmount: { type: Number, default: 0 },
-    paymentStatus: {
+    orderStatus: {
       type: String,
-      enum: ["Paid", "Pending", "Partial"],
-      default: "Pending",
+      enum: ["Draft", "Delivered"],
+      default: "Draft",
     },
     vendorsId: {
       type: mongoose.Schema.Types.ObjectId,

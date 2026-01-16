@@ -289,11 +289,10 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   <Box
                     key={type}
                     onClick={() => handleProductTypeChange(type)}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${
-                      form.productType === type
-                        ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
+                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === type
+                      ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
+                      : "text-gray-500 hover:bg-gray-100"
+                      }`}
                   >
                     <FiBox size={18} />
                     <span className="font-bold text-xs tracking-wide uppercase">{type}</span>
@@ -303,11 +302,10 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 <>
                   <Box
                     onClick={() => handleProductTypeChange("Inventory Item")}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${
-                      form.productType === "Inventory Item"
-                        ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
+                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Inventory Item"
+                      ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
+                      : "text-gray-500 hover:bg-gray-100"
+                      }`}
                   >
                     <FiBox size={18} />
                     <span className="font-bold text-xs tracking-wide">INVENTORY ITEM</span>
@@ -315,11 +313,10 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
                   <Box
                     onClick={() => handleProductTypeChange("Packaging Item")}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${
-                      form.productType === "Packaging Item"
-                        ? "bg-[#ef6c00] text-white shadow-md transform scale-[1.02]"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
+                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Packaging Item"
+                      ? "bg-[#ef6c00] text-white shadow-md transform scale-[1.02]"
+                      : "text-gray-500 hover:bg-gray-100"
+                      }`}
                   >
                     <FiPackage size={18} />
                     <span className="font-bold text-xs tracking-wide">PACKAGING ITEM</span>
@@ -469,7 +466,18 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Quantity"
+                  type="number"
+                  value={form.quantity ?? ""}
+                  onChange={(e) => handleInputChange("quantity", e.target.value)}
+                  sx={numberInputStyle}
+                  className="bg-white"
+                />
+
                 <TextField
                   fullWidth
                   size="small"
@@ -517,6 +525,30 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   value={form.stockAlert ?? ""}
                   onChange={(e) => handleInputChange("stockAlert", e.target.value)}
                   sx={numberInputStyle}
+                  className="bg-white"
+                />
+              </div>
+
+              {/* Warranty Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Warranty Start Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.warrantyStart || ""}
+                  onChange={(e) => handleInputChange("warrantyStart", e.target.value)}
+                  className="bg-white"
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Warranty End Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.warrantyEnd || ""}
+                  onChange={(e) => handleInputChange("warrantyEnd", e.target.value)}
                   className="bg-white"
                 />
               </div>
