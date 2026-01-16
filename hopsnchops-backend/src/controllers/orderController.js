@@ -195,7 +195,7 @@ exports.createBulkOrders = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
-    const { search, brand, category, vendor, paymentStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
+    const { search, brand, category, vendor, orderStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
 
     const query = { franchiseId };
 
@@ -282,8 +282,8 @@ exports.getOrders = async (req, res) => {
       }
     }
     // ✅ Payment status filter
-    if (paymentStatus) {
-      query.paymentStatus = paymentStatus;
+    if (orderStatus) {
+      query.orderStatus = orderStatus;
     }
 
     const p = Math.max(1, parseInt(page));
@@ -519,7 +519,7 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
     const { id } = req.params;
-    const { products, status } = req.body;
+    const { products, orderStatus } = req.body;
 
     // Validation
     if (!id) {
@@ -527,10 +527,10 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
     }
 
     // If neither products nor status is provided, it's a bad request
-    if (!status && (!products || !Array.isArray(products) || products.length === 0)) {
+    if (!orderStatus && (!products || !Array.isArray(products) || products.length === 0)) {
       return res.status(400).json({
         success: false,
-        message: 'products array or status is required'
+        message: 'products array or orderStatus is required'
       });
     }
 
@@ -540,17 +540,17 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Update status if provided
-    if (status) {
-      order.status = status;
+    // Update orderStatus if provided
+    if (orderStatus) {
+      order.orderStatus = orderStatus;
     }
 
-    // If no products to update, just save the status and return
+    // If no products to update, just save the orderStatus and return
     if (!products || !Array.isArray(products) || products.length === 0) {
       await order.save();
       return res.status(200).json({
         success: true,
-        message: 'Order status updated successfully',
+        message: 'Order orderStatus updated successfully',
         data: order
       });
     }
@@ -636,17 +636,9 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
       }
     }
 
-    // Update paymentStatus based on comparison
-    let paymentStatus = 'Pending';
-    if (order.totalAmount === totalClosingAmount) {
-      paymentStatus = 'Paid';
-    } else if (totalClosingAmount > 0 && totalClosingAmount !== order.totalAmount) {
-      paymentStatus = 'Partial';
-    }
-
     // Update order
     order.totalClosingAmount = totalClosingAmount;
-    order.paymentStatus = paymentStatus;
+    order.orderStatus = orderStatus;
     await order.save();
 
     // Create or update Purchase records for each product

@@ -2,12 +2,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
   MenuItem,
   Paper,
   Table,
@@ -18,21 +12,18 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Tooltip,
-  Typography,
+  Typography
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { FiEye, FiPrinter, FiRefreshCw, FiXCircle } from "react-icons/fi";
+import { FiEye, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
   getVendorOrders,
-  deleteVendorOrder,
   selectVendorOrderState
 } from "../../redux/slices/vendorOrderSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-import { toast } from "react-hot-toast";
 
 const VendorsOrder: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -42,7 +33,7 @@ const VendorsOrder: React.FC = () => {
   const [filters, setFilters] = useState({
     fromDate: "",
     toDate: "",
-    status: ""
+    orderStatus: ""
   });
 
   const [page, setPage] = useState(0);
@@ -60,36 +51,34 @@ const VendorsOrder: React.FC = () => {
     setFilters({
       fromDate: "",
       toDate: "",
-      status: ""
+      orderStatus: ""
     });
     setPage(0);
   };
 
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    orderId: ""
-  });
+  // const [deleteModal, setDeleteModal] = useState({
+  //   open: false,
+  //   orderId: ""
+  // });
 
-  const handleDeleteOrder = (id: string) => {
-    setDeleteModal({ open: true, orderId: id });
-  };
+  // const handleDeleteOrder = (id: string) => {
+  //   setDeleteModal({ open: true, orderId: id });
+  // };
 
-  const confirmCancelOrder = async () => {
-    try {
-      await dispatch(deleteVendorOrder(deleteModal.orderId)).unwrap();
-      toast.success("Order cancelled successfully");
-      setDeleteModal({ open: false, orderId: "" });
-    } catch (error: any) {
-      toast.error(error.message || "Failed to cancel order");
-    }
-  };
+  // const confirmCancelOrder = async () => {
+  //   try {
+  //     await dispatch(deleteVendorOrder(deleteModal.orderId)).unwrap();
+  //     toast.success("Order cancelled successfully");
+  //     setDeleteModal({ open: false, orderId: "" });
+  //   } catch (error: any) {
+  //     toast.error(error?.message || "Failed to cancel order");
+  //   }
+  // };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'delivered': return 'success';
-      case 'sent': return 'info';
       case 'draft': return 'warning';
-      case 'pending': return 'error';
       default: return 'default';
     }
   };
@@ -139,23 +128,22 @@ const VendorsOrder: React.FC = () => {
             size="small"
             select
             label="Status"
-            value={filters.status}
+            value={filters.orderStatus}
             onChange={e => {
-              setFilters({ ...filters, status: e.target.value });
+              setFilters({ ...filters, orderStatus: e.target.value });
               setPage(0);
             }}
             sx={{ width: 180 }}
           >
             <MenuItem value="">All Status</MenuItem>
             <MenuItem value="Draft">Draft</MenuItem>
-            <MenuItem value="Sent">Sent</MenuItem>
             <MenuItem value="Delivered">Delivered</MenuItem>
           </TextField>
 
-          <Button 
-            size="medium" 
-            variant="outlined" 
-            startIcon={<FiRefreshCw className={loading ? "animate-spin" : ""} />} 
+          <Button
+            size="medium"
+            variant="outlined"
+            startIcon={<FiRefreshCw className={loading ? "animate-spin" : ""} />}
             onClick={handleResetFilters}
             className="normal-case border-blue-100 text-blue-600 hover:bg-blue-50 font-semibold"
           >
@@ -180,11 +168,11 @@ const VendorsOrder: React.FC = () => {
 
               <TableBody>
                 {loading && (
-                    <TableRow>
-                        <TableCell colSpan={6} align="center" className="py-10">
-                            <Typography className="text-gray-500">Loading orders...</Typography>
-                        </TableCell>
-                    </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" className="py-10">
+                      <Typography className="text-gray-500">Loading orders...</Typography>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {!loading && vendorOrders.length === 0 ? (
                   <TableRow>
@@ -214,31 +202,31 @@ const VendorsOrder: React.FC = () => {
                         {dayjs(order.orderDate).format("DD MMM, YYYY")}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip 
-                          label={order.status || "Draft"} 
-                          color={getStatusColor(order.status || "Draft") as any}
+                        <Chip
+                          label={order.orderStatus || "Draft"}
+                          color={getStatusColor(order.orderStatus || "Draft") as any}
                           size="small"
                           className="font-semibold px-2"
                         />
                       </TableCell>
                       <TableCell align="center" className="pr-4">
                         <Box className="flex items-center justify-center gap-2">
-                            <Button
-                                size="small"
-                                startIcon={<FiEye size={16} />}
-                                onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
-                                className="normal-case text-gray-600 hover:bg-gray-100 font-medium whitespace-nowrap"
-                            >
-                                View
-                            </Button>
-                            <Button
-                                size="small"
-                                startIcon={<FiXCircle size={16} />}
-                                onClick={() => handleDeleteOrder(order._id)}
-                                className="normal-case text-red-500 hover:bg-red-50 font-medium whitespace-nowrap"
-                            >
-                                Cancel
-                            </Button>
+                          <Button
+                            size="small"
+                            startIcon={<FiEye size={16} />}
+                            onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
+                            className="normal-case text-gray-600 hover:bg-gray-100 font-medium whitespace-nowrap"
+                          >
+                            View
+                          </Button>
+                          {/* <Button
+                            size="small"
+                            startIcon={<FiXCircle size={16} />}
+                            onClick={() => handleDeleteOrder(order._id)}
+                            className="normal-case text-red-500 hover:bg-red-50 font-medium whitespace-nowrap"
+                          >
+                            Cancel
+                          </Button> */}
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -261,7 +249,7 @@ const VendorsOrder: React.FC = () => {
       </Box>
 
       {/* Cancel Order Confirmation Modal */}
-      <Dialog
+      {/* <Dialog
         open={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, orderId: "" })}
         PaperProps={{
@@ -279,13 +267,13 @@ const VendorsOrder: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions className="p-4 gap-2">
-          <Button 
+          <Button
             onClick={() => setDeleteModal({ open: false, orderId: "" })}
             className="normal-case text-gray-500 hover:bg-gray-100"
           >
             No, Keep it
           </Button>
-          <Button 
+          <Button
             onClick={confirmCancelOrder}
             variant="contained"
             className="normal-case bg-red-500 hover:bg-red-600 shadow-none rounded-lg text-white font-semibold"
@@ -293,7 +281,7 @@ const VendorsOrder: React.FC = () => {
             Yes, Cancel Order
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
     </AdminLayout>
   );
 };
