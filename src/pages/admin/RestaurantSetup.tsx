@@ -14,9 +14,22 @@ import {
   // TextField,
   // InputAdornment,
   IconButton,
+  Drawer,
 } from "@mui/material";
+
 import { FiPlus, FiEdit, FiTrash2 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
+import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
+import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
+import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
+import { addProduct, type ProductInterface } from "../../redux/slices/productSlice";
+import { toast } from "react-hot-toast";
+import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
+import VendorModal from "../../layouts/VendorModal";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -49,13 +62,88 @@ function a11yProps(index: number) {
 
 export default function RestaurantSetup() {
   const [value, setValue] = useState(0);
-  // const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  // Redux Data
+  const categoriesList = useAppSelector(selectCategories) ?? [];
+  const companies = useAppSelector(selectCompanies) ?? [];
+  const vendors = useAppSelector(selectVendorNames) ?? [];
+
+  // Local State for Modals
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
+
+  React.useEffect(() => {
+    dispatch(getCategories({ page: 1, limit: 1000 }));
+    dispatch(getCompanies({ page: 1, limit: 1000 }));
+    dispatch(getVendorNameList());
+  }, [dispatch]);
+
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
 
   const categories = ["Equipment", "Crockery", "Furniture"];
+
+  // Action Handling
+  const action = searchParams.get("action");
+  const isAddMode = action === "add";
+
+  const handleCloseForm = () => {
+    navigate("/admin/restaurant-setup");
+  };
+
+  const handleSaveProduct = async (productData: ProductInterface) => {
+    try {
+      const payload: any = {
+        ...productData,
+        gstPct: Number(productData.gstPct || 0),
+        taxableValue: Number(productData.taxableValue || 0),
+        perUnitRate: Number(productData.perUnitRate || 0),
+        // Ensure we send string IDs if objects are populated
+        categoryId: productData.categoryId?._id ? productData.categoryId : undefined,
+        vendorsId: productData.vendorsId?._id ? productData.vendorsId : undefined,
+        companyId: productData.companyId?._id ? productData.companyId : undefined,
+      };
+
+      await dispatch(addProduct(payload)).unwrap();
+      toast.success("Item added successfully");
+      navigate("/admin/restaurant-setup");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save item");
+    }
+  };
+
+  // Quick Add Handlers (Reusing logic from ProductTable roughly)
+  const handleSaveCategory = async (name: string) => {
+    try {
+      await dispatch(addCategory({ categoryName: name })).unwrap();
+      dispatch(getCategories({ page: 1, limit: 1000 }));
+      toast.success("Category added");
+    } catch (e: any) { toast.error(e.message); }
+  };
+  const handleSaveBrand = async (name: string) => {
+    try {
+      await dispatch(addCompany({ brandName: name })).unwrap();
+      dispatch(getCompanies({ page: 1, limit: 1000 }));
+      toast.success("Brand added");
+    } catch (e: any) { toast.error(e.message); }
+  };
+  const handleSaveVendor = async (data: any) => {
+    // Simplified mapping for brevity, assuming data matches API needs or similar to ProductTable
+    try {
+      await dispatch(addVendor(data)).unwrap();
+      dispatch(getVendorNameList());
+      toast.success("Vendor added");
+      setVendorDrawerOpen(false);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+
 
   // Mock data for tables
   const mockData = {
@@ -142,6 +230,7 @@ export default function RestaurantSetup() {
             <Button
               variant="contained"
               startIcon={<FiPlus />}
+              onClick={() => navigate("?action=add")}
               className="!bg-blue-600 hover:!bg-blue-700 normal-case"
             >
               Add {currentCategory}
@@ -302,8 +391,39 @@ export default function RestaurantSetup() {
               </Table>
             </TableContainer>
           </CustomTabPanel>
+
         </Paper>
+
+        <Drawer
+          anchor="right"
+          open={isAddMode}
+          onClose={handleCloseForm}
+          PaperProps={{ sx: { width: "100%", maxWidth: 1000 } }}
+        >
+          {isAddMode && (
+            <ProductDrawerForm
+              open={true} // Controlled by parent Drawer
+              onClose={handleCloseForm}
+              isEdit={false}
+              initialData={{ productType: categories[value] }}
+              categories={categoriesList}
+              vendors={vendors}
+              companies={companies}
+              productNames={[]}
+              onSave={handleSaveProduct}
+              allowedProductTypes={["Equipment", "Crockery", "Furniture"]}
+              onAddCategory={() => setCategoryModalOpen(true)}
+              onAddVendor={() => setVendorDrawerOpen(true)}
+              onAddBrand={() => setBrandModalOpen(true)}
+              onFillFromSearch={() => { }}
+            />
+          )}
+        </Drawer>
+
+        <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
+        <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
+        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
       </div>
-    </AdminLayout>
+    </AdminLayout >
   );
 }

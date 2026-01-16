@@ -120,6 +120,37 @@ export const updateVendorOrder = createAsyncThunk<
   }
 );
 
+// CREATE VENDOR ORDER
+export const addVendorOrder = createAsyncThunk<
+  VendorOrder,
+  any,
+  { rejectValue: { message: string } }
+>(
+  'vendorOrder/addVendorOrder',
+  async (orderData, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: API_ENDPOINTS.GET_VENDOR_ORDERS_LIST,
+        method: 'POST',
+        data: orderData,
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        return response.data as VendorOrder;
+      }
+
+      return thunkAPI.rejectWithValue({
+        message: (response.data as { message?: string })?.message || 'Creation failed',
+      });
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || 'Server error',
+      });
+    }
+  }
+);
+
 // DELETE VENDOR ORDER
 export const deleteVendorOrder = createAsyncThunk<
   { vendorOrderId: string },
@@ -202,6 +233,19 @@ const vendorOrderSlice = createSlice({
       .addCase(deleteVendorOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Delete failed';
+      })
+      // CREATE
+      .addCase(addVendorOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addVendorOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendorOrders = [action.payload, ...state.vendorOrders];
+      })
+      .addCase(addVendorOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Creation failed';
       });
   },
 });

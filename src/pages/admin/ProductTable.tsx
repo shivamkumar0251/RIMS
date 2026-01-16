@@ -23,6 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw, FiFilter } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
@@ -30,6 +31,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
+import VendorModal, { VendorFormData } from "../../layouts/VendorModal";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -92,6 +94,7 @@ export default function ProductTable() {
     vendorsId: { _id: "", vendor_name: '' },
     companyId: { _id: "", brandName: '' },
     productName: "",
+    productDescription: "",
     packSize: "",
     unit: "",
     productType: "",
@@ -106,9 +109,26 @@ export default function ProductTable() {
     createdAt: new Date().toISOString(),
   });
 
+  // Navigation & URL Params
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const action = searchParams.get("action");
+  const isAddMode = action === "add";
+  const isEditMode = action === "edit";
+  const editId = searchParams.get("id");
+
+  const productToEdit = useMemo(() => {
+    if (isEditMode && editId && products) {
+      return products.find(p => p._id === editId) || null;
+    }
+    return null;
+  }, [isEditMode, editId, products]);
+
   // Quick Add Modal States
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
 
   const loading = productState.loading;
 
@@ -192,6 +212,7 @@ export default function ProductTable() {
       vendorsId: { _id: "", vendor_name: '' },
       companyId: { _id: "", brandName: '' },
       productName: "",
+      productDescription: "",
       packSize: "",
       unit: "",
       productType: "",
@@ -205,13 +226,13 @@ export default function ProductTable() {
       // stockAlert: 0,
       createdAt: new Date().toISOString(),
     });
-    setDrawerOpen(true);
+    // setDrawerOpen(true); -> Now we navigate
+    setSearchParams({ action: "add" });
   };
 
   const openEditDrawer = (p: ProductInterface) => {
-    setEditingProduct(p);
-    setForm({ ...p });
-    setDrawerOpen(true);
+    setEditingProduct(p); // Optional fallback
+    setSearchParams({ action: "edit", id: p._id });
   };
 
   useEffect(() => {
@@ -232,6 +253,7 @@ export default function ProductTable() {
       const payload: any = {
         _id: editingProduct?._id || "",
         productName: String(dataToSave.productName || ""),
+        productDescription: String(dataToSave.productDescription || ""),
         packSize: String(dataToSave.packSize || ""),
         unit: String(dataToSave.unit || ""),
         productType: String(dataToSave.productType || ""),
@@ -260,6 +282,10 @@ export default function ProductTable() {
       }
 
       setDrawerOpen(false);
+      // If we are in add mode, go back to list
+      if (isAddMode) {
+        navigate("/admin/products");
+      }
       refreshProducts();
     } catch (err: any) {
       toast.error(err.message || "Failed to save product");
@@ -310,50 +336,7 @@ export default function ProductTable() {
 
   const productNames = useMemo(() => (products || []).map((p: ProductInterface) => p.productName), [products]);
 
-  const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
-  const [vendorForm, setVendorForm] = useState<VendorFormType>({
-    vendor_name: "",
-    vendor_mobileNo: "",
-    vendor_address: "",
-    vendor_state: "",
-    vendor_country: "",
-    vendor_pinCode: "",
-    vendor_bankName: "",
-    vendor_accountNumber: "",
-    vendor_ifscCode: "",
-    vendor_paymentTerms: "",
-    vendor_preferredPaymentMode: "",
-    vendor_creditLimit: 0,
-    vendor_outstandingBalance: 0,
-    vendor_gstType: "",
-    vendor_registrationType: "",
-    vendor_gstNumber: "",
-    vendor_openingBalance: 0,
-  });
 
-  const handleSaveVendor = async () => {
-    if (!vendorForm.vendor_name) {
-      toast.error("Vendor name is required");
-      return;
-    }
-    try {
-      const res = await dispatch(addVendor(vendorForm)).unwrap();
-      if (res?._id) {
-        toast.success("Vendor added successfully");
-        dispatch(getVendorNameList());
-        setVendorDrawerOpen(false);
-        setVendorForm({
-          vendor_name: "", vendor_mobileNo: "", vendor_address: "", vendor_state: "",
-          vendor_country: "", vendor_pinCode: "", vendor_bankName: "", vendor_accountNumber: "",
-          vendor_ifscCode: "", vendor_paymentTerms: "", vendor_preferredPaymentMode: "",
-          vendor_creditLimit: 0, vendor_outstandingBalance: 0, vendor_gstType: "",
-          vendor_registrationType: "", vendor_gstNumber: "", vendor_openingBalance: 0,
-        });
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save vendor");
-    }
-  };
 
   const handleSaveCategory = async (name: string) => {
     try {
@@ -376,6 +359,73 @@ export default function ProductTable() {
       throw err;
     }
   };
+
+  // Save handler for Vendor Modal
+  const handleSaveVendor = async (data: VendorFormData) => {
+    try {
+      const mappedData: any = {
+        vendor_name: data.name,
+        vendor_address: data.address,
+        vendor_state: data.state,
+        vendor_country: data.country,
+        vendor_pinCode: data.pinCode,
+        vendor_mobileNo: data.mobile,
+        vendor_bankName: data.bankName,
+        vendor_accountNumber: data.accountNumber,
+        vendor_ifscCode: data.ifsc,
+        vendor_paymentTerms: data.paymentTerms,
+        vendor_preferredPaymentMode: data.preferredPaymentMode,
+        vendor_creditLimit: Number(data.creditLimit) || 0,
+        vendor_outstandingBalance: Number(data.outstandingBalance) || 0,
+        vendor_gstType: data.gstType,
+        vendor_registrationType: data.registrationType,
+        vendor_gstNumber: data.gstNumber,
+        vendor_openingBalance: Number(data.openingBalance) || 0,
+      };
+
+      await dispatch(addVendor(mappedData)).unwrap();
+      dispatch(getVendorNameList()); // Refresh list
+      toast.success("Vendor added successfully");
+      setVendorDrawerOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add vendor");
+    }
+  };
+
+  // Close handler for the form view
+  const handleCloseForm = () => {
+    navigate("/admin/products");
+  };
+
+  if (isAddMode || (isEditMode && productToEdit)) {
+    return (
+      <AdminLayout>
+        <ProductDrawerForm
+          open={true}
+          onClose={handleCloseForm}
+          isEdit={isEditMode}
+          initialData={isEditMode && productToEdit ? productToEdit : form}
+          categories={categories}
+          vendors={vendors}
+          companies={companies}
+          productNames={productNames}
+          onSave={handleSaveProduct}
+          onAddCategory={() => setCategoryModalOpen(true)}
+          onAddVendor={() => setVendorDrawerOpen(true)}
+          onAddBrand={() => setBrandModalOpen(true)}
+          onFillFromSearch={(matched) => {
+            setForm({ ...matched });
+            setEditingProduct(matched);
+          }}
+        />
+        {/* Still keep modals available if needed by the form */}
+        <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
+        <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
+        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
+        <Toaster position="top-right" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -642,47 +692,9 @@ export default function ProductTable() {
           </Box>
         </Paper>
 
-        {/* right drawer form (new component) */}
-        <ProductDrawerForm
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          isEdit={Boolean(editingProduct)}
-          initialData={form}
-          categories={categories}
-          vendors={vendors}
-          companies={companies}
-          productNames={productNames}
-          onSave={handleSaveProduct}
-          onAddCategory={() => setCategoryModalOpen(true)}
-          onAddVendor={() => setVendorDrawerOpen(true)}
-          onAddBrand={() => setBrandModalOpen(true)}
-          onFillFromSearch={(matched) => {
-            setForm({ ...matched });
-            setEditingProduct(matched);
-          }}
-        />
 
-        {/* VENDOR DRAWER */}
-        <Drawer anchor="right" open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)}>
-          <Box sx={{ width: { xs: '100vw', sm: 450 }, p: 4 }}>
-            <Typography variant="h6" className="font-bold mb-6">Quick Add Vendor</Typography>
-            <Divider className="mb-6" />
 
-            <div className="space-y-4">
-              <TextField fullWidth size="small" label="Vendor Name" value={vendorForm.vendor_name} onChange={(e) => setVendorForm({ ...vendorForm, vendor_name: e.target.value })} />
-              <TextField fullWidth size="small" label="Mobile Number" value={vendorForm.vendor_mobileNo} onChange={(e) => setVendorForm({ ...vendorForm, vendor_mobileNo: e.target.value })} />
-              <TextField fullWidth size="small" label="Address" value={vendorForm.vendor_address} onChange={(e) => setVendorForm({ ...vendorForm, vendor_address: e.target.value })} />
-              <TextField fullWidth size="small" label="State" value={vendorForm.vendor_state} onChange={(e) => setVendorForm({ ...vendorForm, vendor_state: e.target.value })} />
-              <TextField fullWidth size="small" label="Country" value={vendorForm.vendor_country} onChange={(e) => setVendorForm({ ...vendorForm, vendor_country: e.target.value })} />
-              <TextField fullWidth size="small" label="Pin Code" value={vendorForm.vendor_pinCode} onChange={(e) => setVendorForm({ ...vendorForm, vendor_pinCode: e.target.value })} />
 
-              <Box className="flex gap-3 justify-end mt-8">
-                <Button variant="outlined" onClick={() => setVendorDrawerOpen(false)} size="small">Cancel</Button>
-                <Button variant="contained" onClick={handleSaveVendor} size="small" className="!bg-blue-600">Save Vendor</Button>
-              </Box>
-            </div>
-          </Box>
-        </Drawer>
 
         {/* QUICK ADD MODALS */}
         <CreateCategoryModal

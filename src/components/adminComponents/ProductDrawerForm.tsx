@@ -2,20 +2,20 @@ import React, { useEffect, useState } from "react";
 import {
     Box,
     Button,
-    Drawer,
     MenuItem,
     TextField,
     Typography,
-    Autocomplete
+    Autocomplete,
+    IconButton
 } from "@mui/material";
-import { FiBox, FiPackage, FiX } from "react-icons/fi";
+import { FiBox, FiPackage, FiX, FiPlus } from "react-icons/fi";
 import type { ProductInterface } from "../../redux/slices/productSlice";
 import { useAppDispatch } from "../../redux/store/storeHooks";
 import { addCategory, getCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies } from "../../redux/slices/companySlice";
 
 interface ProductDrawerFormProps {
-    open: boolean;
+    open: boolean; // Kept for interface compatibility
     onClose: () => void;
     isEdit: boolean;
     initialData: Partial<ProductInterface>;
@@ -28,6 +28,7 @@ interface ProductDrawerFormProps {
     onAddVendor: () => void;
     onAddBrand: () => void;
     onFillFromSearch: (product: ProductInterface) => void;
+    allowedProductTypes?: string[];
 }
 
 const COMMON_PACK_SIZES = [
@@ -35,6 +36,10 @@ const COMMON_PACK_SIZES = [
     "1 Ltr", "500 ml", "250 ml",
     "1 Box", "10x10", "1 Dozen", "1 Pkt"
 ];
+
+
+
+
 
 const COMMON_UNITS = [
     "Kg", "Gm", "Ltr", "Ml",
@@ -62,7 +67,6 @@ const numberInputStyle = {
 };
 
 export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
-    open,
     onClose,
     isEdit,
     initialData,
@@ -73,6 +77,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
     onAddCategory,
     onAddVendor,
     onAddBrand,
+    allowedProductTypes
 }) => {
     const [form, setForm] = useState<Partial<ProductInterface>>(initialData);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -80,13 +85,17 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
     const dispatch = useAppDispatch();
 
     useEffect(() => {
+        const defaultType = allowedProductTypes && allowedProductTypes.length > 0
+            ? allowedProductTypes[0]
+            : "Inventory Item";
+
         setForm({
             ...initialData,
-            productType: initialData.productType || "Inventory Item",
+            productType: initialData.productType || defaultType,
             isActive: initialData.isActive ?? true
         });
         setErrors({});
-    }, [initialData, open]);
+    }, [initialData, allowedProductTypes]);
 
     // Calculations for Taxable Value
     useEffect(() => {
@@ -122,9 +131,6 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
         if (!form.unit) newErrors.unit = "Unit is required";
         if (!form.packSize) newErrors.packSize = "Pack Size is required";
-        // if (form.stockAlert === undefined || form.stockAlert === null || form.stockAlert < 0) {
-        //     newErrors.stockAlert = "Reorder Level is required";
-        // }
 
         // Active Status (Required)
         if (form.isActive === undefined) newErrors.isActive = "Active Status is required";
@@ -195,71 +201,96 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
         }));
     };
 
+    // Render as a Vertical Stack Form (Image 5/Image 6 Style)
     return (
-        <Drawer anchor="right" open={open} onClose={onClose}>
-            <Box sx={{ width: { xs: '100vw', sm: 600 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#fdfdfd' }}>
+            {/* Header */}
+            <Box className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20 shadow-sm">
+                <div>
+                    <Typography variant="h6" className="font-bold text-gray-800">
+                        {isEdit ? "Edit Product" : "Add New Product"}
+                    </Typography>
+                    <Typography variant="caption" className="text-gray-500">
+                        {isEdit ? "Update inventory details" : "Create a new inventory item"}
+                    </Typography>
+                </div>
 
-                {/* Header */}
-                <Box className="p-6 border-b border-slate-100 flex items-center justify-between bg-white z-10">
-                    <Box>
-                        <Typography variant="h6" className="font-bold text-slate-800">
-                            {isEdit ? "Edit Product" : "Add New Product"}
-                        </Typography>
-                        <Typography variant="caption" className="text-slate-500">
-                            {isEdit ? "Update product details" : "Create a new inventory item"}
-                        </Typography>
-                    </Box>
-                    <Box className="flex gap-2">
-                        <Button size="small" variant="outlined" onClick={onAddCategory} className="normal-case border-slate-200 text-slate-600">+ Category</Button>
-                        <Button size="small" variant="outlined" onClick={onAddVendor} className="normal-case border-slate-200 text-slate-600">+ Vendor</Button>
-                        <Button size="small" variant="outlined" onClick={onAddBrand} className="normal-case border-slate-200 text-slate-600">+ Brand</Button>
-                        <Button onClick={onClose} style={{ minWidth: 'auto', padding: 8 }} className="text-slate-400 hover:text-slate-600"><FiX size={24} /></Button>
-                    </Box>
-                </Box>
+                <div className="flex items-center gap-2">
+                    {/* Fast Action Buttons in Header */}
+                    <Button variant="outlined" size="small" onClick={onAddCategory} className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50">
+                        + CATEGORY
+                    </Button>
+                    <Button variant="outlined" size="small" onClick={onAddVendor} className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50">
+                        + VENDOR
+                    </Button>
+                    <Button variant="outlined" size="small" onClick={onAddBrand} className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50">
+                        + BRAND
+                    </Button>
 
-                {/* Scrollable Form Content */}
-                <Box className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-6">
+                    <IconButton onClick={onClose} size="small" className="ml-2 text-gray-400 hover:text-red-500">
+                        <FiX size={24} />
+                    </IconButton>
+                </div>
+            </Box>
 
-                    {/* 1. Product Type - MUST BE FIRST */}
-                    <Box className="space-y-2">
-                        <Typography variant="subtitle2" className="font-bold text-slate-700 uppercase tracking-wider text-xs">
-                            Select Product Type <span className="text-red-500">*</span>
+            {/* Scrollable Form Content */}
+            <Box className="flex-1 overflow-y-auto p-6">
+                <Box className="max-w-5xl space-y-8">
+
+                    {/* 1. Product Type Selector */}
+                    <div>
+                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                            SELECT PRODUCT TYPE <span className="text-red-500">*</span>
                         </Typography>
-                        <Box className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex shadow-inner gap-1">
-                            <Button
-                                fullWidth
-                                variant={form.productType === "Inventory Item" ? "contained" : "text"}
-                                onClick={() => handleProductTypeChange("Inventory Item")}
-                                className={`normal-case font-bold py-3 transition-all rounded-lg ${form.productType === "Inventory Item"
-                                    ? "!bg-indigo-600 !text-white shadow-md"
-                                    : "!text-slate-500 hover:!bg-slate-200"
-                                    }`}
-                                startIcon={<FiBox />}
-                            >
-                                Inventory Item
-                            </Button>
-                            <Button
-                                fullWidth
-                                variant={form.productType === "Packaging Item" ? "contained" : "text"}
-                                onClick={() => handleProductTypeChange("Packaging Item")}
-                                className={`normal-case font-bold py-3 transition-all rounded-lg ${form.productType === "Packaging Item"
-                                    ? "!bg-amber-600 !text-white shadow-md"
-                                    : "!text-slate-500 hover:!bg-slate-200"
-                                    }`}
-                                startIcon={<FiPackage />}
-                            >
-                                Packaging Item
-                            </Button>
+                        <Box className="bg-gray-50 p-1 rounded-lg inline-flex w-full box-border border border-gray-200">
+                            {allowedProductTypes && allowedProductTypes.length > 0 ? (
+                                allowedProductTypes.map((type) => (
+                                    <Box
+                                        key={type}
+                                        onClick={() => handleProductTypeChange(type)}
+                                        className={`flex items-center justify-center gap-2 px-8 py-3 rounded-md cursor-pointer transition-all flex-1 ${form.productType === type
+                                            ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
+                                            : "text-gray-500 hover:bg-gray-200"
+                                            }`}
+                                    >
+                                        <FiBox size={20} />
+                                        <span className="font-bold text-sm tracking-wide uppercase">{type}</span>
+                                    </Box>
+                                ))
+                            ) : (
+                                <>
+                                    <Box
+                                        onClick={() => handleProductTypeChange("Inventory Item")}
+                                        className={`flex items-center justify-center gap-2 px-8 py-3 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Inventory Item"
+                                            ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
+                                            : "text-gray-500 hover:bg-gray-200"
+                                            }`}
+                                    >
+                                        <FiBox size={20} />
+                                        <span className="font-bold text-sm tracking-wide">INVENTORY ITEM</span>
+                                    </Box>
+
+                                    <Box
+                                        onClick={() => handleProductTypeChange("Packaging Item")}
+                                        className={`flex items-center justify-center gap-2 px-8 py-3 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Packaging Item"
+                                            ? "bg-[#ef6c00] text-white shadow-md transform scale-[1.02]"
+                                            : "text-gray-500 hover:bg-gray-200"
+                                            }`}
+                                    >
+                                        <FiPackage size={20} />
+                                        <span className="font-bold text-sm tracking-wide">PACKAGING ITEM</span>
+                                    </Box>
+                                </>
+                            )}
                         </Box>
-                        {errors.productType && <Typography color="error" variant="caption">{errors.productType}</Typography>}
-                    </Box>
+                    </div>
 
-                    {/* 2. Common Fields */}
-                    <Box className="space-y-4">
-                        <Typography variant="subtitle2" className="font-bold text-slate-700 flex items-center m-0 gap-2">
+                    {/* 2. Common Details */}
+                    <div>
+                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-4  pb-1">
                             COMMON DETAILS (REQUIRED)
                         </Typography>
-                        <Box className="grid grid-cols-1 gap-4">
+                        <div className="flex flex-col gap-6">
                             <TextField
                                 fullWidth size="small" label="Product Name *"
                                 value={form.productName || ""}
@@ -267,221 +298,188 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                                 error={Boolean(errors.productName)}
                                 helperText={errors.productName}
                                 className="bg-white"
+                                variant="outlined"
+                            />
+
+                            <TextField
+                                fullWidth size="small" label="Product Description"
+                                value={form.productDescription || ""}
+                                onChange={(e) => handleInputChange('productDescription', e.target.value)}
+                                className="bg-white"
+                                variant="outlined"
+                                multiline
+                                minRows={2}
                             />
 
                             <Autocomplete
+                                fullWidth
                                 freeSolo
                                 options={categories}
                                 getOptionLabel={(option) => {
                                     if (typeof option === 'string') return option;
                                     return option.categoryName || "";
                                 }}
-                                isOptionEqualToValue={(option, value) => {
-                                    if (typeof option === 'string' || typeof value === 'string') return option === value;
-                                    return option._id === value?._id;
-                                }}
                                 value={form.categoryId || null}
-                                onChange={(_, newValue) => {
-                                    if (typeof newValue === 'string') {
-                                        handleInputChange('categoryId', { _id: "", categoryName: newValue });
-                                    } else {
-                                        handleInputChange('categoryId', newValue || { _id: "", categoryName: "" });
-                                    }
-                                }}
+                                onChange={(_, val) => handleInputChange('categoryId', val)}
                                 renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        fullWidth
-                                        size="small"
-                                        label="Category *"
-                                        error={Boolean(errors.categoryId)}
-                                        helperText={errors.categoryId}
-                                        className="bg-white"
-                                    />
+                                    <TextField {...params} size="small" label="Category *" error={Boolean(errors.categoryId)} helperText={errors.categoryId} />
                                 )}
                             />
 
-                            <Box className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <Autocomplete
-                                    freeSolo
-                                    options={COMMON_UNITS}
+                                    fullWidth freeSolo options={COMMON_UNITS}
                                     value={form.unit || ""}
-                                    onChange={(_, newValue) => handleInputChange('unit', newValue)}
-                                    onInputChange={(_, newInputValue) => handleInputChange('unit', newInputValue)}
+                                    onChange={(_, val) => handleInputChange('unit', val)}
                                     renderInput={(params) => (
-                                        <TextField {...params} fullWidth size="small" label="Unit *" className="bg-white" error={Boolean(errors.unit)} helperText={errors.unit} />
+                                        <TextField {...params} size="small" label="Unit *" error={Boolean(errors.unit)} helperText={errors.unit} />
                                     )}
                                 />
                                 <Autocomplete
-                                    freeSolo
-                                    options={COMMON_PACK_SIZES}
+                                    fullWidth freeSolo options={COMMON_PACK_SIZES}
                                     value={form.packSize || ""}
-                                    onChange={(_, newValue) => handleInputChange('packSize', newValue)}
-                                    onInputChange={(_, newInputValue) => handleInputChange('packSize', newInputValue)}
+                                    onChange={(_, val) => handleInputChange('packSize', val)}
                                     renderInput={(params) => (
-                                        <TextField {...params} fullWidth size="small" label="Pack Size *" className="bg-white" error={Boolean(errors.packSize)} helperText={errors.packSize} />
+                                        <TextField {...params} size="small" label="Pack Size *" error={Boolean(errors.packSize)} />
                                     )}
                                 />
-                            </Box>
+                            </div>
 
-                            <Box className="grid grid-cols-2 gap-4">
-                                {/* <TextField fullWidth size="small" label="Reorder Level *" type="number"
-                                    value={form.stockAlert ?? ""}
-                                    onChange={(e) => handleInputChange('stockAlert', e.target.value === '' ? '' : Number(e.target.value))}
-                                    error={Boolean(errors.stockAlert)}
-                                    helperText={errors.stockAlert}
-                                    className="bg-white"
-                                    sx={numberInputStyle}
-                                /> */}
+                            <div className="w-full md:w-1/2">
                                 <TextField
-                                    select
-                                    fullWidth
-                                    size="small"
-                                    label="Active Status *"
+                                    select fullWidth size="small" label="Active Status *"
                                     value={form.isActive === undefined ? "true" : String(form.isActive)}
                                     onChange={(e) => handleInputChange('isActive', e.target.value === 'true')}
-                                    error={Boolean(errors.isActive)}
-                                    className="bg-white"
                                 >
-                                    <MenuItem value={"true"}>Active</MenuItem>
-                                    <MenuItem value={"false"}>Inactive</MenuItem>
+                                    <MenuItem value="true">Active</MenuItem>
+                                    <MenuItem value="false">Inactive</MenuItem>
                                 </TextField>
-                            </Box>
-                        </Box>
-                    </Box>
+                            </div>
+                        </div>
+                    </div>
 
-
-
-                    {/* 3. Optional Fields */}
-                    <Box className="space-y-4">
-                        <Typography variant="subtitle2" className="font-bold text-slate-500 m-0 uppercase tracking-tighter text-xs">
-                            Additional Details (Optional)
+                    {/* 3. Additional Details */}
+                    <div>
+                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-4 pb-1">
+                            ADDITIONAL DETAILS (OPTIONAL)
                         </Typography>
-                        <Box className="grid grid-cols-2 gap-4">
-                            <Autocomplete
-                                freeSolo
-                                options={companies}
-                                getOptionLabel={(option) => {
-                                    if (typeof option === 'string') return option;
-                                    return option.brandName || "";
-                                }}
-                                isOptionEqualToValue={(option, value) => {
-                                    if (typeof option === 'string' || typeof value === 'string') return option === value;
-                                    return option._id === value?._id;
-                                }}
-                                value={form.companyId || null}
-                                onChange={(_, newValue) => {
-                                    if (typeof newValue === 'string') {
-                                        handleInputChange('companyId', { _id: "", brandName: newValue });
-                                    } else {
-                                        handleInputChange('companyId', newValue || { _id: "", brandName: "" });
-                                    }
-                                }}
-                                renderInput={(params) => (
-                                    <TextField {...params} fullWidth size="small" label="Brand" className="bg-white" />
-                                )}
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <Autocomplete
+                                    fullWidth freeSolo options={companies}
+                                    getOptionLabel={(opt) => typeof opt === 'string' ? opt : (opt.brandName || "")}
+                                    value={form.companyId || null}
+                                    onChange={(_, val) => handleInputChange('companyId', val)}
+                                    renderInput={(params) => <TextField {...params} size="small" label="Brand" />}
+                                />
+                                <Autocomplete
+                                    options={vendors}
+                                    getOptionLabel={(v) => v.vendor_name || ""}
+                                    value={vendors.find(v => v._id === (typeof form.vendorsId === 'object' ? form.vendorsId?._id : form.vendorsId)) || null}
+                                    onChange={(_, val) => handleInputChange('vendorsId', val ? val._id : "")}
+                                    renderInput={(params) => <TextField {...params} size="small" label="Vendor" />}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <TextField
+                                    fullWidth size="small" label="Per Unit Rate" type="number"
+                                    value={form.perUnitRate ?? ""}
+                                    onChange={(e) => handleInputChange('perUnitRate', e.target.value)}
+                                    InputProps={{ startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
+                                    sx={numberInputStyle}
+                                />
+                                <TextField
+                                    fullWidth size="small" label="GST %" type="number"
+                                    value={form.gstPct ?? ""}
+                                    onChange={(e) => handleInputChange('gstPct', e.target.value)}
+                                    InputProps={{ endAdornment: <span className="text-gray-400 ml-1">%</span> }}
+                                    sx={numberInputStyle}
+                                />
+                            </div>
+
+                            <TextField
+                                fullWidth size="small" label="Computed Taxable Value"
+                                value={form.taxableValue ?? ""}
+                                InputProps={{ readOnly: true, startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
+                                helperText="Automatically calculated based on rate and GST"
+                                className="bg-gray-50"
                             />
 
                             <TextField
-                                select fullWidth size="small" label="Vendor"
-                                value={form.vendorsId && typeof form.vendorsId === 'object' ? form.vendorsId._id : form.vendorsId || ""}
-                                onChange={(e) => {
-                                    const selected = vendors.find(v => v._id === e.target.value);
-                                    handleInputChange('vendorsId', selected || e.target.value);
-                                }}
-                                className="bg-white"
-                                SelectProps={{
-                                    MenuProps: {
-                                        disableScrollLock: true,
-                                        anchorOrigin: { vertical: "bottom", horizontal: "left" },
-                                        transformOrigin: { vertical: "top", horizontal: "left" },
-                                        PaperProps: { style: { maxHeight: 250 } }
-                                    }
-                                }}
-                            >
-                                <MenuItem value=""><em>None</em></MenuItem>
-                                {vendors.map((v) => <MenuItem key={v._id} value={v._id}>{v.vendor_name}</MenuItem>)}
-                            </TextField>
-
-                            <TextField fullWidth size="small" label="Per Unit Rate" type="number"
-                                value={form.perUnitRate ?? ""}
-                                onChange={(e) => handleInputChange('perUnitRate', e.target.value === '' ? '' : Number(e.target.value))}
-                                className="bg-white"
+                                fullWidth size="small" label="Stock Alert Limit" type="number"
+                                value={form.stockAlert ?? ""}
+                                onChange={(e) => handleInputChange('stockAlert', e.target.value)}
                                 sx={numberInputStyle}
+                                className="md:w-1/2"
                             />
-                            <TextField fullWidth size="small" label="GST %" type="number"
-                                value={form.gstPct ?? ""}
-                                onChange={(e) => handleInputChange('gstPct', e.target.value === '' ? '' : Number(e.target.value))}
-                                className="bg-white"
-                                sx={numberInputStyle}
-                            />
+                        </div>
+                    </div>
 
-                            <TextField fullWidth size="small" label="Computed Taxable Value" value={form.taxableValue ?? ""} InputProps={{ readOnly: true }} className="bg-slate-50 col-span-2" helperText="Automatically calculated based on rate and GST" />
-                        </Box>
-                    </Box>
-
-                    {/* 4. Packaging Specifics (REQUIRED ONLY FOR PACKAGING) */}
+                    {/* 4. Packaging Specifics (Conditional) */}
                     {form.productType === "Packaging Item" && (
-                        <Box className="bg-amber-50 p-4 rounded-xl border border-amber-200 animate-in fade-in slide-in-from-bottom-4">
-                            <Typography variant="subtitle2" className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                        <Box className="bg-[#fffde7] p-6 rounded-lg border border-yellow-200 mt-6 animate-fade-in">
+                            <Typography className="font-bold text-yellow-900 text-xs uppercase tracking-wider mb-4 border-b border-yellow-200 pb-2">
                                 PACKAGING SPECIFICS (REQUIRED)
                             </Typography>
-                            <Box className="grid grid-cols-2 gap-4">
-                                <Autocomplete
-                                    freeSolo
-                                    options={COMMON_SHAPES}
-                                    value={form.shape || ""}
-                                    onChange={(_, newValue) => handleInputChange('shape', newValue)}
-                                    renderInput={(params) => (
-                                        <TextField {...params} fullWidth size="small" label="Shape *" placeholder="Round, Square..." error={Boolean(errors.shape)} helperText={errors.shape} className="bg-white" />
-                                    )}
-                                />
-                                <Autocomplete
-                                    freeSolo
-                                    options={COMMON_COLORS}
-                                    value={form.colour || ""}
-                                    onChange={(_, newValue) => handleInputChange('colour', newValue)}
-                                    renderInput={(params) => (
-                                        <TextField {...params} fullWidth size="small" label="Color *" placeholder="Red, Blue..." error={Boolean(errors.colour)} helperText={errors.colour} className="bg-white" />
-                                    )}
-                                />
+                            <div className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <Autocomplete
+                                        freeSolo options={COMMON_SHAPES}
+                                        value={form.shape || ""}
+                                        onChange={(_, val) => handleInputChange('shape', val)}
+                                        renderInput={(params) => (
+                                            <TextField {...params} size="small" label="Shape *" placeholder="Box, Roll..." error={Boolean(errors.shape)} className="bg-white" />
+                                        )}
+                                    />
+                                    <Autocomplete
+                                        freeSolo options={COMMON_COLORS}
+                                        value={form.colour || ""}
+                                        onChange={(_, val) => handleInputChange('colour', val)}
+                                        renderInput={(params) => (
+                                            <TextField {...params} size="small" label="Color *" placeholder="Brown, White..." error={Boolean(errors.colour)} className="bg-white" />
+                                        )}
+                                    />
+                                </div>
                                 <TextField
-                                    select
-                                    fullWidth
-                                    size="small"
-                                    label="Print Status"
+                                    select fullWidth size="small" label="Print Status"
                                     value={form.printStatus || ""}
                                     onChange={(e) => handleInputChange('printStatus', e.target.value)}
-                                    className="bg-white col-span-2"
+                                    className="bg-white"
                                 >
                                     <MenuItem value="Printed">Printed</MenuItem>
                                     <MenuItem value="Non Print">Non Print</MenuItem>
                                 </TextField>
-                            </Box>
+                            </div>
                         </Box>
                     )}
 
-                </Box>
+                    {/* Image Upload Area */}
+                    <div>
+                        <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                            PRODUCT IMAGE
+                        </Typography>
+                        <Box className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+                            <Box className="p-3 bg-blue-50 rounded-full group-hover:scale-110 transition-transform">
+                                <FiBox className="text-blue-500" size={24} />
+                            </Box>
+                            <span className="text-sm font-medium text-gray-600">Click to upload image</span>
+                            <span className="text-xs text-gray-400">SVG, PNG, JPG (Max 5MB)</span>
+                        </Box>
+                    </div>
 
-                {/* Footer */}
-                <Box className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                    <Button
-                        variant="outlined"
-                        onClick={onClose}
-                        className="normal-case border-slate-200 text-slate-600 hover:bg-slate-50 font-bold px-6 py-2 rounded-lg"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                        className="normal-case bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-2 rounded-lg shadow-lg shadow-indigo-200"
-                    >
-                        {isSaving ? "Saving..." : (isEdit ? "Update Product" : "Create Product")}
-                    </Button>
                 </Box>
             </Box>
-        </Drawer>
+
+            {/* Sticky Footer */}
+            <Box className="px-6 py-4 border-t border-gray-200 bg-white flex justify-start gap-3 sticky bottom-0 z-20">
+                <Button variant="outlined" onClick={onClose} className="px-6 border-gray-300 text-gray-700">
+                    CANCEL
+                </Button>
+                <Button variant="contained" onClick={handleSubmit} disabled={isSaving} className="px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-sm">
+                    {isSaving ? "CREATING..." : (isEdit ? "UPDATE PRODUCT" : "CREATE PRODUCT")}
+                </Button>
+            </Box>
+        </Box>
     );
 };

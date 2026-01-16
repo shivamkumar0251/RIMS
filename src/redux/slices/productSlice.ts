@@ -28,6 +28,7 @@ export interface ProductInterface {
   productName: string;
   packSize: string;
   unit: string;
+  productDescription?: string;
   // quantity: number;
   productType?: string;
   shape: string;

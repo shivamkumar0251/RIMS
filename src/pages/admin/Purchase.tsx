@@ -2,16 +2,9 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   IconButton,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Paper,
-  Popover,
   Table,
   TableBody,
   TableCell,
@@ -20,48 +13,31 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Tooltip,
   Typography,
+  Menu,
+  MenuItem,
+  ButtonGroup,
+  Divider,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { FiFilter, FiSearch, FiSend, FiPlus } from "react-icons/fi";
+import { FiPlus, FiEye, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
-import {
-  getCategories,
-  selectCategories
-} from "../../redux/slices/categorySlice";
+
 
 import {
-  getCompanies,
-  selectCompanies
-} from "../../redux/slices/companySlice";
-
-import {
-  addBulkPurchases,
-  getPurchases,
-  selectPurchaseState
-} from "../../redux/slices/purchaseSlice";
-import type { PurchasePostData } from "../../redux/slices/purchaseSlice";
-
-import {
-  addStoreStock
-} from "../../redux/slices/storeStockSlice";
-
-import {
-  getVendorNameList,
-  selectVendorNames
-} from "../../redux/slices/vendorSlice";
-
-import {
-  updateVendorOrder
+  getVendorOrders,
+  selectVendorOrderState,
+  updateVendorOrder,
+  addVendorOrder
 } from "../../redux/slices/vendorOrderSlice";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
+import { addBulkPurchases } from "../../redux/slices/purchaseSlice";
 
 const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -72,16 +48,18 @@ const Purchase: React.FC = () => {
   const vendorOrder = location.state?.vendorOrder;
 
   // ---------------- Shared State ----------------
-  const { purchases, loading, allPurchasesData } = useAppSelector(selectPurchaseState);
-  const categories = useAppSelector(selectCategories);
-  const brands = useAppSelector(selectCompanies);
-  const vendors = useAppSelector(selectVendorNames);
+  const { vendorOrders, loading: ordersLoading, allVendorOrdersData } = useAppSelector(selectVendorOrderState);
 
-  // ==================================================================================
-  //                              MODE: RECEIVE VENDOR ORDER
-  // ==================================================================================
+  // ---------------- UI States ----------------
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [actionAnchorEl, setActionAnchorEl] = useState<{ id: string, el: HTMLElement } | null>(null);
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(25);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
 
-  // State for receipt data
+  // State for receipt data (Receive Mode)
   const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string }>>({});
 
   // Initialize receipt data when vendorOrder is present
@@ -102,49 +80,36 @@ const Purchase: React.FC = () => {
     }
   }, [vendorOrder]);
 
-  const handleReceiptChange = (productId: string, field: 'receivedQty' | 'damagedQty' | 'remarks', value: any) => {
+  // Initial Load
+  useEffect(() => {
+    if (!vendorOrder) {
+      dispatch(getVendorOrders({ page: page + 1, limit }));
+    }
+  }, [dispatch, vendorOrder, page, limit]);
+
+  // Handlers
+  const handleReceiptChange = (pid: string, field: string, value: any) => {
     setReceiptData(prev => ({
       ...prev,
-      [productId]: {
-        ...prev[productId],
-        [field]: value
-      }
+      [pid]: { ...prev[pid], [field]: value }
     }));
   };
 
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const handleConfirmReceipt = async () => {
-    if (!vendorOrder) {
-      console.error("No vendor order found");
-      toast.error("No vendor order data found");
-      return;
-    }
-
+    if (!vendorOrder) return;
     setIsProcessing(true);
 
-    // Validate
     const errors: string[] = [];
     const validItems: any[] = [];
 
-    // Filter products that were actually sent to purchase
-    const productsToReceive = vendorOrder.products.filter((p: any) => receiptData[p.productId?._id]);
-
-    if (productsToReceive.length === 0) {
-      toast.error("No products to receive");
-      setIsProcessing(false);
-      return;
-    }
-
-    productsToReceive.forEach((p: any) => {
-      const pid = p.productId._id;
+    vendorOrder.products.forEach((p: any) => {
+      const pid = p.productId?._id;
       const data = receiptData[pid];
+      if (!data) return;
+
       const orderedQty = p.sendToPurchaseQty || p.orderQty;
       const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
 
-      if (data.damagedQty > 0 && !data.remarks.trim()) {
-        errors.push(`Remarks required for ${p.productId.productName} (Damaged Qty > 0)`);
-      }
       if (data.receivedQty < orderedQty && !data.remarks.trim()) {
         errors.push(`Remarks required for ${p.productId.productName} (Received < Ordered)`);
       }
@@ -174,11 +139,7 @@ const Purchase: React.FC = () => {
       })).unwrap();
 
       toast.success("Order received and stock updated successfully!");
-
-      setTimeout(() => {
-        navigate('/admin/vendorsOrder');
-      }, 500);
-
+      setTimeout(() => navigate('/admin/vendorsOrder'), 500);
     } catch (error: any) {
       console.error("Error processing receipt:", error);
       toast.error(error.message || "Failed to process receipt");
@@ -186,180 +147,58 @@ const Purchase: React.FC = () => {
     }
   };
 
-
-  // ==================================================================================
-  //                              MODE: PURCHASE LIST
-  // ==================================================================================
-  // ---------------- Filters ----------------
-  const [categoryId, setCategoryId] = useState("");
-  const [vendorId, setVendorId] = useState("");
-  const [companyId, setCompanyId] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-
-  // ---------------- Pagination ----------------
-  const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(25);
-
-  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
-
-  // ---------------- Selection & Inputs ----------------
-  const [selected, setSelected] = useState<string[]>([]);
-  const [itemsData, setItemsData] = useState<Record<string, {
-    price: number;
-    tax: number;
-    received: number;
-    current: number;
-  }>>({});
-
-  // Sync purchases to itemsData
-  useEffect(() => {
-    if (purchases.length > 0) {
-      setItemsData(prev => {
-        const updated = { ...prev };
-        purchases.forEach(p => {
-          const pid = p.productId?._id;
-          if (pid && !updated[pid]) {
-            updated[pid] = {
-              price: p.price || p.productId?.perUnitRate || 0,
-              tax: p.tax || p.productId?.gstPct || 0,
-              received: p.rcvdPurchaseQty || 0,
-              current: p.currentPurchaseQty || 0
-            };
-          }
-        });
-        return updated;
-      });
-    }
-  }, [purchases]);
-
-  // ---------------- Popover States ----------------
-  const [catAnchor, setCatAnchor] = useState<null | HTMLElement>(null);
-  const [vendorAnchor, setVendorAnchor] = useState<null | HTMLElement>(null);
-  const [brandAnchor, setBrandAnchor] = useState<null | HTMLElement>(null);
-
-  const [catSearch, setCatSearch] = useState("");
-  const [vendorSearch, setVendorSearch] = useState("");
-  const [brandSearch, setBrandSearch] = useState("");
-
-  // ---------------- Initial Load (Only if not receiving) ----------------
-  useEffect(() => {
-    if (!vendorOrder) {
-      dispatch(getCategories({ page: 1, limit: 1000 }));
-      dispatch(getCompanies({ page: 1, limit: 1000 }));
-      dispatch(getVendorNameList());
-    }
-  }, [dispatch, vendorOrder]);
-
-  useEffect(() => {
-    if (!vendorOrder) {
-      dispatch(
-        getPurchases({
-          page: page + 1,
-          limit,
-          categoryId,
-          vendorId,
-          companyId,
-          fromDate,
-          toDate
-        })
-      );
-    }
-  }, [dispatch, page, limit, categoryId, vendorId, companyId, fromDate, toDate, vendorOrder]);
-
-  // ---------------- Selection Logic ----------------
-  const toggleRow = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleAll = () => {
-    if (selected.length === purchases.length) {
-      setSelected([]);
-    } else {
-      setSelected(purchases.map((s) => s.productId._id));
-    }
-  };
-
-  // ---------------- Bulk Post ----------------
-  const handlePost = () => {
-    const payload: any[] = selected
-      .filter(pid => (itemsData[pid]?.current || 0) > 0)
-      .map(pid => ({
-        productId: pid,
-        sendToStoreQty: itemsData[pid].current,
-        price: itemsData[pid].price,
-        tax: itemsData[pid].tax,
-        rcvdPurchaseQty: itemsData[pid].received,
-        currentPurchaseQty: itemsData[pid].current
-      }));
-
-    if (!payload.length) return;
-
-    dispatch(addBulkPurchases(payload)).then(() => {
-      setSelected([]);
-      setItemsData({});
-      dispatch(getPurchases({ page: page + 1, limit }));
-    });
-  };
-
-  const handleAddPurchase = async (data: any) => {
+  const handleSaveOrder = async (data: any) => {
     try {
-      await dispatch(addBulkPurchases([data])).unwrap();
-      toast.success("Purchase added successfully");
-      dispatch(getPurchases({ page: page + 1, limit }));
+      if (editingOrder) {
+        await dispatch(updateVendorOrder({
+          vendorOrderId: editingOrder._id,
+          ...data
+        })).unwrap();
+        toast.success("Purchase order updated successfully");
+      } else {
+        await dispatch(addVendorOrder(data)).unwrap();
+        toast.success("Purchase order created successfully");
+      }
+      setIsFormOpen(false);
+      setEditingOrder(null);
+      dispatch(getVendorOrders({ page: page + 1, limit }));
     } catch (err: any) {
-      toast.error(err.message || "Failed to add purchase");
+      toast.error(err.message || "Failed to save order");
     }
   };
 
-  // ---------------- Filter Search Logic ----------------
-  const filteredCats = useMemo(() =>
-    categories.filter(c => (c.categoryName || "").toLowerCase().includes(catSearch.toLowerCase())),
-    [categories, catSearch]
+  const selectedOrder = useMemo(() =>
+    vendorOrders.find(o => o._id === selectedOrderId),
+    [vendorOrders, selectedOrderId]
   );
 
-  const filteredVendors = useMemo(() =>
-    vendors.filter(v => (v.vendor_name || "").toLowerCase().includes(vendorSearch.toLowerCase())),
-    [vendors, vendorSearch]
-  );
-
-  const filteredBrands = useMemo(() =>
-    brands.filter(b => (b.brandName || "").toLowerCase().includes(brandSearch.toLowerCase())),
-    [brands, brandSearch]
-  );
+  const getStatusColor = (status: string) => {
+    const s = (status || "").toUpperCase();
+    if (s === 'DRAFT') return 'text-gray-500 bg-gray-50 border-gray-100';
+    if (s === 'CLOSED') return 'text-emerald-500 bg-emerald-50 border-emerald-100';
+    if (s === 'OPEN' || s === 'SENT') return 'text-blue-500 bg-blue-50 border-blue-100';
+    if (s === 'CANCELLED') return 'text-rose-500 bg-rose-50 border-rose-100';
+    if (s === 'BILLED') return 'text-indigo-500 bg-indigo-50 border-indigo-100';
+    return 'text-gray-400 bg-gray-50 border-gray-100';
+  };
 
   // ==================================================================================
-  //                                    RENDER
+  //                                    RENDER VIEWS
   // ==================================================================================
+
+  // 1. RECEIVE VIEW
   if (vendorOrder) {
-    // ---------------- RECEIVE VIEW ----------------
     return (
       <AdminLayout>
         <Box className="flex items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(-1)}
-            className="normal-case font-medium text-gray-600 hover:text-blue-600"
-          >
-            Back
-          </Button>
-          <Typography variant="h6" className="font-bold text-gray-800">
-            Receive Purchase Order - #{vendorOrder.orderNumber}
-          </Typography>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
+          <Typography variant="h6" className="font-bold text-gray-800">Receive Purchase Order - #{vendorOrder.orderNumber}</Typography>
           <Box className="ml-auto">
-            <Button
-              variant="contained"
-              onClick={handleConfirmReceipt}
-              disabled={isProcessing}
-              className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold"
-            >
+            <Button variant="contained" onClick={handleConfirmReceipt} disabled={isProcessing} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold">
               {isProcessing ? "Processing..." : "Confirm Receipt"}
             </Button>
           </Box>
         </Box>
-
         <Box className="p-4">
           <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
             <TableContainer>
@@ -376,60 +215,33 @@ const Purchase: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {vendorOrder.products
-                    .filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0)
-                    .map((row: any) => {
-                      const pid = row.productId?._id;
-                      const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
-                      const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
-
-                      return (
-                        <TableRow key={row._id} hover>
-                          <TableCell>
-                            <Box>
-                              <Typography variant="body2" className="font-medium text-gray-800">
-                                {row.productId?.productName}
-                              </Typography>
-                              <Typography variant="caption" className="text-gray-500">
-                                {row.productId?.brandName} | {row.productId?.categoryName}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>{row.sendToPurchaseQty || row.orderQty}</TableCell>
-                          <TableCell>{row.productId?.unit}</TableCell>
-                          <TableCell>
-                            <TextField
-                              type="number"
-                              size="small"
-                              sx={{ width: 100 }}
-                              value={data.receivedQty}
-                              onChange={(e) => handleReceiptChange(pid, 'receivedQty', Number(e.target.value))}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              type="number"
-                              size="small"
-                              sx={{ width: 100 }}
-                              value={data.damagedQty}
-                              onChange={(e) => handleReceiptChange(pid, 'damagedQty', Number(e.target.value))}
-                            />
-                          </TableCell>
-                          <TableCell className="font-bold text-blue-600">
-                            {acceptedQty}
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              placeholder="Add remarks..."
-                              value={data.remarks || ""}
-                              onChange={(e) => handleReceiptChange(pid, 'remarks', e.target.value)}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                  {vendorOrder.products.filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0).map((row: any) => {
+                    const pid = row.productId?._id;
+                    const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
+                    const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
+                    return (
+                      <TableRow key={row._id} hover>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2" className="font-medium text-gray-800">{row.productId?.productName}</Typography>
+                            <Typography variant="caption" className="text-gray-500">{row.productId?.brandName} | {row.productId?.categoryName}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{row.sendToPurchaseQty || row.orderQty}</TableCell>
+                        <TableCell>{row.productId?.unit}</TableCell>
+                        <TableCell>
+                          <TextField type="number" size="small" sx={{ width: 100 }} value={data.receivedQty} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'receivedQty', Number(e.target.value))} />
+                        </TableCell>
+                        <TableCell>
+                          <TextField type="number" size="small" sx={{ width: 100 }} value={data.damagedQty} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'damagedQty', Number(e.target.value))} />
+                        </TableCell>
+                        <TableCell className="font-bold text-blue-600">{acceptedQty}</TableCell>
+                        <TableCell>
+                          <TextField size="small" fullWidth placeholder="Add remarks..." value={data.remarks || ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'remarks', e.target.value)} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -439,360 +251,276 @@ const Purchase: React.FC = () => {
     );
   }
 
-  // ---------------- DEFAULT LIST VIEW ----------------
+  // 2. PURCHASE DETAILS VIEW (Image 3)
+  if (selectedOrderId && selectedOrder) {
+    return (
+      <AdminLayout>
+        <Box className="flex h-screen bg-slate-50 overflow-hidden">
+          {/* Left Panel: PO List */}
+          <Box className="w-80 bg-white border-r border-slate-200 flex flex-col">
+            <Box className="p-4 border-b flex items-center justify-between">
+              <Typography className="font-bold text-slate-800">Purchase Orders</Typography>
+              <IconButton size="small" onClick={() => setSelectedOrderId(null)}><FiX /></IconButton>
+            </Box>
+            <Box className="flex-1 overflow-y-auto">
+              {vendorOrders.map(order => (
+                <Box
+                  key={order._id}
+                  onClick={() => setSelectedOrderId(order._id)}
+                  className={`p-4 border-b cursor-pointer transition-colors hover:bg-slate-50 ${selectedOrderId === order._id ? 'bg-blue-50/50 border-l-4 border-l-blue-600' : ''}`}
+                >
+                  <Box className="flex justify-between items-start mb-1">
+                    <Typography className="font-bold text-sm text-slate-900">{order.orderNumber}</Typography>
+                    <Typography className="text-[10px] text-slate-400 font-medium">{dayjs(order.orderDate).format('DD/MM/YY')}</Typography>
+                  </Box>
+                  <Typography className="text-xs text-slate-600 truncate mb-2">{(order.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</Typography>
+                  <Box className="flex justify-between items-center">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getStatusColor(order.status)}`}>{order.status}</span>
+                    <Typography className="font-bold text-sm text-slate-900">₹{order.totalAmount?.toLocaleString()}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Right Panel: PO Content */}
+          <Box className="flex-1 overflow-y-auto flex flex-col">
+            {/* Detail Header */}
+            <Box className="px-6 py-4 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
+              <Box className="flex items-center gap-4">
+                <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600"><ArrowBackIcon /></IconButton>
+                <Typography variant="h6" className="font-bold text-slate-800">{selectedOrder.orderNumber}</Typography>
+                <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase border ${getStatusColor(selectedOrder.status)}`}>{selectedOrder.status}</span>
+              </Box>
+              <Box className="flex items-center gap-2">
+                <Button
+                  variant="outlined"
+                  startIcon={<FiEdit />}
+                  className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case"
+                  onClick={() => { setEditingOrder(selectedOrder); setIsFormOpen(true); }}
+                >
+                  Edit
+                </Button>
+                <Button variant="outlined" startIcon={<FiPrinter />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Print</Button>
+                <Button variant="outlined" startIcon={<FiMail />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Email</Button>
+                {selectedOrder.status !== 'Received' && (
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/admin/purchase', { state: { vendorOrder: selectedOrder } })}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold normal-case shadow-md"
+                  >
+                    Receive Order
+                  </Button>
+                )}
+              </Box>
+            </Box>
+
+            {/* Document Body */}
+            <Box className="p-8 max-w-4xl mx-auto w-full">
+              <Paper className="p-8 shadow-xl rounded-2xl border border-slate-100">
+                {/* Header */}
+                <Box className="flex justify-between mb-12">
+                  <Box>
+                    <Typography variant="h4" className="font-black text-slate-900 mb-2 tracking-tight">PURCHASE ORDER</Typography>
+                    <Typography className="text-slate-400 font-medium italic">PO Number: <span className="text-slate-900 font-bold not-italic">{selectedOrder.orderNumber}</span></Typography>
+                  </Box>
+                  <Box className="text-right">
+                    <Typography className="font-black text-indigo-600 text-xl">RIMS RESTAURANT</Typography>
+                    <Typography className="text-xs text-slate-500 max-w-[200px] ml-auto">123 Business Avenue, Food Plaza, Sector 45, Gurugram, India</Typography>
+                  </Box>
+                </Box>
+
+                <Box className="flex gap-8 mb-12">
+                  <Box className="flex-1">
+                    <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Deliver To</Typography>
+                    <Typography className="font-bold text-slate-800 text-sm">Main Store Kitchen</Typography>
+                    <Typography className="text-xs text-slate-500 leading-relaxed">Ground Floor, Wing B<br />Contact: Operations Manager<br />+91 98765 43210</Typography>
+                  </Box>
+                  <Box className="flex-1">
+                    <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Vendor Details</Typography>
+                    <Typography className="font-bold text-slate-800 text-sm">{(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</Typography>
+                    <Typography className="text-xs text-slate-500 leading-relaxed">
+                      {(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_address || 'Vendor Address'}<br />
+                      GST: {(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_gstNumber || 'GSTXXXXXXXX'}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Items Table */}
+                <TableContainer className="mb-8 border rounded-xl overflow-hidden">
+                  <Table size="small">
+                    <TableHead className="bg-slate-50">
+                      <TableRow>
+                        <TableCell className="font-bold text-slate-700 py-3">#</TableCell>
+                        <TableCell className="font-bold text-slate-700 py-3">Item Description</TableCell>
+                        <TableCell align="right" className="font-bold text-slate-700 py-3">Qty</TableCell>
+                        <TableCell align="right" className="font-bold text-slate-700 py-3">Rate</TableCell>
+                        <TableCell align="right" className="font-bold text-slate-700 py-3">Amount</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrder.products.map((p, idx) => (
+                        <TableRow key={p._id} hover>
+                          <TableCell className="text-slate-400 py-3">{idx + 1}</TableCell>
+                          <TableCell className="py-3">
+                            <Typography className="font-bold text-slate-800 text-sm">{p.productId?.productName}</Typography>
+                            {/* <Typography className="text-[10px] text-slate-400">{p.productId?.brandName} | {p.productId?.categoryName}</Typography> */}
+                          </TableCell>
+                          <TableCell align="right" className="py-3 font-medium">{p.orderQty} {p.productId?.unit}</TableCell>
+                          <TableCell align="right" className="py-3 text-slate-600">₹{(p.productId as any)?.perUnitRate || 0}</TableCell>
+                          <TableCell align="right" className="font-bold text-slate-800 py-3">₹{(p.orderQty * ((p.productId as any)?.perUnitRate || 0)).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                <Box className="flex justify-end pr-4">
+                  <Box className="w-64 space-y-3">
+                    <Box className="flex justify-between text-slate-500 text-sm">
+                      <span>Sub Total</span>
+                      <span className="font-medium text-slate-700">₹{selectedOrder.totalAmount?.toLocaleString()}</span>
+                    </Box>
+                    <Box className="flex justify-between text-slate-500 text-sm">
+                      <span>GST (Included)</span>
+                      <span className="font-medium text-slate-700">₹0</span>
+                    </Box>
+                    <Divider />
+                    <Box className="flex justify-between items-center text-slate-900">
+                      <span className="font-bold">Total Amount</span>
+                      <span className="text-xl font-black text-indigo-600">₹{selectedOrder.totalAmount?.toLocaleString()}</span>
+                    </Box>
+                  </Box>
+                </Box>
+              </Paper>
+            </Box>
+          </Box>
+        </Box>
+      </AdminLayout>
+    );
+  }
+
+  // 3. MAIN LIST VIEW (Image 1)
   return (
     <AdminLayout>
       <Box className="bg-slate-50 min-h-screen">
-        {/* Compact Single-Row Header */}
-        <Box className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between gap-4">
+        {/* Compact Header */}
+        <Box className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
           <Box className="flex items-center gap-4">
-            {/* Current Date */}
-            <Box className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 flex items-center gap-3">
-              <Box className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              <Typography className="text-sm font-bold text-slate-700">
-                {dayjs().format("DD MMMM, YYYY")}
-              </Typography>
-            </Box>
-
+            <Typography variant="h5" className="font-black text-slate-800 tracking-tight ml-2">Purchase Orders</Typography>
           </Box>
-          <Box className="flex items-center gap-4">
-            {/* Add Purchase Button */}
+          <Box className="flex items-center gap-3">
             <Button
               variant="contained"
               startIcon={<FiPlus />}
-              onClick={() => setIsAddDrawerOpen(true)}
+              onClick={() => { setEditingOrder(null); setIsFormOpen(true); }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all normal-case"
             >
-              Add Purchase
-            </Button>
-            {/* Action Button */}
-            <Button
-              variant="contained"
-              startIcon={<FiSend />}
-              disabled={selected.length === 0 || selected.some(pid => !(itemsData[pid]?.current) || itemsData[pid]?.current <= 0)}
-              onClick={handlePost}
-              className={`rounded-xl font-bold px-6 py-2.5 transition-all normal-case ${selected.length > 0
-                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-100'
-                : 'bg-slate-100 text-slate-400'
-                }`}
-            >
-              Send {selected.length > 0 ? `(${selected.length})` : ''} To Store
+              Direct Purchase
             </Button>
           </Box>
         </Box>
 
-        {/* Clean Table */}
+        {/* Main Table */}
         <Box>
-          <Paper className="shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 flex flex-col" style={{ height: 'calc(100vh - 280px)' }}>
-            <TableContainer className="flex-grow overflow-auto">
+          <Paper className="shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
+            <TableContainer>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell padding="checkbox" className="bg-slate-50/90 backdrop-blur-md">
-                      <Checkbox
-                        color="primary"
-                        checked={
-                          selected.length === purchases.length &&
-                          purchases.length > 0
-                        }
-                        onChange={toggleAll}
-                      />
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">Product</TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">
-                      <Box className="flex items-center gap-2">
-                        Category
-                        <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={categoryId ? "text-indigo-600" : "text-slate-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(catAnchor)}
-                        anchorEl={catAnchor}
-                        onClose={() => setCatAnchor(null)}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                        PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Category..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={catSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCatSearch(e.target.value)}
-                            InputProps={{
-                              startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />,
-                              sx: { bgcolor: 'white' }
-                            }}
-                          />
-                        </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItem disablePadding>
-                            <ListItemButton
-                              onClick={() => { setCategoryId(""); setCatAnchor(null); }}
-                              selected={!categoryId}
-                            >
-                              <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                            </ListItemButton>
-                          </ListItem>
-                          {filteredCats.map((c) => (
-                            <ListItem key={c._id} disablePadding>
-                              <ListItemButton
-                                onClick={() => { setCategoryId(c._id); setCatAnchor(null); }}
-                                selected={categoryId === c._id}
-                              >
-                                <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                              </ListItemButton>
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">
-                      <Box className="flex items-center gap-2">
-                        Vendor
-                        <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={vendorId ? "text-indigo-600" : "text-slate-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(vendorAnchor)}
-                        anchorEl={vendorAnchor}
-                        onClose={() => setVendorAnchor(null)}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                        PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Vendor..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={vendorSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVendorSearch(e.target.value)}
-                            InputProps={{
-                              startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />,
-                              sx: { bgcolor: 'white' }
-                            }}
-                          />
-                        </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItem disablePadding>
-                            <ListItemButton
-                              onClick={() => { setVendorId(""); setVendorAnchor(null); }}
-                              selected={!vendorId}
-                            >
-                              <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                            </ListItemButton>
-                          </ListItem>
-                          {filteredVendors.map((v) => (
-                            <ListItem key={v._id} disablePadding>
-                              <ListItemButton
-                                onClick={() => { setVendorId(v._id); setVendorAnchor(null); }}
-                                selected={vendorId === v._id}
-                              >
-                                <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                              </ListItemButton>
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">
-                      <Box className="flex items-center gap-2">
-                        Brand
-                        <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={companyId ? "text-indigo-600" : "text-slate-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(brandAnchor)}
-                        anchorEl={brandAnchor}
-                        onClose={() => setBrandAnchor(null)}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                        PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Brand..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={brandSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBrandSearch(e.target.value)}
-                            InputProps={{
-                              startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />,
-                              sx: { bgcolor: 'white' }
-                            }}
-                          />
-                        </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItem disablePadding>
-                            <ListItemButton
-                              onClick={() => { setCompanyId(""); setBrandAnchor(null); }}
-                              selected={!companyId}
-                            >
-                              <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                            </ListItemButton>
-                          </ListItem>
-                          {filteredBrands.map((b) => (
-                            <ListItem key={b._id} disablePadding>
-                              <ListItemButton
-                                onClick={() => { setCompanyId(b._id); setBrandAnchor(null); }}
-                                selected={companyId === b._id}
-                              >
-                                <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                              </ListItemButton>
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">Received Qty</TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">Current Qty</TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md" style={{ width: 110 }}>Price (unit)</TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md" style={{ width: 90 }}>Tax (%)</TableCell>
-                    <TableCell className="font-bold text-slate-700 bg-slate-50/90 backdrop-blur-md">SubTotal</TableCell>
+                    <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">DATE</TableCell>
+                    <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">PURCHASE ORDER#</TableCell>
+                    <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">VENDOR NAME</TableCell>
+                    <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">STATUS</TableCell>
+                    <TableCell align="right" className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">AMOUNT</TableCell>
+                    <TableCell align="center" className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">ACTION</TableCell>
                   </TableRow>
                 </TableHead>
-
                 <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={10} align="center" className="py-20">
-                        <CircularProgress size={40} className="text-indigo-600" />
-                        <Typography className="mt-4 text-slate-500 font-medium">Loading purchases...</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : purchases.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} align="center" className="py-20 text-slate-400">
-                        No purchases found
-                      </TableCell>
-                    </TableRow>
+                  {ordersLoading ? (
+                    <TableRow><TableCell colSpan={6} align="center" className="py-20"><CircularProgress size={40} className="text-indigo-600" /><Typography className="mt-4 text-slate-500 font-medium">Loading orders...</Typography></TableCell></TableRow>
+                  ) : vendorOrders.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} align="center" className="py-20 text-slate-400">No purchase orders found</TableCell></TableRow>
                   ) : (
-                    purchases.map((row) => {
-                      const pid = row.productId?._id;
-                      const isSelected = selected.includes(pid);
-                      const data = itemsData[pid] || { price: 0, tax: 0, received: 0, current: 0 };
-                      const subTotal = (data.price * data.current) + (data.price * data.current * data.tax / 100);
-
-                      const handleCellChange = (field: keyof typeof data, value: number) => {
-                        setItemsData(prev => ({
-                          ...prev,
-                          [pid]: { ...prev[pid], [field]: value }
-                        }));
-                        if (field === 'current') {
-                          if (value > 0) {
-                            if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
-                          } else {
-                            setSelected(prev => prev.filter(id => id !== pid));
-                          }
-                        }
-                      };
-
-                      const inputSx = {
-                        "& .MuiInputBase-input": {
-                          py: 0.8, px: 1, textAlign: 'center', fontSize: '0.875rem', fontWeight: 600,
-                          "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": { display: "none" },
-                          "&": { MozAppearance: "textfield" }
-                        },
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: '8px',
-                          backgroundColor: '#f8fafc',
-                          transition: 'all 0.2s',
-                          "&:hover": { backgroundColor: '#f1f5f9' },
-                          "&.Mui-focused": { backgroundColor: '#fff' }
-                        }
-                      };
-
-                      return (
-                        <TableRow key={row._id} hover selected={isSelected} className="transition-colors">
-                          <TableCell padding="checkbox">
-                            <Checkbox
-                              color="primary"
-                              checked={isSelected}
-                              onChange={() => toggleRow(pid)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box>
-                              <Typography variant="body2" className="font-bold text-slate-800">{row.productId?.productName}</Typography>
-                              <Typography variant="caption" className="text-slate-400 font-medium">{row.productId?.packSize} | {row.productId?.unit}</Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell className="capitalize text-slate-600 text-xs font-semibold">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                          <TableCell className="text-slate-600 text-xs font-semibold">{row.productId?.vendorsId?.vendor_name}</TableCell>
-                          <TableCell className="text-slate-600 text-xs italic font-medium">{row.productId?.companyId?.brandName}</TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small" type="number" value={data.received}
-                              onChange={(e) => handleCellChange('received', Number(e.target.value))}
-                              sx={{ ...inputSx, width: 70 }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small" type="number" value={data.current}
-                              onChange={(e) => handleCellChange('current', Number(e.target.value))}
-                              sx={{ ...inputSx, width: 70 }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small" type="number" value={data.price}
-                              onChange={(e) => handleCellChange('price', Number(e.target.value))}
-                              sx={{ ...inputSx, width: 90 }}
-                              InputProps={{ startAdornment: <Typography variant="caption" sx={{ mr: 0.5, color: 'slate.400' }}>₹</Typography> }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small" type="number" value={data.tax}
-                              onChange={(e) => handleCellChange('tax', Number(e.target.value))}
-                              sx={{ ...inputSx, width: 65 }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography className="font-bold text-indigo-600 text-sm">
-                              ₹{subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
+                    vendorOrders.map((row) => (
+                      <TableRow key={row._id} hover onClick={() => setSelectedOrderId(row._id)} className="cursor-pointer group">
+                        <TableCell className="py-4 text-slate-600 font-medium">{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                        <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4">{row.orderNumber}</TableCell>
+                        <TableCell className="py-4 font-bold text-slate-800">{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                        <TableCell className="py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.status)}`}>{row.status}</span>
+                        </TableCell>
+                        <TableCell align="right" className="py-4 font-black text-slate-900">₹{row.totalAmount?.toLocaleString()}</TableCell>
+                        <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
+                          <Box className="flex items-center justify-center">
+                            <ButtonGroup size="small">
+                              <Button
+                                className="px-3 py-1 text-[11px] font-bold border-slate-200 bg-white hover:bg-slate-50 text-slate-600 normal-case rounded-l-md"
+                                onClick={() => setSelectedOrderId(row._id)}
+                              >
+                                View / Print
+                              </Button>
+                              <Button
+                                className="px-1 border border-slate-200 min-w-0 bg-white hover:bg-slate-50 text-slate-600 rounded-r-md"
+                                onClick={(ev: React.MouseEvent<HTMLElement>) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
+                              >
+                                <FiChevronDown size={14} />
+                              </Button>
+                            </ButtonGroup>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
-
-            <Box className="border-t bg-slate-50/50 backdrop-blur-md p-2 flex justify-end items-center">
-              <TablePagination
-                component="div"
-                count={allPurchasesData?.pagination.total || 0}
-                page={page}
-                onPageChange={(_: React.MouseEvent<HTMLButtonElement> | null, p: number) => setPage(p)}
-                rowsPerPage={limit}
-                onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
-                rowsPerPageOptions={[25, 50, 100]}
-                sx={{
-                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                    fontWeight: 600,
-                    color: "#64748b"
-                  },
-                  border: 'none'
-                }}
-              />
-            </Box>
+            <TablePagination
+              component="div"
+              count={allVendorOrdersData?.total || 0}
+              page={page}
+              onPageChange={(_: any, p: number) => setPage(p)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement>) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[25, 50, 100]}
+              className="border-t"
+            />
           </Paper>
         </Box>
 
+        {/* Action Menu (Image 2) */}
+        <Menu
+          anchorEl={actionAnchorEl?.el}
+          open={Boolean(actionAnchorEl)}
+          onClose={() => setActionAnchorEl(null)}
+          PaperProps={{ sx: { minWidth: 160, borderRadius: 2, shadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', border: '1px solid #f1f5f9' } }}
+        >
+          <MenuItem
+            onClick={() => {
+              const order = vendorOrders.find(o => o._id === actionAnchorEl?.id);
+              setEditingOrder(order);
+              setIsFormOpen(true);
+              setActionAnchorEl(null);
+            }}
+            className="text-xs font-bold text-slate-600 py-2"
+          >
+            <FiEdit className="mr-3" /> Edit Order
+          </MenuItem>
+          <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiMail className="mr-3" /> Send Email</MenuItem>
+          <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiPrinter className="mr-3" /> Print PO</MenuItem>
+          <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiDownload className="mr-3" /> Download PDF</MenuItem>
+          <Divider sx={{ my: 1 }} />
+          <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-rose-600 py-2 hover:bg-rose-50"><FiX className="mr-3" /> Cancel Order</MenuItem>
+        </Menu>
+
         <PurchaseDrawerForm
-          open={isAddDrawerOpen}
-          onClose={() => setIsAddDrawerOpen(false)}
-          onSave={handleAddPurchase}
+          open={isFormOpen}
+          isEdit={Boolean(editingOrder)}
+          initialData={editingOrder}
+          onClose={() => setIsFormOpen(false)}
+          onSave={handleSaveOrder}
         />
+
       </Box>
     </AdminLayout>
   );
