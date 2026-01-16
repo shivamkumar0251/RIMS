@@ -2,11 +2,9 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
-import ForgetPassword from './pages/auth/ForgetPassword';
-import ResetPassword from "./pages/auth/ResetPassword";
 
 const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
-const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/auth/Login"));
 const LazyAboutPage = lazy(() => import("./pages/About"));
@@ -40,6 +38,8 @@ import VendorsOrder from "./pages/admin/VendorOrders";
 import Purchase from "./pages/admin/Purchase";
 import VendorOrderDetails from "./pages/admin/VendorOrderDetails";
 import RestaurantSetup from "./pages/admin/RestaurantSetup";
+import ForgetPassword from "./pages/auth/Forgetpassword";
+import ResetPassword from "./pages/auth/Resetpassword";
 function App() {
   return (
     <>
