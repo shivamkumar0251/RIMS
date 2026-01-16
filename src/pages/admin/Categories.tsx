@@ -1,8 +1,6 @@
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Collapse,
   Dialog,
   DialogActions,
@@ -23,7 +21,7 @@ import {
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2 } from "react-icons/fi";
 import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {

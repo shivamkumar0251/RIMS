@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   FormControl,
   IconButton,
   InputAdornment,
@@ -22,19 +21,19 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Typography,
+  Typography
 } from "@mui/material";
+import dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FiDownload,
   FiEdit,
   FiPlus,
+  FiRefreshCw,
   FiSearch,
   FiTrash2,
-  FiRefreshCw,
 } from "react-icons/fi";
 import * as XLSX from "xlsx";
-import dayjs from "dayjs";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
   addVendor,

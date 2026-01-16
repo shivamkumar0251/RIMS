@@ -20,21 +20,21 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useRef, useState } from "react";
-import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw } from "react-icons/fi";
 import dayjs from "dayjs";
+import React, { useEffect, useRef, useState } from "react";
+import { FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2 } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 import {
   addCompany,
+  addCompanyBulkExcel,
   deleteCompany,
   getCompanies,
-  updateCompany,
-  addCompanyBulkExcel,
-  selectCompanyState,
   selectAllCompaniesData,
-  type Company,
-  type BulkCompanyExcelResponse
+  selectCompanyState,
+  updateCompany,
+  type BulkCompanyExcelResponse,
+  type Company
 } from "../../redux/slices/companySlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 

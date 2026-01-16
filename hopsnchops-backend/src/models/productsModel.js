@@ -57,15 +57,14 @@ const productsSchema = new mongoose.Schema({
   taxableValue: { type: Number, required: true, },
   perUnitRate: { type: Number, required: true, },
   stockAlert: { type: Number, required: false, default: 0 },
+  hsn_sac_code: { type: Number },
+  bar_code_no: { type: String },
   productType: {
     type: String,
     enum: ["Inventory Item", "Packaging Item"],
     default: "Inventory Item",
   },
   expiryDate: { type: Date },
-  // quantity: { type: Number, default: 0, },
-  // productMRP: { type: Number, required: true, },
-  // totalMRP: { type: Number, required: true, }, 
 }, {
   timestamps: true
 });

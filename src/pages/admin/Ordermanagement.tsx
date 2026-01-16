@@ -1,40 +1,35 @@
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
+  CircularProgress,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  Paper,
+  Popover,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Paper,
   TablePagination,
+  TableRow,
   TextField,
-  Tabs,
-  Tab,
-  Typography,
-  IconButton,
-  Popover,
-  List,
-  ListItemButton,
-  ListItemText,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Autocomplete,
+  Typography
 } from "@mui/material";
 import dayjs from "dayjs";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSearch, FiFilter, FiGrid, FiList } from "react-icons/fi";
+import { FiFilter, FiSearch } from "react-icons/fi";
+import { useSearchParams } from "react-router-dom";
+import * as XLSX from 'xlsx';
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-import { useSearchParams } from "react-router-dom";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import "jspdf-autotable";
-import * as XLSX from 'xlsx';
 
 import {
   addOrder,
@@ -45,7 +40,7 @@ import {
 
 import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { getVendorNameList, selectVendorNames, getVendors, selectVendors } from "../../redux/slices/vendorSlice";
+import { getVendorNameList, getVendors, selectVendorNames, selectVendors } from "../../redux/slices/vendorSlice";
 
 import { CreateOrderModal } from "../../components/adminComponents/CreateOrderModal";
 

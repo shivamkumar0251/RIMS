@@ -46,9 +46,7 @@ import {
 } from "../../redux/slices/purchaseSlice";
 import type { PurchasePostData } from "../../redux/slices/purchaseSlice";
 
-import {
-  addStoreStock
-} from "../../redux/slices/storeStockSlice";
+// import { addStoreStock } from "../../redux/slices/storeStockSlice";
 
 import {
   getVendorNameList,
@@ -434,6 +432,12 @@ const Purchase: React.FC = () => {
       </AdminLayout>
     );
   }
+  console.log('purchases', purchases);
+
+  const totalAmount = (qnt: number, rate: number) => {
+    return qnt * rate
+
+  }
 
   // ---------------- DEFAULT LIST VIEW ----------------
   return (
@@ -667,6 +671,8 @@ const Purchase: React.FC = () => {
                   </TableCell>
                   <TableCell className="font-bold">Received</TableCell>
                   <TableCell className="font-bold">Current</TableCell>
+                  <TableCell className="font-bold">perUnitRate</TableCell>
+                  <TableCell className="font-bold">Total Amount</TableCell>
                   <TableCell className="font-bold" style={{ width: 140 }}>Send Qty</TableCell>
                   <TableCell className="font-bold">Date</TableCell>
                 </TableRow>
@@ -703,6 +709,37 @@ const Purchase: React.FC = () => {
                         <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName}</TableCell>
                         <TableCell>{row.rcvdPurchaseQty}</TableCell>
                         <TableCell>{row.currentPurchaseQty}</TableCell>
+                        {/* <TableCell>{row?.productId?.perUnitRate}</TableCell> */}
+                        <TableCell>
+                          <span>{row?.productId?.perUnitRate}</span>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={qtyMap[pid] || ""}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              const val = Number(e.target.value);
+                              setQtyMap(prev => ({ ...prev, [pid]: val }));
+                              if (val > 0) {
+                                if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
+                              } else {
+                                setSelected(prev => prev.filter(id => id !== pid));
+                              }
+                            }}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                py: 0.5,
+                                px: 1,
+                                textAlign: 'center',
+                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+                                  display: "none",
+                                },
+                                "&": {
+                                  MozAppearance: "textfield",
+                                },
+                              }
+                            }}
+                          /></TableCell>
+                        <TableCell>{totalAmount(row.rcvdPurchaseQty, row?.productId?.perUnitRate)}</TableCell>
                         <TableCell>
                           <TextField
                             size="small"

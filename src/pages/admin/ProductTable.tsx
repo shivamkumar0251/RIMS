@@ -21,14 +21,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useMemo, useState } from "react";
-import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw, FiFilter } from "react-icons/fi";
-import * as XLSX from "xlsx";
 import dayjs from "dayjs";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
-import { AdminLayout } from "../../layouts/AdminLayout";
-import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+import { FiDownload, FiEdit, FiFilter, FiPlus, FiRefreshCw, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
+import * as XLSX from "xlsx";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
+import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -44,10 +44,10 @@ import {
 } from "../../redux/slices/productSlice";
 
 // Category, Company, Vendor slices
+import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
 import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { addVendor, getVendorNameList, selectVendorNames, type GetVendorData, type VendorFormType } from "../../redux/slices/vendorSlice";
-import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
+import { addVendor, getVendorNameList, selectVendorNames, type VendorFormType } from "../../redux/slices/vendorSlice";
 
 type PartialProductForm = Partial<ProductInterface>;
 
