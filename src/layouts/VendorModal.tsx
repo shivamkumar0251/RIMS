@@ -1,29 +1,14 @@
 import React, { useState } from "react";
 import {
   Dialog,
-  DialogContent,
-  DialogActions,
   Typography,
   IconButton,
   TextField,
   Button,
   MenuItem,
   Box,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  Checkbox
 } from "@mui/material";
-import {
-  FiX,
-  FiFileText,
-  FiMapPin,
-  FiTruck,
-  FiDollarSign,
-  FiBriefcase,
-  FiList,
-  FiInfo
-} from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 
 // Define the shape of our form data
 export interface VendorFormData {
@@ -79,9 +64,10 @@ interface VendorModalProps {
   open: boolean;
   onClose: () => void;
   onAddVendor: (vendor: any) => void;
+  variant?: "dialog" | "embedded";
 }
 
-const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor }) => {
+const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, variant = "dialog" }) => {
   const [formData, setFormData] = useState<VendorFormData>({
     companyType: "Vendor",
     gstin: "",
@@ -157,7 +143,7 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor })
       backgroundColor: "#fff",
       "& fieldset": { borderColor: "#e2e8f0" },
       "&:hover fieldset": { borderColor: "#cbd5e1" },
-      "&.Mui-focused fieldset": { borderColor: "#10b981", borderWidth: "2px" }
+      "&.Mui-focused fieldset": { borderColor: "#2563eb", borderWidth: "2px" }
     },
     "& .MuiInputBase-input": {
       padding: "10px 14px",
@@ -166,19 +152,329 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor })
     }
   };
 
-  const renderField = (label: string, component: React.ReactNode, required = false, note?: string) => (
-    <Box className="mb-4">
-      <Typography className="text-sm text-slate-700 mb-2 font-medium">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Typography>
-      {component}
-      {note && (
-        <Typography className="text-xs text-slate-500 mt-1 italic">
-          {note}
-        </Typography>
-      )}
+  const content = (
+    <>
+      {/* Header */}
+      <Box className="px-6 py-4 flex items-center justify-between border-b border-gray-200 shrink-0 bg-white shadow-sm z-10">
+        <Box>
+          <Typography variant="h6" className="font-bold text-slate-800">
+            {formData.companyType === "Vendor" ? "Add New Vendor" : "Add New Customer"}
+          </Typography>
+          <Typography variant="body2" className="text-slate-500 mt-1">
+            Create a new {formData.companyType.toLowerCase()} profile to organize your business efficiently
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <FiX size={22} />
+        </IconButton>
+      </Box>
+
+      {/* Content */}
+      <Box className="flex-1 overflow-auto px-4 py-6 custom-scrollbar bg-white">
+        <Box className="w-full lg:w-3/4 space-y-6">
+          
+          {/* 1. Basic Details */}
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+             <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
+              BASIC DETAILS
+            </Typography>
+
+            <Box className="mb-4">
+              <div className="grid grid-cols-1 gap-4">
+                 {/* GSTIN Row */}
+                 {/* GSTIN Row */}
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="GSTIN"
+                      placeholder="Enter GSTIN"
+                      value={formData.gstin}
+                      onChange={(e) => handleChange("gstin", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+
+                 {/* Company Name */}
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Company Name *"
+                      placeholder="Enter Company name"
+                      value={formData.companyName}
+                      onChange={(e) => handleChange("companyName", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+
+                 {/* Contact Person & No */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Box>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Contact Person"
+                          placeholder="Enter contact person"
+                          value={formData.contactPerson}
+                          onChange={(e) => handleChange("contactPerson", e.target.value)}
+                          sx={inputSx}
+                        />
+                    </Box>
+                    <Box>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Contact No"
+                          placeholder="Enter contact No."
+                          value={formData.contactNo}
+                          onChange={(e) => handleChange("contactNo", e.target.value)}
+                          sx={inputSx}
+                        />
+                    </Box>
+                 </div>
+
+                 {/* Email */}
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Email"
+                      placeholder="emailaddress@domain.com"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      sx={inputSx}
+                      helperText={<span className="italic text-[10px] text-gray-400">Use comma(,) for multiple emails</span>}
+                    />
+                 </Box>
+
+                 {/* Reg Type & PAN */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Box>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          label="Registration Type"
+                          value={formData.registrationType}
+                          onChange={(e) => handleChange("registrationType", e.target.value)}
+                          sx={inputSx}
+                        >
+                          <MenuItem value="Unregistered">Unregistered</MenuItem>
+                          <MenuItem value="Registered">Registered</MenuItem>
+                          <MenuItem value="Composition">Composition</MenuItem>
+                        </TextField>
+                    </Box>
+                    <Box>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="PAN"
+                          placeholder="Enter PAN"
+                          value={formData.pan}
+                          onChange={(e) => handleChange("pan", e.target.value)}
+                          sx={inputSx}
+                        />
+                    </Box>
+                  </div>
+              </div>
+            </Box>
+          </Box>
+
+          {/* 2. Billing Address */}
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+            <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
+              BILLING ADDRESS
+            </Typography>
+
+            <div className="grid grid-cols-1 gap-4">
+               {/* Address Lines */}
+               <Box>
+                  <div className="space-y-2">
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Address Line 1"
+                      placeholder="Address Line 1"
+                      value={formData.billingAddress}
+                      onChange={(e) => handleChange("billingAddress", e.target.value)}
+                      sx={inputSx}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Address Line 2"
+                      placeholder="Address Line 2"
+                      value={formData.billingAddress2}
+                      onChange={(e) => handleChange("billingAddress2", e.target.value)}
+                      sx={inputSx}
+                    />
+                  </div>
+               </Box>
+               
+            
+
+               {/* Country & State */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <Box>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Country *"
+                        value={formData.billingCountry}
+                        onChange={(e) => handleChange("billingCountry", e.target.value)}
+                        sx={inputSx}
+                      >
+                        <MenuItem value="India">India</MenuItem>
+                      </TextField>
+                   </Box>
+                   <Box>
+                       <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="State *"
+                        value={formData.billingState}
+                        onChange={(e) => handleChange("billingState", e.target.value)}
+                        sx={inputSx}
+                      >
+                        <MenuItem value="">Select State</MenuItem>
+                        <MenuItem value="Delhi">Delhi</MenuItem>
+                        <MenuItem value="Maharashtra">Maharashtra</MenuItem>
+                        <MenuItem value="Karnataka">Karnataka</MenuItem>
+                      </TextField>
+                   </Box>
+               </div>
+
+
+   {/* Landmark & City */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Landmark"
+                        placeholder="Landmark"
+                        value={formData.billingLandmark}
+                        onChange={(e) => handleChange("billingLandmark", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="City *"
+                        placeholder="City"
+                        value={formData.billingCity}
+                        onChange={(e) => handleChange("billingCity", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+               </div>
+                {/* Pincode & Distance */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Pincode"
+                        placeholder="Pincode"
+                        value={formData.billingZip}
+                        onChange={(e) => handleChange("billingZip", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+               </div>
+            </div>
+          </Box>
+
+          {/* 3. Bank Details */}
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+            <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
+              VENDOR BANK DETAILS
+            </Typography>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Bank Name"
+                      placeholder="Bank Name"
+                      value={formData.bankName}
+                      onChange={(e) => handleChange("bankName", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="IFSC Code"
+                      placeholder="IFSC Code"
+                      value={formData.ifscCode}
+                      onChange={(e) => handleChange("ifscCode", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Account Number"
+                      placeholder="Account Number"
+                      value={formData.accountNumber}
+                      onChange={(e) => handleChange("accountNumber", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+                 <Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Branch Name"
+                      placeholder="Branch Name"
+                      value={formData.branchName}
+                      onChange={(e) => handleChange("branchName", e.target.value)}
+                      sx={inputSx}
+                    />
+                 </Box>
+            </div>
+          </Box>
+      </Box>
     </Box>
+
+      {/* Footer */}
+      <Box className="px-6 py-4 bg-gray-50 border-t border-gray-200 shrink-0 flex justify-start gap-4 z-10">
+        <Button
+          variant="outlined"
+          onClick={onClose}
+          startIcon={<FiX />}
+          className="px-6 py-2 border-blue-200 text-blue-600 hover:bg-blue-50 normal-case font-medium rounded-lg"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          className="px-8 py-2 bg-[#6200ea] hover:bg-[#5000d6] text-white shadow-md normal-case font-medium rounded-lg"
+        >
+          Save Details
+        </Button>
+      </Box>
+    </>
   );
+
+  if (variant === "embedded") {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: "#f9fafb" }}>
+        {content}
+      </Box>
+    );
+  }
 
   return (
     <Dialog
@@ -199,560 +495,7 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor })
         sx: { backdropFilter: 'blur(3px)', backgroundColor: 'rgba(0,0,0,0.3)' }
       }}
     >
-      {/* Header */}
-      <Box className="px-6 py-4 flex items-center justify-between border-b border-gray-200 shrink-0 bg-white">
-        <Box className="flex items-center gap-2">
-          <Typography variant="h6" className="font-semibold text-slate-800">
-            Add Customer / Vendor
-          </Typography>
-          <IconButton size="small" className="text-slate-400 hover:bg-slate-100">
-            <FiX size={16} className="transform rotate-45" />
-          </IconButton>
-        </Box>
-        <IconButton onClick={onClose} size="small" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-          <FiX size={22} />
-        </IconButton>
-      </Box>
-
-      {/* Content */}
-      <DialogContent className="p-0 bg-white custom-scrollbar">
-        <Box className="px-8 py-6">
-
-          {/* 1. Customer / Vendor Detail */}
-          <Box className="mb-8">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiFileText className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Customer / Vendor Detail
-              </Typography>
-            </Box>
-
-            {renderField("Company Type", (
-              <RadioGroup
-                row
-                value={formData.companyType}
-                onChange={(e) => handleChange("companyType", e.target.value)}
-              >
-                <FormControlLabel
-                  value="Customer"
-                  control={<Radio size="small" sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#10b981' } }} />}
-                  label={<span className="text-sm text-slate-700">Customer</span>}
-                />
-                <FormControlLabel
-                  value="Vendor"
-                  control={<Radio size="small" sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#10b981' } }} />}
-                  label={<span className="text-sm text-slate-700">Vendor</span>}
-                />
-                <FormControlLabel
-                  value="Customer / Vendor"
-                  control={<Radio size="small" sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#10b981' } }} />}
-                  label={<span className="text-sm text-slate-700">Customer / Vendor</span>}
-                />
-              </RadioGroup>
-            ))}
-
-            {renderField("GSTIN", (
-              <Box className="flex gap-2">
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Enter GSTIN"
-                  value={formData.gstin}
-                  onChange={(e) => handleChange("gstin", e.target.value)}
-                  sx={inputSx}
-                />
-                <Button
-                  variant="outlined"
-                  className="whitespace-nowrap text-sm px-4 border-slate-300 text-slate-700 hover:bg-slate-50 normal-case"
-                >
-                  Auto Fill
-                </Button>
-              </Box>
-            ))}
-
-            {renderField("Company Name", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter Company name"
-                value={formData.companyName}
-                onChange={(e) => handleChange("companyName", e.target.value)}
-                sx={inputSx}
-              />
-            ), true)}
-
-            {renderField("Contact Person", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter contact person"
-                value={formData.contactPerson}
-                onChange={(e) => handleChange("contactPerson", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Contact No", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter contact No."
-                value={formData.contactNo}
-                onChange={(e) => handleChange("contactNo", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Email", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="emailaddress@domain.com"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                sx={inputSx}
-              />
-            ), false, "Note : Use comma(,) as address separator to enter Multiple Email.")}
-
-            {renderField("Registration Type", (
-              <TextField
-                select
-                fullWidth
-                size="small"
-                value={formData.registrationType}
-                onChange={(e) => handleChange("registrationType", e.target.value)}
-                sx={inputSx}
-              >
-                <MenuItem value="Unregistered">Unregistered</MenuItem>
-                <MenuItem value="Registered">Registered</MenuItem>
-                <MenuItem value="Composition">Composition</MenuItem>
-              </TextField>
-            ))}
-
-            {renderField("PAN", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter PAN"
-                value={formData.pan}
-                onChange={(e) => handleChange("pan", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-          </Box>
-
-          {/* 2. Billing Address */}
-          <Box className="mb-8">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiMapPin className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Billing Address
-              </Typography>
-            </Box>
-
-            {renderField("Address", (
-              <Box className="space-y-2">
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Enter address1"
-                  value={formData.billingAddress}
-                  onChange={(e) => handleChange("billingAddress", e.target.value)}
-                  sx={inputSx}
-                />
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Enter address2"
-                  value={formData.billingAddress2}
-                  onChange={(e) => handleChange("billingAddress2", e.target.value)}
-                  sx={inputSx}
-                />
-              </Box>
-            ))}
-
-            {renderField("Landmark", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter landmark"
-                value={formData.billingLandmark}
-                onChange={(e) => handleChange("billingLandmark", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("City", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter city"
-                value={formData.billingCity}
-                onChange={(e) => handleChange("billingCity", e.target.value)}
-                sx={inputSx}
-              />
-            ), true)}
-
-            {renderField("Country", (
-              <TextField
-                select
-                fullWidth
-                size="small"
-                value={formData.billingCountry}
-                onChange={(e) => handleChange("billingCountry", e.target.value)}
-                sx={inputSx}
-              >
-                <MenuItem value="India">India</MenuItem>
-              </TextField>
-            ), true)}
-
-            {renderField("State", (
-              <TextField
-                select
-                fullWidth
-                size="small"
-                value={formData.billingState}
-                onChange={(e) => handleChange("billingState", e.target.value)}
-                sx={inputSx}
-              >
-                <MenuItem value="">Select State</MenuItem>
-                <MenuItem value="Delhi">Delhi</MenuItem>
-                <MenuItem value="Maharashtra">Maharashtra</MenuItem>
-                <MenuItem value="Karnataka">Karnataka</MenuItem>
-              </TextField>
-            ), true)}
-
-            {renderField("Pincode", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter pincode"
-                value={formData.billingZip}
-                onChange={(e) => handleChange("billingZip", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Distance for e-way bill (in km)", (
-              <Box className="flex gap-2">
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Enter Distance for e-way bill (in km)"
-                  value={formData.distance}
-                  onChange={(e) => handleChange("distance", e.target.value)}
-                  sx={inputSx}
-                />
-                <Button
-                  variant="outlined"
-                  className="whitespace-nowrap text-sm px-4 border-slate-300 text-slate-700 hover:bg-slate-50 normal-case"
-                >
-                  Auto Fill
-                </Button>
-              </Box>
-            ))}
-          </Box>
-
-          {/* 3. Shipping Address */}
-          <Box className="mb-8">
-            <Box className="flex items-center justify-between mb-5 pb-3 border-b border-slate-200">
-              <Box className="flex items-center gap-2">
-                <FiTruck className="text-slate-600" size={20} />
-                <Typography className="font-semibold text-slate-800 text-base">
-                  Shipping Address
-                </Typography>
-              </Box>
-              {!formData.hasShippingAddress && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white normal-case shadow-none"
-                  startIcon={<span className="text-lg">+</span>}
-                  onClick={() => handleChange("hasShippingAddress", true)}
-                >
-                  Add
-                </Button>
-              )}
-            </Box>
-
-            {formData.hasShippingAddress && (
-              <Box>
-                <Box className="flex justify-end mb-3">
-                  <Button
-                    size="small"
-                    className="text-red-500 normal-case text-xs hover:bg-red-50"
-                    onClick={() => handleChange("hasShippingAddress", false)}
-                  >
-                    Remove Shipping Address
-                  </Button>
-                </Box>
-                {renderField("Attention", (
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Attention"
-                    value={formData.shippingAttention}
-                    onChange={(e) => handleChange("shippingAttention", e.target.value)}
-                    sx={inputSx}
-                  />
-                ))}
-                {renderField("Address", (
-                  <TextField
-                    fullWidth
-                    size="small"
-                    multiline
-                    rows={2}
-                    placeholder="Address"
-                    value={formData.shippingAddress1}
-                    onChange={(e) => handleChange("shippingAddress1", e.target.value)}
-                    sx={inputSx}
-                  />
-                ))}
-              </Box>
-            )}
-          </Box>
-
-          {/* 4. Opening Balance */}
-          <Box className="mb-8">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiDollarSign className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Opening Balance
-              </Typography>
-            </Box>
-
-            {renderField("Vendor Balance", (
-              <RadioGroup
-                row
-                value={formData.openingBalanceType}
-                onChange={(e) => handleChange("openingBalanceType", e.target.value)}
-              >
-                <FormControlLabel
-                  value="Credit"
-                  control={<Radio size="small" sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#10b981' } }} />}
-                  label={<span className="text-sm text-slate-700">Credit</span>}
-                />
-                <FormControlLabel
-                  value="Debit"
-                  control={<Radio size="small" sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#ef4444' } }} />}
-                  label={<span className="text-sm text-slate-700">Debit</span>}
-                />
-              </RadioGroup>
-            ))}
-
-            {renderField("Amount", (
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                placeholder="0"
-                value={formData.openingBalance}
-                onChange={(e) => handleChange("openingBalance", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-          </Box>
-
-          {/* 5. Vendor Bank Details */}
-          <Box className="mb-8">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiBriefcase className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Vendor Bank Details
-              </Typography>
-            </Box>
-
-            {renderField("Bank Name", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter bank name"
-                value={formData.bankName}
-                onChange={(e) => handleChange("bankName", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Bank IFSC Code", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter IFSC code"
-                value={formData.ifscCode}
-                onChange={(e) => handleChange("ifscCode", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Bank Account Number", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter account number"
-                value={formData.accountNumber}
-                onChange={(e) => handleChange("accountNumber", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Bank Branch Name", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter branch name"
-                value={formData.branchName}
-                onChange={(e) => handleChange("branchName", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-          </Box>
-
-          {/* 6. Custom Fields */}
-          <Box className="mb-8">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiList className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Custom Fields
-              </Typography>
-            </Box>
-
-            {renderField("License No.", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter License No."
-                value={formData.licenseNo}
-                onChange={(e) => handleChange("licenseNo", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("custom field 1", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter custom field 1"
-                value={formData.customField1}
-                onChange={(e) => handleChange("customField1", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("custom field 2", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter custom field 2"
-                value={formData.customField2}
-                onChange={(e) => handleChange("customField2", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-          </Box>
-
-          {/* 7. Additional Details */}
-          <Box className="mb-6">
-            <Box className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-              <FiInfo className="text-slate-600" size={20} />
-              <Typography className="font-semibold text-slate-800 text-base">
-                Additional Details
-              </Typography>
-            </Box>
-
-            {renderField("Fax No", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter fax No."
-                value={formData.fax}
-                onChange={(e) => handleChange("fax", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Website", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="www.sitename.com"
-                value={formData.website}
-                onChange={(e) => handleChange("website", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Credit Limit", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter amount"
-                value={formData.creditLimit}
-                onChange={(e) => handleChange("creditLimit", e.target.value)}
-                sx={inputSx}
-              />
-            ), false, "Note : A warning will be displayed if the customer's credit limit is exceeded while generating an invoice")}
-
-            {renderField("Due Days", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter due days"
-                value={formData.dueDays}
-                onChange={(e) => handleChange("dueDays", e.target.value)}
-                sx={inputSx}
-              />
-            ), false, "Note : Keep it blank to use the default due date from settings. Enter a number to set the due date as days from the invoice date.")}
-
-            {renderField("Note", (
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Enter note"
-                multiline
-                rows={2}
-                value={formData.remarks}
-                onChange={(e) => handleChange("remarks", e.target.value)}
-                sx={inputSx}
-              />
-            ))}
-
-            {renderField("Enable", (
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={formData.isEnabled}
-                    onChange={(e) => handleChange("isEnabled", e.target.checked)}
-                    sx={{ color: '#10b981', '&.Mui-checked': { color: '#10b981' } }}
-                  />
-                }
-                label={<span className="text-sm text-slate-700">Company will be visible on all document.</span>}
-              />
-            ))}
-          </Box>
-
-        </Box>
-      </DialogContent>
-
-      {/* Footer */}
-      <DialogActions className="px-6 py-4 bg-gray-50 border-t border-gray-200 shrink-0 flex justify-between">
-        <Button
-          variant="outlined"
-          onClick={onClose}
-          startIcon={<FiX />}
-          className="px-6 py-2 border-gray-300 text-slate-700 hover:bg-gray-100 normal-case font-medium"
-        >
-          Close
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          className="px-8 py-2 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm normal-case font-medium"
-        >
-          Save
-        </Button>
-      </DialogActions>
+      {content}
     </Dialog>
   );
 };
