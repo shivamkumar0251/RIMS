@@ -14,7 +14,6 @@ import {
   // TextField,
   // InputAdornment,
   IconButton,
-  Drawer,
 } from "@mui/material";
 
 import { FiPlus, FiEdit, FiTrash2 } from "react-icons/fi";
@@ -202,227 +201,222 @@ export default function RestaurantSetup() {
   return (
     <AdminLayout>
       <div>
-        <Paper className="shadow-md rounded-xl overflow-hidden">
-          <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
-            <Tabs
-              value={value}
-              onChange={handleChange}
-              aria-label="restaurant setup tabs"
-              textColor="primary"
-              indicatorColor="primary"
-            >
-              <Tab
-                label="Equipment"
-                {...a11yProps(0)}
-                className="normal-case font-semibold"
-              />
-              <Tab
-                label="Crockery"
-                {...a11yProps(1)}
-                className="normal-case font-semibold"
-              />
-              <Tab
-                label="Furniture"
-                {...a11yProps(2)}
-                className="normal-case font-semibold"
-              />
-            </Tabs>
-            <Button
-              variant="contained"
-              startIcon={<FiPlus />}
-              onClick={() => navigate("?action=add")}
-              className="!bg-blue-600 hover:!bg-blue-700 normal-case"
-            >
-              Add {currentCategory}
-            </Button>
-          </Box>
+        {!isAddMode ? (
+          <>
+            <Paper className="shadow-md rounded-xl overflow-hidden">
+              <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
+                <Tabs
+                  value={value}
+                  onChange={handleChange}
+                  aria-label="restaurant setup tabs"
+                  textColor="primary"
+                  indicatorColor="primary"
+                >
+                  <Tab
+                    label="Equipment"
+                    {...a11yProps(0)}
+                    className="normal-case font-semibold"
+                  />
+                  <Tab
+                    label="Crockery"
+                    {...a11yProps(1)}
+                    className="normal-case font-semibold"
+                  />
+                  <Tab
+                    label="Furniture"
+                    {...a11yProps(2)}
+                    className="normal-case font-semibold"
+                  />
+                </Tabs>
+                <Button
+                  variant="contained"
+                  startIcon={<FiPlus />}
+                  onClick={() => navigate("?action=add")}
+                  className="!bg-blue-600 hover:!bg-blue-700 normal-case"
+                >
+                  Add {currentCategory}
+                </Button>
+              </Box>
 
-          {/* <div className="p-4 flex justify-between items-center bg-gray-50/50">
-            <TextField
-              size="small"
-              placeholder={`Search ${currentCategory}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <FiSearch className="text-gray-400" />
-                  </InputAdornment>
-                ),
-              }}
-              className="w-full sm:w-80 bg-white"
-            />
-          </div> */}
+              {/* <div className="p-4 flex justify-between items-center bg-gray-50/50">
+                <TextField
+                  size="small"
+                  placeholder={`Search ${currentCategory}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FiSearch className="text-gray-400" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  className="w-full sm:w-80 bg-white"
+                />
+              </div> */}
 
-          <CustomTabPanel value={value} index={0}>
-            <TableContainer>
-              <Table>
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">S/N</TableCell>
-                    <TableCell className="font-bold">Equipment Name</TableCell>
-                    <TableCell className="font-bold">Brand</TableCell>
-                    <TableCell className="font-bold">Quantity</TableCell>
-                    <TableCell className="font-bold">Status</TableCell>
-                    <TableCell className="font-bold" align="right">
-                      Actions
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {mockData.Equipment.map((item, idx) => (
-                    <TableRow key={item.id} hover>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell className="font-medium text-blue-600">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>{item.brand}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                          {item.status}
-                        </span>
-                      </TableCell>
-                      <TableCell align="right">
-                        <div className="flex justify-end gap-2">
-                          <IconButton size="small" className="text-blue-600">
-                            <FiEdit size={18} />
-                          </IconButton>
-                          <IconButton size="small" className="text-red-600">
-                            <FiTrash2 size={18} />
-                          </IconButton>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CustomTabPanel>
+              <CustomTabPanel value={value} index={0}>
+                <TableContainer>
+                  <Table>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Equipment Name</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {mockData.Equipment.map((item, idx) => (
+                        <TableRow key={item.id} hover>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-blue-600">
+                            {item.name}
+                          </TableCell>
+                          <TableCell>{item.brand}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              {item.status}
+                            </span>
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex justify-end gap-2">
+                              <IconButton size="small" className="text-blue-600">
+                                <FiEdit size={18} />
+                              </IconButton>
+                              <IconButton size="small" className="text-red-600">
+                                <FiTrash2 size={18} />
+                              </IconButton>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
 
-          <CustomTabPanel value={value} index={1}>
-            <TableContainer>
-              <Table>
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">S/N</TableCell>
-                    <TableCell className="font-bold">Item Name</TableCell>
-                    <TableCell className="font-bold">Material</TableCell>
-                    <TableCell className="font-bold">Quantity</TableCell>
-                    <TableCell className="font-bold">Status</TableCell>
-                    <TableCell className="font-bold" align="right">
-                      Actions
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {mockData.Crockery.map((item, idx) => (
-                    <TableRow key={item.id} hover>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell className="font-medium text-orange-600">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>{item.material}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                          {item.status}
-                        </span>
-                      </TableCell>
-                      <TableCell align="right">
-                        <div className="flex justify-end gap-2">
-                          <IconButton size="small" className="text-blue-600">
-                            <FiEdit size={18} />
-                          </IconButton>
-                          <IconButton size="small" className="text-red-600">
-                            <FiTrash2 size={18} />
-                          </IconButton>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CustomTabPanel>
+              <CustomTabPanel value={value} index={1}>
+                <TableContainer>
+                  <Table>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Item Name</TableCell>
+                        <TableCell className="font-bold">Material</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {mockData.Crockery.map((item, idx) => (
+                        <TableRow key={item.id} hover>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-orange-600">
+                            {item.name}
+                          </TableCell>
+                          <TableCell>{item.material}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              {item.status}
+                            </span>
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex justify-end gap-2">
+                              <IconButton size="small" className="text-blue-600">
+                                <FiEdit size={18} />
+                              </IconButton>
+                              <IconButton size="small" className="text-red-600">
+                                <FiTrash2 size={18} />
+                              </IconButton>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
 
-          <CustomTabPanel value={value} index={2}>
-            <TableContainer>
-              <Table>
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">S/N</TableCell>
-                    <TableCell className="font-bold">Furniture Name</TableCell>
-                    <TableCell className="font-bold">Type</TableCell>
-                    <TableCell className="font-bold">Quantity</TableCell>
-                    <TableCell className="font-bold">Status</TableCell>
-                    <TableCell className="font-bold" align="right">
-                      Actions
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {mockData.Furniture.map((item, idx) => (
-                    <TableRow key={item.id} hover>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell className="font-medium text-purple-600">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>{item.type}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-                          {item.status}
-                        </span>
-                      </TableCell>
-                      <TableCell align="right">
-                        <div className="flex justify-end gap-2">
-                          <IconButton size="small" className="text-blue-600">
-                            <FiEdit size={18} />
-                          </IconButton>
-                          <IconButton size="small" className="text-red-600">
-                            <FiTrash2 size={18} />
-                          </IconButton>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CustomTabPanel>
+              <CustomTabPanel value={value} index={2}>
+                <TableContainer>
+                  <Table>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Furniture Name</TableCell>
+                        <TableCell className="font-bold">Type</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Status</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {mockData.Furniture.map((item, idx) => (
+                        <TableRow key={item.id} hover>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-purple-600">
+                            {item.name}
+                          </TableCell>
+                          <TableCell>{item.type}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                              {item.status}
+                            </span>
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex justify-end gap-2">
+                              <IconButton size="small" className="text-blue-600">
+                                <FiEdit size={18} />
+                              </IconButton>
+                              <IconButton size="small" className="text-red-600">
+                                <FiTrash2 size={18} />
+                              </IconButton>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
 
-        </Paper>
+            </Paper>
 
-        <Drawer
-          anchor="right"
-          open={isAddMode}
-          onClose={handleCloseForm}
-          PaperProps={{ sx: { width: "100%", maxWidth: 1000 } }}
-        >
-          {isAddMode && (
-            <ProductDrawerForm
-              open={true} // Controlled by parent Drawer
-              onClose={handleCloseForm}
-              isEdit={false}
-              initialData={{ productType: categories[value] }}
-              categories={categoriesList}
-              vendors={vendors}
-              companies={companies}
-              productNames={[]}
-              onSave={handleSaveProduct}
-              allowedProductTypes={["Equipment", "Crockery", "Furniture"]}
-              onAddCategory={() => setCategoryModalOpen(true)}
-              onAddVendor={() => setVendorDrawerOpen(true)}
-              onAddBrand={() => setBrandModalOpen(true)}
-              onFillFromSearch={() => { }}
-            />
-          )}
-        </Drawer>
-
-        <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
-        <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
-        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
+            <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
+            <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
+            <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
+          </>
+        ) : (
+          <ProductDrawerForm
+            open={true}
+            onClose={handleCloseForm}
+            isEdit={false}
+            initialData={{ productType: categories[value] }}
+            categories={categoriesList}
+            vendors={vendors}
+            companies={companies}
+            productNames={[]}
+            onSave={handleSaveProduct}
+            allowedProductTypes={["Equipment", "Crockery", "Furniture"]}
+            onAddCategory={() => setCategoryModalOpen(true)}
+            onAddVendor={() => setVendorDrawerOpen(true)}
+            onAddBrand={() => setBrandModalOpen(true)}
+            onFillFromSearch={() => { }}
+          />
+        )}
       </div>
     </AdminLayout >
   );
