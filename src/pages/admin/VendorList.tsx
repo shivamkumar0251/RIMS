@@ -203,7 +203,7 @@ function VendorList() {
   return (
     <AdminLayout>
 
-      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+      <Box className="flex flex-col h-[calc(100vh-10px)] p-4">
         {/* Header Section */}
         <Box className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
           <Box className="flex flex-col xl:flex-row items-center justify-between gap-4">

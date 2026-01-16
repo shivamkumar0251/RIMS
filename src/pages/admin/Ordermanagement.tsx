@@ -479,7 +479,7 @@ export default function OrderManagementPage(): JSX.Element {
 
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-80px)]">
+      <Box className="flex flex-col h-[calc(100vh-10px)]">
 
         {/* Header Section */}
         <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 shadow-sm border border-gray-100">

@@ -429,7 +429,7 @@ export default function ProductTable() {
 
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-80px)]">
+      <Box className="flex flex-col h-[calc(100vh-10px)]">
         {/* Combined Tool Bar */}
         <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white mb-4">
           {/* Filters Area */}
