@@ -68,7 +68,7 @@ const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ open, onClose, onSa
                 </Box>
 
                 <DialogContent className="px-6 pb-6 pt-2">
-                    <Typography variant="body2" className="text-slate-500 mb-8 font-medium">
+                    <Typography variant="body2" className="text-slate-500 pb-4 font-medium">
                         Enter the company or brand name associated with products.
                     </Typography>
 
