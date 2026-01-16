@@ -37,8 +37,9 @@ axiosInstance.interceptors.response.use(
   (error: AxiosError) => {
     console.error('Error in API call:', error);
 
-    if (error.response?.status === 403) {
+    if (error.response?.status === 403 || error.response?.status === 401) {
       deleteCookie('token');
+      deleteCookie('userId');
       window.location.href = '/';
     }
 
