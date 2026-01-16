@@ -48,10 +48,6 @@ function VendorOrderDetails() {
     }
   }, [order, dispatch]);
 
-  const handleSendClick = () => {
-    setOpenConfirm(true);
-  };
-
   const handleConfirmSend = () => {
     setOpenConfirm(false);
     navigate("/admin/purchase", { state: { vendorOrder: order } });
@@ -133,15 +129,15 @@ function VendorOrderDetails() {
               </Typography>
               <Box className="mt-1">
                 <Chip
-                  label={order.status || "Draft"}
-                  color={(order.status?.toLowerCase() === 'delivered' ? 'success' : order.status?.toLowerCase() === 'sent' ? 'info' : 'warning') as any}
+                  label={order?.orderStatus || "Draft"}
+                  color={(order?.orderStatus?.toLowerCase() === 'delivered' ? 'success' : 'warning') as any}
                   size="small"
                   className="font-bold text-xs"
                 />
               </Box>
             </Box>
           </Box>
-          {(!order.status || order.status.toLowerCase() === "draft") && (
+          {(!order?.orderStatus || order?.orderStatus.toLowerCase() === "draft") && (
             <Button
               variant="contained"
               onClick={handleConfirmSend}
@@ -164,6 +160,7 @@ function VendorOrderDetails() {
                     "Category",
                     "Brand",
                     "Order Qty",
+                    "Delivered",
                     "Unit"
                   ].map(header => (
                     <TableCell
@@ -180,6 +177,9 @@ function VendorOrderDetails() {
               <TableBody>
                 {paginatedProducts?.map(row => {
                   const product = row?.productId;
+                  console.log('product', product);
+                  console.log('row', row?.sendToPurchaseQty);
+
                   return (
                     <TableRow
                       key={row?._id}
@@ -203,8 +203,13 @@ function VendorOrderDetails() {
                       </TableCell>
 
                       <TableCell className="text-gray-500">
+                        {row?.sendToPurchaseQty || "-"}
+                      </TableCell>
+
+                      <TableCell className="text-gray-500">
                         {product?.unit || "-"}
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
