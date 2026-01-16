@@ -24,7 +24,7 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, type ProductInterface } from "../../redux/slices/productSlice";
+import { addProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-hot-toast";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
@@ -69,6 +69,8 @@ export default function RestaurantSetup() {
   const categoriesList = useAppSelector(selectCategories) ?? [];
   const companies = useAppSelector(selectCompanies) ?? [];
   const vendors = useAppSelector(selectVendorNames) ?? [];
+  const productState = useAppSelector(selectProductState);
+  const products = productState?.products ?? [];
 
   // Local State for Modals
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -79,6 +81,7 @@ export default function RestaurantSetup() {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
+    dispatch(getProducts({ page: 1, limit: 1000 }));
   }, [dispatch]);
 
 
@@ -88,12 +91,21 @@ export default function RestaurantSetup() {
 
   const categories = ["Equipment", "Crockery", "Furniture"];
 
+  // Filter products by type
+  const equipmentProducts = products.filter((p: ProductInterface) => p.productType === "Equipment");
+  const crockeryProducts = products.filter((p: ProductInterface) => p.productType === "Crockery");
+  const furnitureProducts = products.filter((p: ProductInterface) => p.productType === "Furniture");
+
+  const currentCategory = categories[value] as string;
+
   // Action Handling
   const action = searchParams.get("action");
   const isAddMode = action === "add";
 
   const handleCloseForm = () => {
     navigate("/admin/restaurant-setup");
+    // Refresh products after closing form
+    dispatch(getProducts({ page: 1, limit: 1000 }));
   };
 
   const handleSaveProduct = async (productData: ProductInterface) => {
@@ -111,13 +123,14 @@ export default function RestaurantSetup() {
 
       await dispatch(addProduct(payload)).unwrap();
       toast.success("Item added successfully");
+      dispatch(getProducts({ page: 1, limit: 1000 }));
       navigate("/admin/restaurant-setup");
     } catch (err: any) {
       toast.error(err.message || "Failed to save item");
     }
   };
 
-  // Quick Add Handlers (Reusing logic from ProductTable roughly)
+  // Quick Add Handlers
   const handleSaveCategory = async (name: string) => {
     try {
       await dispatch(addCategory({ categoryName: name })).unwrap();
@@ -125,6 +138,7 @@ export default function RestaurantSetup() {
       toast.success("Category added");
     } catch (e: any) { toast.error(e.message); }
   };
+
   const handleSaveBrand = async (name: string) => {
     try {
       await dispatch(addCompany({ brandName: name })).unwrap();
@@ -132,8 +146,8 @@ export default function RestaurantSetup() {
       toast.success("Brand added");
     } catch (e: any) { toast.error(e.message); }
   };
+
   const handleSaveVendor = async (data: any) => {
-    // Simplified mapping for brevity, assuming data matches API needs or similar to ProductTable
     try {
       await dispatch(addVendor(data)).unwrap();
       dispatch(getVendorNameList());
