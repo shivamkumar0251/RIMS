@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
     Dialog,
-    DialogTitle,
     DialogContent,
     DialogActions,
     Button,
@@ -10,7 +9,7 @@ import {
     Typography,
     IconButton
 } from "@mui/material";
-import { FiX } from "react-icons/fi";
+import { FiX, FiTag } from "react-icons/fi";
 
 interface CreateBrandModalProps {
     open: boolean;
@@ -48,26 +47,37 @@ const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ open, onClose, onSa
             fullWidth
             maxWidth="xs"
             PaperProps={{
-                sx: { borderRadius: '16px', p: 1 }
+                sx: { borderRadius: '20px', p: 0, overflow: 'hidden' }
+            }}
+            BackdropProps={{
+                sx: { backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.2)' }
             }}
         >
-            <DialogTitle className="flex justify-between items-center bg-white border-b pb-4">
-                <Typography variant="h6" className="font-bold text-slate-800">Add New Brand</Typography>
-                <IconButton onClick={onClose} size="small" className="text-slate-400">
-                    <FiX size={20} />
-                </IconButton>
-            </DialogTitle>
-            <DialogContent className="pt-6">
-                <Box className="space-y-4">
-                    <Typography variant="body2" className="text-slate-500 mb-2">
-                        Enter the name of the company or brand for this product.
+            <Box className="bg-white">
+                <Box className="bg-blue-50 px-6 py-4 flex items-center justify-between border-b border-blue-100">
+                    <Box className="flex items-center gap-3">
+                        <Box className="bg-white p-2 rounded-full text-blue-600 shadow-sm border border-blue-100">
+                            <FiTag size={20} />
+                        </Box>
+                        {/* Title is explicitly Black and Bold as requested */}
+                        <Typography variant="h6" className="font-bold text-black">Add New Brand</Typography>
+                    </Box>
+                    <IconButton onClick={onClose} size="small" className="text-blue-400 hover:text-blue-700 hover:bg-blue-200" aria-label="close">
+                        <FiX size={20} />
+                    </IconButton>
+                </Box>
+
+                <DialogContent className="px-6 pb-6 pt-2">
+                    <Typography variant="body2" className="text-slate-500 mb-8 font-medium">
+                        Enter the company or brand name associated with products.
                     </Typography>
+
                     <TextField
                         autoFocus
                         fullWidth
                         size="small"
                         label="Brand Name"
-                        placeholder="e.g. Amul, Nestle, etc."
+                        placeholder="e.g. Nestle, Amul..."
                         value={name}
                         onChange={(e) => {
                             setName(e.target.value);
@@ -75,29 +85,40 @@ const CreateBrandModal: React.FC<CreateBrandModalProps> = ({ open, onClose, onSa
                         }}
                         error={Boolean(error)}
                         helperText={error}
-                        className="bg-white"
+                        className="mt-8"
+                        variant="outlined"
+                        sx={{
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: "12px",
+                                backgroundColor: "#fff",
+                                "&.Mui-focused fieldset": {
+                                    borderColor: "#2563eb"
+                                }
+                            },
+                            "& .MuiInputLabel-root.Mui-focused": {
+                                color: "#2563eb"
+                            }
+                        }}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter') handleSave();
                         }}
                     />
-                </Box>
-            </DialogContent>
-            <DialogActions className="p-4 pt-2">
-                <Button
-                    onClick={onClose}
-                    className="normal-case text-slate-500 font-bold px-6"
-                >
-                    Cancel
-                </Button>
-                <Button
-                    onClick={handleSave}
-                    variant="contained"
-                    disabled={loading}
-                    className="normal-case bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 rounded-lg shadow-lg shadow-indigo-100"
-                >
-                    {loading ? "Saving..." : "Save Brand"}
-                </Button>
-            </DialogActions>
+                </DialogContent>
+
+                <DialogActions className="p-6 pt-2 bg-slate-50 border-t border-slate-100">
+                    <Button variant="outlined" onClick={onClose} className="px-6 border-gray-300 text-gray-700">
+                        CANCEL
+                    </Button>
+                    <Button
+                        onClick={handleSave}
+                        variant="contained"
+                        disabled={loading}
+                        className="px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-sm"
+                    >
+                        {loading ? "Saving..." : "Create Brand"}
+                    </Button>
+                </DialogActions>
+            </Box>
         </Dialog>
     );
 };
