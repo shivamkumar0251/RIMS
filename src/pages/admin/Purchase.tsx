@@ -286,7 +286,7 @@ const Purchase: React.FC = () => {
           {/* Right Panel: PO Content */}
           <Box className="flex-1 overflow-y-auto flex flex-col">
             {/* Detail Header */}
-            <Box className="px-6 py-4 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
+            <Box className="px-6 py-2.5 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
               <Box className="flex items-center gap-4">
                 <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600"><ArrowBackIcon /></IconButton>
                 <Typography variant="h6" className="font-bold text-slate-800">{selectedOrder.orderNumber}</Typography>
@@ -396,6 +396,14 @@ const Purchase: React.FC = () => {
             </Box>
           </Box>
         </Box>
+
+        <PurchaseDrawerForm
+          open={isFormOpen}
+          isEdit={Boolean(editingOrder)}
+          initialData={editingOrder}
+          onClose={() => setIsFormOpen(false)}
+          onSave={handleSaveOrder}
+        />
       </AdminLayout>
     );
   }
