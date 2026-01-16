@@ -39,9 +39,9 @@ export interface GetVendorData {
   vendor_preferredPaymentMode: string,
   vendor_creditLimit: number,
   vendor_outstandingBalance: number,
-  vendor_contactPerson_name: string,
-  vendor_contactPerson_mobileNo: string,
-  vendor_email: string,
+  vendor_contactPerson_name?: string,
+  vendor_contactPerson_mobileNo?: string,
+  vendor_email?: string,
   vendor_gstType: string,
   vendor_registrationType: string,
   vendor_gstNumber: string,
@@ -226,6 +226,36 @@ export const updateVendor = createAsyncThunk<
 
       return thunkAPI.rejectWithValue({
         message: (response.data as { message?: string })?.message || 'Update failed',
+      });
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || 'Server error',
+      });
+    }
+  }
+);
+
+// GET VENDOR BY ID
+export const getVendorById = createAsyncThunk<
+  GetVendorData,
+  string,
+  { rejectValue: { message: string } }
+>(
+  'vendor/getVendorById',
+  async (vendorId, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: `${API_ENDPOINTS.GET_VENDOR_DATA}/${vendorId}`,
+        method: 'GET',
+      });
+
+      if (response.status === 200) {
+        return response.data as GetVendorData;
+      }
+
+      return thunkAPI.rejectWithValue({
+        message: (response.data as { message?: string })?.message || 'Failed to fetch vendor',
       });
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;

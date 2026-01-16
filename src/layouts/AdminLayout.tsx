@@ -37,7 +37,7 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${collapsed ? "md:ml-20" : "md:ml-64"
           }`}
       >
-        <AdminHeader toggleSidebar={toggleSidebar} />
+        {/* <AdminHeader toggleSidebar={toggleSidebar} /> */}
         <div className="flex-1 bg-white overflow-y-auto p-0">{children}</div>
       </main>
     </div>

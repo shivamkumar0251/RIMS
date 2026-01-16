@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
 import {
   FaBorderAll,
   FaBoxes,
@@ -12,18 +12,17 @@ import {
   FaShoppingCart,
   FaSignOutAlt,
   FaTh,
-  FaTimes,
 } from "react-icons/fa";
 import { FaShop } from "react-icons/fa6";
 import { MdBrandingWatermark } from "react-icons/md";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
 import { PiOvenDuotone } from "react-icons/pi";
 import { BiSolidPurchaseTag } from "react-icons/bi";
-import { FiSend } from "react-icons/fi";
+import { FiSend, FiPlus } from "react-icons/fi";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -46,37 +45,53 @@ type MenuItem = MenuItemBase | MenuItemWithChildren;
 
 export const AdminSidebar: React.FC<SidebarProps> = ({
   isOpen,
-  toggleSidebar,
   collapsed,
   setCollapsed,
 }) => {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [subExpanded, setSubExpanded] = useState<string | null>(null); // For 3rd level menu
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
-
-
+  const navigate = useNavigate();
 
   const toggleExpand = (name: string) => {
     setExpanded(expanded === name ? null : name);
-    setSubExpanded(null); // Reset sub-menu when main menu changes
   };
 
-  const toggleSubExpand = (name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSubExpanded(subExpanded === name ? null : name);
-  };
+  // Automatically expand parent menu if current route matches
+  useEffect(() => {
+    menuItems.forEach((item) => {
+      if ("children" in item) {
+        const isChildActive = location.pathname.startsWith(item.to) ||
+          item.children.some(
+            (child) => typeof child !== "string" && child.to === location.pathname
+          );
+
+        if (isChildActive) {
+          setExpanded(item.name);
+        }
+      }
+    });
+  }, [location.pathname]); // Re-run when path changes
+
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
 
   const menuItems: MenuItem[] = [
-    { icon: <FaHome />, name: "Dashboard", to: "/admin-dashboard" },
-    { icon: <FaShoppingBag />, name: "Products", to: "/admin/products" },
+    { icon: <FaHome size={18} />, name: "Dashboard", to: "/admin-dashboard" },
     {
-      icon: <FaBorderAll />,
+      icon: <FaShoppingBag size={18} />,
+      name: "Products",
+      to: "/admin/products",
+      children: [
+        { name: "Daily Product", to: "/admin/products" },
+        { name: "Restaurant Setup", to: "/admin/restaurant-setup" },
+      ],
+    },
+    {
+      icon: <FaBorderAll size={18} />,
       name: "Order Management",
       to: "/admin/orders",
       children: [
@@ -95,41 +110,39 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       ]
     },
     {
-      icon: <PiOvenDuotone />,
+      icon: <PiOvenDuotone size={18} />,
       name: "Order History",
       to: "/admin/vendorsOrder",
     },
-    { icon: <BiSolidPurchaseTag />, name: "Purchase", to: "/admin/purchase" },
-    { icon: <FaBoxes />, name: "Store Stock", to: "/storeStock" },
+    { icon: <BiSolidPurchaseTag size={18} />, name: "Purchase", to: "/admin/purchase" },
+    { icon: <FaBoxes size={18} />, name: "Store Stock", to: "/storeStock" },
     {
-      icon: <FiSend size={20} />,
+      icon: <FiSend size={18} />,
       name: "Kitchen Issue",
       to: "/admin/kitchen-issue",
     },
     {
-      icon: <FaShoppingCart size={20} />,
+      icon: <FaShoppingCart size={18} />,
       name: "Kitchen Store",
       to: "/admin/kitchenStock",
     },
     {
-      icon: <PiOvenDuotone size={20} />,
+      icon: <PiOvenDuotone size={18} />,
       name: "Kitchen Consumption",
       to: "/admin/kitchen-consumption",
     },
     {
-      icon: <SiMaterialdesignicons />,
+      icon: <SiMaterialdesignicons size={18} />,
       name: "Consumables",
       to: "/admin/consumables",
     },
     {
-      icon: <FaProductHunt />,
+      icon: <FaProductHunt size={18} />,
       name: "Categories List",
       to: "/admin/categories",
     },
-    { icon: <MdBrandingWatermark />, name: "Brand List", to: "/admin/company" },
-    { icon: <FaShop />, name: "Vendor List", to: "/admin/vendorList" },
-
-    { icon: <FaTh />, name: "Restaurant Setup", to: "/admin/restaurant-setup" },
+    { icon: <MdBrandingWatermark size={18} />, name: "Brand List", to: "/admin/company" },
+    { icon: <FaShop size={18} />, name: "Vendor List", to: "/admin/vendorList" },
   ];
 
   const handleLogout = () => {
@@ -146,147 +159,145 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
-      className={`bg-gray-800 text-white ${collapsed ? "w-20" : "w-64"
-        } h-screen p-3 sm:p-4 flex flex-col justify-between overflow-hidden
+      className={`bg-[#0d1529] text-gray-300 ${collapsed ? "w-20" : "w-64"
+        } h-screen flex flex-col justify-between overflow-hidden
           fixed inset-y-0 left-0 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50`}
+        } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50 border-r border-[#1e293b]`}
     >
       {/* FULL HEIGHT CONTAINER */}
       <div className="flex flex-col h-full">
         {/* HEADER */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <FaTh className="text-2xl text-blue-400 mr-2" />
-              {!collapsed && (
-                <h1 className="text-lg font-bold">Admin Dashboard</h1>
-              )}
+        <div className="flex items-center justify-between px-4 py-3 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white shrink-0">
+              <FaTh size={16} />
             </div>
-            <button onClick={toggleSidebar} className="md:hidden text-2xl">
-              <FaTimes />
-            </button>
+            {!collapsed && (
+              <h1 className="text-xl font-bold text-white tracking-tight">Inventory</h1>
+            )}
           </div>
-          <button onClick={toggleCollapse}>
+          <button onClick={toggleCollapse} className="text-gray-400 hover:text-white transition-colors">
             {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
           </button>
         </div>
 
         {/* SCROLLABLE MENU */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
           <nav>
-            <ul>
+            <ul className="space-y-1">
               {menuItems.map((item, index) => {
                 const isActive =
                   location.pathname === item.to ||
-                  ("children" in item && location.pathname.startsWith(item.to));
+                  ("children" in item &&
+                    (location.pathname.startsWith(item.to) ||
+                      item.children.some(
+                        (child) =>
+                          typeof child !== "string" &&
+                          child.to === location.pathname
+                      )));
 
-                return (
-                  <li key={index} className="mb-3">
-                    {"children" in item ? (
-                      <div>
-                        <button
-                          onClick={() => toggleExpand(item.name)}
-                          className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors duration-200 ${isActive ? "bg-gray-700" : "hover:bg-gray-700"
-                            }`}
-                        >
-                          <div className="flex items-center">
-                            <span className="text-xl">{item.icon}</span>
-                            {!collapsed && (
-                              <span className="ml-3">{item.name}</span>
-                            )}
-                          </div>
-                          {!collapsed &&
-                            (expanded === item.name ? (
-                              <FaChevronDown className="text-gray-400" />
-                            ) : (
-                              <FaChevronRight className="text-gray-400" />
-                            ))}
-                        </button>
+                // Expandable Item (Parent)
+                if ("children" in item) {
+                  const isExpanded = expanded === item.name;
 
-                        {!collapsed && expanded === item.name && (
-                          <ul className="ml-10 mt-1 space-y-1">
-                            {item.children.map((sub, subIndex) => {
-                              let subName = "";
-                              let subPath = "";
-                              let isGroup = false;
-                              let subChildrenResults: { name: string; to: string }[] = [];
-
-                              if (typeof sub === 'string') {
-                                subName = sub;
-                                subPath = `${item.to}/${sub.toLowerCase()}`;
-                              } else {
-                                subName = sub.name;
-                                subPath = sub.to;
-                                isGroup = sub.type === "group";
-                                subChildrenResults = sub.subChildren || [];
-                              }
-
-                              const isSubActive = location.pathname + location.search === subPath;
-                              const isGroupExpanded = subExpanded === subName;
-
-                              if (isGroup) {
-                                return (
-                                  <li key={subIndex}>
-                                    <button
-                                      onClick={(e) => toggleSubExpand(subName, e)}
-                                      className={`flex items-center justify-between w-full p-2 rounded-lg text-sm transition-colors duration-200 text-gray-300 hover:bg-gray-600`}
-                                    >
-                                      <span className="truncate">{subName}</span>
-                                      {isGroupExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
-                                    </button>
-
-                                    {isGroupExpanded && (
-                                      <ul className="ml-4 mt-1 space-y-1 border-l border-gray-600 pl-2 max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
-                                        {subChildrenResults.map((child, childIndex) => {
-                                          const isChildActive = location.pathname + location.search === child.to;
-                                          return (
-                                            <li key={childIndex}>
-                                              <Link
-                                                to={child.to}
-                                                className={`block p-2 rounded text-xs transition-colors duration-200
-                                                ${isChildActive ? "text-blue-400 font-semibold" : "text-gray-400 hover:text-white"}`}
-                                              >
-                                                {child.name}
-                                              </Link>
-                                            </li>
-                                          );
-                                        })}
-                                      </ul>
-                                    )}
-                                  </li>
-                                );
-                              }
-
-                              return (
-                                <li key={subIndex}>
-                                  <Link
-                                    to={subPath}
-                                    className={`block p-2 rounded-lg text-sm transition-colors duration-200
-                                    ${isSubActive
-                                        ? "bg-blue-600/40 text-white"
-                                        : "text-gray-300 hover:bg-gray-600"
-                                      }`}
-                                  >
-                                    {subName}
-                                  </Link>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        to={item.to}
-                        className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${isActive ? "bg-gray-700" : "hover:bg-gray-700"
-                          }`}
+                  return (
+                    <li key={index}>
+                      <button
+                        onClick={() => toggleExpand(item.name)}
+                        className={`group flex items-center w-full py-2.5 px-4 rounded-md transition-all duration-200 select-none
+                          ${isActive
+                            ? "bg-[#1e293b] text-blue-400"
+                            : "text-gray-400 hover:bg-[#1e293b] hover:text-white"}`}
                       >
-                        <span className="text-xl">{item.icon}</span>
+                        {/* Icon Column */}
+                        <div className="w-6 flex items-center justify-center shrink-0 ml-0 mr-3">
+                          {item.icon}
+                        </div>
+
+                        {/* Text Column */}
                         {!collapsed && (
-                          <span className="ml-3">{item.name}</span>
+                          <span className="font-medium text-sm flex-1 text-left truncate">{item.name}</span>
                         )}
-                      </Link>
-                    )}
+
+                        {/* Chevron Column (Moved to Right) */}
+                        {!collapsed && (
+                          <div className="w-4 flex items-center justify-center shrink-0 ml-auto">
+                            {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                          </div>
+                        )}
+                      </button>
+
+                      {/* Submenu */}
+                      {!collapsed && isExpanded && (
+                        <ul className="mt-1 space-y-0.5">
+                          {item.children.map((sub, subIndex) => {
+                            let subName = "";
+                            let subPath = "";
+                            let isGroup = false;
+
+                            if (typeof sub === 'string') {
+                              subName = sub;
+                              subPath = `${item.to}/${sub.toLowerCase()}`;
+                            } else {
+                              subName = sub.name;
+                              subPath = sub.to;
+                              isGroup = sub.type === "group";
+                            }
+
+                            const isSubActive = location.pathname + location.search === subPath;
+
+                            if (isGroup) return null; // Simplified 
+
+                            return (
+                              <li key={subIndex}>
+                                <Link
+                                  to={subPath}
+                                  className={`group flex items-center justify-between w-full py-2 pl-[3.5rem] pr-3 text-[13px] rounded-md transition-all duration-200
+                                  ${isSubActive
+                                      ? "bg-blue-600 text-white font-medium"
+                                      : "text-gray-400 hover:text-white hover:bg-[#1e293b]"
+                                    }`}
+                                >
+                                  <span>{subName}</span>
+                                  {item.name !== "Order Management" && (
+                                    <FiPlus
+                                      className={`transition-all duration-200 hover:text-blue-200 cursor-pointer ${isSubActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                      size={16}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        navigate(`${subPath.split('?')[0]}?action=add`);
+                                      }}
+                                    />
+                                  )}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                }
+
+                // Simple Link Item
+                return (
+                  <li key={index}>
+                    <Link
+                      to={item.to}
+                      className={`flex items-center w-full py-2.5 px-4 rounded-md transition-all duration-200 select-none
+                        ${isActive
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-900/20"
+                          : "text-gray-400 hover:bg-[#1e293b] hover:text-white"}`}
+                    >
+                      <div className="w-6 flex items-center justify-center shrink-0 ml-0 mr-3">
+                        {item.icon}
+                      </div>
+
+                      {!collapsed && (
+                        <span className="font-medium text-sm truncate">{item.name}</span>
+                      )}
+                    </Link>
                   </li>
                 );
               })}
@@ -295,53 +306,43 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="pt-2 border-t border-gray-700 mt-2">
+        <div className="p-4 border-t border-[#1e293b] bg-[#0b1121]">
           <Link
             to="/admin/setting"
-            className={`flex items-center w-full p-2.5 rounded-xl hover:bg-gray-700/50 transition-colors duration-200 mb-2 ${location.pathname === "/admin/setting" ? "bg-gray-700" : ""
+            className={`flex items-center w-full py-2.5 px-4 rounded-md hover:bg-[#1e293b] transition-colors duration-200 ${location.pathname === "/admin/setting" ? "bg-[#1e293b] text-white" : "text-gray-400"
               }`}
           >
-            <FaCog className="text-lg" />
-            {!collapsed && (
-              <span className="font-semibold text-sm ml-3">Settings</span>
-            )}
+            <div className="w-6 flex items-center justify-center ml-0 mr-3"><FaCog size={18} /></div>
+            {!collapsed && <span className="font-medium text-sm">Settings</span>}
           </Link>
 
           <div className="relative pt-2">
             {!collapsed && isProfileOpen && (
-              <div className="absolute bottom-full left-0 w-full bg-gray-700 rounded-lg p-2 shadow-lg">
+              <div className="absolute bottom-full left-0 w-full bg-[#1e293b] rounded-lg p-2 shadow-xl border border-gray-700 mb-2">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+                  className="flex items-center w-full p-2 rounded hover:bg-red-500/10 hover:text-red-400 transition-colors duration-200 text-sm text-gray-300"
                 >
-                  <FaSignOutAlt className="mr-3 text-lg" />
+                  <FaSignOutAlt className="mr-3" />
                   Logout
                 </button>
               </div>
             )}
 
             <button
-              onClick={() =>
-                collapsed ? null : setIsProfileOpen(!isProfileOpen)
-              }
-              className={`group flex items-center w-full p-3 rounded-xl bg-gray-700/50 border transition-all duration-300 ${isProfileOpen ? "border-blue-500" : "border-transparent"
-                }`}
+              onClick={() => collapsed ? null : setIsProfileOpen(!isProfileOpen)}
+              className={`group flex items-center w-full px-4 py-2 rounded-md hover:bg-[#1e293b] transition-all duration-300`}
             >
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold mr-3 ring-2 ring-gray-600 group-hover:ring-blue-400 transition-all duration-300">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs shrink-0 ring-2 ring-[#0d1529] group-hover:ring-blue-500 transition-all">
                 {getInitials("Admin")}
               </div>
               {!collapsed && (
                 <>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-gray-200 group-hover:text-white transition-colors">
-                      {"Admin Email"}
-                    </p>
-                    <p className="text-xs text-gray-400 capitalize">Admin</p>
+                  <div className="flex-1 ml-3 text-left overflow-hidden">
+                    <p className="font-medium text-sm text-gray-200 truncate">Admin User</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Administrator</p>
                   </div>
-                  <FaChevronDown
-                    className={`text-gray-400 group-hover:text-white transition-all duration-300 ${isProfileOpen ? "rotate-180" : ""
-                      }`}
-                  />
+                  <FaChevronDown size={10} className={`text-gray-500 ${isProfileOpen ? "rotate-180" : ""}`} />
                 </>
               )}
             </button>

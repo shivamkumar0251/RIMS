@@ -59,7 +59,7 @@ function VendorList() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(25);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingVendor, setEditingVendor] = useState<any>(null);
   const [formData, setFormData] = useState<GetVendorData>({
@@ -203,7 +203,7 @@ function VendorList() {
   return (
     <AdminLayout>
 
-      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+      <Box className="flex flex-col h-[calc(100vh-10px)] p-4">
         {/* Header Section */}
         <Box className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
           <Box className="flex flex-col xl:flex-row items-center justify-between gap-4">
@@ -393,6 +393,7 @@ function VendorList() {
                 setLimit(parseInt(e.target.value, 10));
                 setPage(0);
               }}
+              rowsPerPageOptions={[25, 50, 100]}
               className="text-sm text-gray-600"
             />
           </Box>

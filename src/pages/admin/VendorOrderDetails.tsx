@@ -144,7 +144,7 @@ function VendorOrderDetails() {
           {(!order.status || order.status.toLowerCase() === "draft") && (
             <Button
               variant="contained"
-              onClick={handleSendClick}
+              onClick={handleConfirmSend}
               className="normal-case px-6 py-2 font-bold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg"
             >
               Send to Purchase Order

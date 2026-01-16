@@ -11,8 +11,6 @@ import {
   Paper,
   TablePagination,
   TextField,
-  Tabs,
-  Tab,
   Typography,
   IconButton,
   Popover,
@@ -20,14 +18,11 @@ import {
   ListItemButton,
   ListItemText,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   Autocomplete,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSearch, FiFilter, FiGrid, FiList } from "react-icons/fi";
+import { FiSearch, FiFilter } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { useSearchParams } from "react-router-dom";
@@ -35,6 +30,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "jspdf-autotable";
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 import {
   addOrder,
@@ -72,14 +69,14 @@ export default function OrderManagementPage(): JSX.Element {
   const paramId = searchParams.get("id");
 
   // Derive initial state from URL (Persistence Logic)
-  const initialCategoryId = (mode === 'category' && paramId) ? paramId : (searchParams.get("categoryId") || "");
+  const initialCategoryId = (mode === 'category' && paramId) ? [paramId] : (searchParams.get("categoryId") ? searchParams.get("categoryId")!.split(',') : []);
   const initialVendorId = (mode === 'vendor' && paramId) ? paramId : (searchParams.get("vendorId") || "");
-  const initialCompanyId = (mode === 'brand' && paramId) ? paramId : (searchParams.get("companyId") || "");
+  const initialCompanyId = (mode === 'brand' && paramId) ? [paramId] : (searchParams.get("companyId") ? searchParams.get("companyId")!.split(',') : []);
 
   const [search] = useState("");
-  const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [categoryId, setCategoryId] = useState<string[]>(initialCategoryId);
   const [vendorId, setVendorId] = useState(initialVendorId);
-  const [companyId, setCompanyId] = useState(initialCompanyId);
+  const [companyId, setCompanyId] = useState<string[]>(initialCompanyId);
   const [fromDate] = useState("");
   const [toDate] = useState("");
 
@@ -89,18 +86,18 @@ export default function OrderManagementPage(): JSX.Element {
     else if (searchParams.get("vendorId")) setVendorId(searchParams.get("vendorId") || "");
     else if (!mode) setVendorId(""); // Clear if no relevant params
 
-    if (mode === 'category' && paramId) setCategoryId(paramId);
-    else if (searchParams.get("categoryId")) setCategoryId(searchParams.get("categoryId") || "");
-    else if (!mode) setCategoryId("");
+    if (mode === 'category' && paramId) setCategoryId([paramId]);
+    else if (searchParams.get("categoryId")) setCategoryId(searchParams.get("categoryId")?.split(',') || []);
+    else if (!mode) setCategoryId([]);
 
-    if (mode === 'brand' && paramId) setCompanyId(paramId);
-    else if (searchParams.get("companyId")) setCompanyId(searchParams.get("companyId") || "");
-    else if (!mode) setCompanyId("");
+    if (mode === 'brand' && paramId) setCompanyId([paramId]);
+    else if (searchParams.get("companyId")) setCompanyId(searchParams.get("companyId")?.split(',') || []);
+    else if (!mode) setCompanyId([]);
   }, [mode, paramId, searchParams]);
 
   // Pagination
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   // Selection & Qty
   const [selected, setSelected] = useState<string[]>([]);
@@ -109,7 +106,6 @@ export default function OrderManagementPage(): JSX.Element {
   // Vendor Selection Dialog
   // Create Order Modal
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"whatsapp" | "pdf" | "excel" | "csv" | null>(null);
 
   // Popover States
   const [productAnchor, setProductAnchor] = useState<null | HTMLElement>(null);
@@ -126,8 +122,8 @@ export default function OrderManagementPage(): JSX.Element {
   const shouldShowTable = useMemo(() => {
     if (!mode) return false;
     if (mode === 'vendor' && !vendorId) return false;
-    if (mode === 'category' && !categoryId) return false;
-    if (mode === 'brand' && !companyId) return false;
+    if (mode === 'category' && categoryId.length === 0) return false;
+    if (mode === 'brand' && companyId.length === 0) return false;
     return true;
   }, [mode, vendorId, categoryId, companyId]);
 
@@ -151,9 +147,9 @@ export default function OrderManagementPage(): JSX.Element {
         search: productSearch || search,
         page: page + 1,
         limit: rowsPerPage,
-        category: categoryId,
+        category: categoryId.join(','),
         vendor: vendorId,
-        brand: companyId,
+        brand: companyId.join(','),
         productType: "", // Fetch all
         fromDate,
         toDate
@@ -203,9 +199,10 @@ export default function OrderManagementPage(): JSX.Element {
     doc.setFont("helvetica", "bold");
     doc.text("BILL FROM:", 14, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text("My Restaurant / Store Name", 14, yPos + 5); // Replace with dynamic Store Name
-    doc.text("123, Main Street, City, State", 14, yPos + 10); // Replace with dynamic Address
-    doc.text("Contact: +91 9876543210", 14, yPos + 15); // Replace with dynamic Phone
+    doc.text("HopsNChops", 14, yPos + 5);
+    doc.text("Dharamshala, Palampur, Rd.Sidhpur Fatepur H.P, 176215", 14, yPos + 10);
+    doc.text("Contact: +91 9876543210", 14, yPos + 15);
+    doc.text("Email: social@hopsnchops.com", 14, yPos + 20);
 
     // Right Side: Bill To (Vendor)
     const rightX = 120;
@@ -214,8 +211,10 @@ export default function OrderManagementPage(): JSX.Element {
     doc.setFont("helvetica", "normal");
     doc.text(vendor.vendor_name || "N/A", rightX, yPos + 5);
     doc.text(`Mobile: ${vendor.vendor_mobileNo || "N/A"}`, rightX, yPos + 10);
-    doc.text(`Address: ${vendor.vendor_address || "N/A"}`, rightX, yPos + 15); // Assuming address exists
-    if (vendor.vendor_gstNo) doc.text(`GSTIN: ${vendor.vendor_gstNo}`, rightX, yPos + 20);
+    doc.text(`Contact Person: ${vendor.vendor_contactPerson_name || "N/A"} (${vendor.vendor_contactPerson_mobileNo || "N/A"})`, rightX, yPos + 15);
+    doc.text(`Address: ${vendor.vendor_address || "N/A"}`, rightX, yPos + 20);
+    doc.text(`Email: ${vendor.vendor_email || "N/A"}`, rightX, yPos + 25);
+    if (vendor.vendor_gstNumber) doc.text(`GSTIN: ${vendor.vendor_gstNumber}`, rightX, yPos + 30);
 
     // Order Details
     doc.setFont("helvetica", "bold");
@@ -306,7 +305,7 @@ export default function OrderManagementPage(): JSX.Element {
       // Header with My Info (Placeholder) & Vendor Info
       let message = `📋 *PURCHASE ORDER*\n`;
       message += `📅 Date: ${dayjs().format("DD/MM/YYYY")}\n`;
-      message += `🏪 *From:* My Restaurant / Store Name\n`; // Replace with dynamic Store Name
+      message += `🏪 *From:* HopsNChops\n`; // Replace with dynamic Store Name
       message += `👤 *To Vendor:* ${currentVendor.vendor_name}\n`;
       message += `📱 Mobile: ${currentVendor.vendor_mobileNo}\n`;
       message += `--------------------------------\n\n`;
@@ -329,58 +328,121 @@ export default function OrderManagementPage(): JSX.Element {
     } else if (type === "pdf") {
       generatePDF(currentVendor);
     } else if (type === "excel") {
-      // 1. Header Info
-      const headerRows = [
-        ["PURCHASE ORDER"],
-        [],
-        ["BILL FROM:", "", "BILL TO (VENDOR):"],
-        ["My Restaurant / Store Name", "", currentVendor.vendor_name || "N/A"],
-        ["123, Main Street, City, State", "", `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`],
-        ["Contact: +91 9876543210", "", `Address: ${currentVendor.vendor_address || "N/A"}`],
-        [],
-        [`Date: ${dayjs().format("DD/MM/YYYY")}`, "", "Order Status: Created/Draft"],
-        []
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Purchase Order');
+
+      // 1. Set Column Widths
+      sheet.columns = [
+        { key: 'A', width: 12 },
+        { key: 'B', width: 35 },
+        { key: 'C', width: 20 },
+        { key: 'D', width: 20 },
+        { key: 'E', width: 15 },
+        { key: 'F', width: 12 },
+        { key: 'G', width: 12 },
+        { key: 'H', width: 12 }
       ];
 
-      // 2. Table Headers
-      const tableHeaders = ["Product", "Category", "Brand", "Unit", "Quantity"];
+      // 2. Title Section
+      const titleRow = sheet.addRow(['PURCHASE ORDER']);
+      sheet.mergeCells('A1:H1');
+      titleRow.getCell(1).font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF444444' } }; // Dark Gray
+      sheet.addRow([]); // Empty Row
 
-      // 3. Product Data
-      const productRows = selectedProducts.map(p => [
-        p.productName,
-        p.categoryId?.categoryName || "-",
-        p.companyId?.brandName || "-",
-        p.unit,
-        qtyMap[p._id]
-      ]);
+      // 3. Billing Sections
+      // BILL FROM
+      sheet.addRow(['BILL From:', 'HopsNChops']).getCell(1).font = { bold: true };
+      sheet.addRow(['Address:', 'Dharamshala, Palampur, Rd.Sidhpur Fatepur H.P']).getCell(1).font = { bold: true };
+      sheet.addRow(['', '176215']);
+      sheet.addRow(['Contact:', '+91 9876543210']).getCell(1).font = { bold: true };
+      sheet.addRow(['Email:', 'social@hopsnchops.com']).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Separator
 
-      // 4. Combine
-      const sheetData = [...headerRows, tableHeaders, ...productRows];
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      // BILL TO
+      sheet.addRow(['BILL TO (VENDOR):', currentVendor.vendor_name || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact Person:', currentVendor.vendor_contactPerson_name || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact Mobile:', currentVendor.vendor_contactPerson_mobileNo || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Address:', currentVendor.vendor_address || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Contact:', currentVendor.vendor_mobileNo || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow(['Email:', currentVendor.vendor_email || "N/A"]).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Separator
 
-      // Set Column Widths (Approx)
-      ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }];
+      // Metadata
+      sheet.addRow(['Date:', dayjs().format("DD/MM/YYYY")]).getCell(1).font = { bold: true };
+      sheet.addRow([]); // Space before table
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Order");
-      XLSX.writeFile(wb, `Order_${currentVendor.vendor_name}.xlsx`);
+      // 4. Table Header
+      const tableHeaderRow = sheet.addRow(["Sr.No", "Product", "Category", "Brand", "Quantity", "Unit", "MRP", "Price"]);
+      tableHeaderRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF666666' } }; // Medium Gray
+        cell.alignment = { horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // 5. Product Data
+      selectedProducts.forEach((p, index) => {
+        const rowData = [
+          index + 1,
+          p.productName,
+          p.categoryId?.categoryName || "-",
+          p.companyId?.brandName || "-",
+          qtyMap[p._id],
+          p.unit,
+          "", // MRP
+          p.perUnitRate || "" // Price
+        ];
+        const row = sheet.addRow(rowData);
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle' };
+        });
+      });
+
+      // 6. Generate and save
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(new Blob([buffer]), `Purchase_Order_${currentVendor.vendor_name || 'Vendor'}.xlsx`);
+      });
 
     } else if (type === "csv") {
       const preamble = [
         "PURCHASE ORDER",
         "",
-        "BILL FROM:,,BILL TO (VENDOR):",
-        "My Restaurant / Store Name,," + (currentVendor.vendor_name || "N/A"),
-        "123 Main Street City State,," + `Mobile: ${currentVendor.vendor_mobileNo || "N/A"}`,
-        "Contact: +91 9876543210,," + `Address: ${currentVendor.vendor_address || "N/A"}`,
         "",
-        `Date: ${dayjs().format("DD/MM/YYYY")},,Order Status: Created/Draft`,
+        "",
+        "BILL From:,HopsNChops",
+        "Address : Dharamshala",
+        "Palampur",
+        "Rd.Sidhpur Fatepur H.P",
+        "176215",
+        "Contact: +91 9876543210",
+        "Email: social@hopsnchops.com",
+        "",
+        `BILL TO (VENDOR):,${currentVendor.vendor_name || "N/A"}`,
+        `Contact Person:,${currentVendor.vendor_contactPerson_name || "N/A"} (${currentVendor.vendor_contactPerson_mobileNo || "N/A"})`,
+        `Address : ${currentVendor.vendor_address || "N/A"}`,
+        `Contact: ${currentVendor.vendor_mobileNo || "N/A"}`,
+        `Email: ${currentVendor.vendor_email || "N/A"}`,
+        "",
+        `Date: ${dayjs().format("DD/MM/YYYY")}`,
         ""
       ].join("\n");
 
-      const headers = ["Product,Category,Brand,Unit,Quantity"].join(",");
-      const rows = selectedProducts.map(p =>
-        `"${p.productName}","${p.categoryId?.categoryName || "-"}","${p.companyId?.brandName || "-"}","${p.unit}",${qtyMap[p._id]}`
+      const headers = ["Sr.No", "Product", "Category", "Brand", "Quantity", "Unit", "MRP", "Price"].join(",");
+      const rows = selectedProducts.map((p, index) =>
+        `${index + 1},"${p.productName}","${p.categoryId?.categoryName || "-"}","${p.companyId?.brandName || "-"}",${qtyMap[p._id]},"${p.unit}","","${p.perUnitRate || ""}"`
       ).join("\n");
 
       const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(preamble + "\n" + headers + "\n" + rows);
@@ -417,10 +479,10 @@ export default function OrderManagementPage(): JSX.Element {
 
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-80px)] p-4">
+      <Box className="flex flex-col h-[calc(100vh-10px)]">
 
         {/* Header Section */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 shadow-sm border border-gray-100">
 
           {/* Left Side - Title */}
           <Box className="flex items-center gap-3">
@@ -460,16 +522,17 @@ export default function OrderManagementPage(): JSX.Element {
 
             {mode === 'category' && (
               <Autocomplete
+                multiple
                 size="small"
                 options={categories}
                 getOptionLabel={(option) => option.categoryName || ""}
-                value={categories.find(c => c._id === categoryId) || null}
+                value={categories.filter(c => categoryId.includes(c._id))}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
-                  setCategoryId(newVal);
+                  const newVals = newValue.map(v => v._id);
+                  setCategoryId(newVals);
                   const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVal) {
-                    setSearchParams({ ...currentParams, categoryId: newVal });
+                  if (newVals.length > 0) {
+                    setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
                   } else {
                     delete currentParams.categoryId;
                     delete currentParams.mode;
@@ -477,23 +540,24 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams(currentParams);
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Choose a category..." />}
-                sx={{ width: 280 }}
+                renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Choose categories..." />}
+                sx={{ width: 320 }}
               />
             )}
 
             {mode === 'brand' && (
               <Autocomplete
+                multiple
                 size="small"
                 options={companies}
                 getOptionLabel={(option) => option.brandName || ""}
-                value={companies.find(c => c._id === companyId) || null}
+                value={companies.filter(c => companyId.includes(c._id))}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
-                  setCompanyId(newVal);
+                  const newVals = newValue.map(v => v._id);
+                  setCompanyId(newVals);
                   const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVal) {
-                    setSearchParams({ ...currentParams, companyId: newVal });
+                  if (newVals.length > 0) {
+                    setSearchParams({ ...currentParams, companyId: newVals.join(',') });
                   } else {
                     delete currentParams.companyId;
                     delete currentParams.mode;
@@ -501,8 +565,8 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams(currentParams);
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Choose a brand..." />}
-                sx={{ width: 280 }}
+                renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Choose brands..." />}
+                sx={{ width: 320 }}
               />
             )}
 
@@ -512,7 +576,7 @@ export default function OrderManagementPage(): JSX.Element {
                 size="medium"
                 onClick={() => setCreateOrderOpen(true)}
                 disabled={selected.length === 0}
-                className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
+              // className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
               >
                 Create Order
               </Button>
@@ -532,14 +596,14 @@ export default function OrderManagementPage(): JSX.Element {
               <Typography variant="h6" className="text-gray-700 font-semibold mb-2">
                 {!mode && 'Select an Order Type'}
                 {mode === 'vendor' && !vendorId && 'Select a Vendor'}
-                {mode === 'category' && !categoryId && 'Select a Category'}
-                {mode === 'brand' && !companyId && 'Select a Brand'}
+                {mode === 'category' && categoryId.length === 0 && 'Select a Category'}
+                {mode === 'brand' && companyId.length === 0 && 'Select a Brand'}
               </Typography>
               <Typography variant="body2" className="text-gray-500 max-w-md mx-auto">
                 {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to get started.'}
                 {mode === 'vendor' && !vendorId && 'Please select a vendor from the dropdown above to view available products.'}
-                {mode === 'category' && !categoryId && 'Please select a category from the dropdown above to view available products.'}
-                {mode === 'brand' && !companyId && 'Please select a brand from the dropdown above to view available products.'}
+                {mode === 'category' && categoryId.length === 0 && 'Please select a category from the dropdown above to view available products.'}
+                {mode === 'brand' && companyId.length === 0 && 'Please select a brand from the dropdown above to view available products.'}
               </Typography>
             </Box>
           </Paper>
@@ -589,7 +653,7 @@ export default function OrderManagementPage(): JSX.Element {
                       <Box className="flex items-center gap-2">
                         Category
                         <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
+                          <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
                         </IconButton>
                       </Box>
                       <Popover
@@ -610,14 +674,34 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton onClick={() => { setCategoryId(""); setCatAnchor(null); }} selected={!categoryId}>
+                          <ListItemButton
+                            onClick={() => { setCategoryId([]); }}
+                            selected={categoryId.length === 0}
+                          >
+                            <Checkbox
+                              size="small"
+                              checked={categoryId.length === 0}
+                              indeterminate={categoryId.length > 0 && categoryId.length < categories.length}
+                            />
                             <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
                           </ListItemButton>
-                          {filteredCats.map((c) => (
-                            <ListItemButton key={c._id} onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} selected={categoryId === c._id}>
-                              <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                          ))}
+                          {filteredCats.map((c) => {
+                            const isSelected = categoryId.includes(c._id);
+                            return (
+                              <ListItemButton
+                                key={c._id}
+                                onClick={() => {
+                                  setCategoryId(prev =>
+                                    isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id]
+                                  );
+                                }}
+                                selected={isSelected}
+                              >
+                                <Checkbox size="small" checked={isSelected} />
+                                <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                            );
+                          })}
                         </List>
                       </Popover>
                     </TableCell>
@@ -661,7 +745,7 @@ export default function OrderManagementPage(): JSX.Element {
                       <Box className="flex items-center gap-2">
                         Brand
                         <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
+                          <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
                         </IconButton>
                       </Box>
                       <Popover
@@ -682,14 +766,34 @@ export default function OrderManagementPage(): JSX.Element {
                           />
                         </Box>
                         <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton onClick={() => { setCompanyId(""); setBrandAnchor(null); }} selected={!companyId}>
+                          <ListItemButton
+                            onClick={() => { setCompanyId([]); }}
+                            selected={companyId.length === 0}
+                          >
+                            <Checkbox
+                              size="small"
+                              checked={companyId.length === 0}
+                              indeterminate={companyId.length > 0 && companyId.length < companies.length}
+                            />
                             <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
                           </ListItemButton>
-                          {filteredBrands.map((b) => (
-                            <ListItemButton key={b._id} onClick={() => { setCompanyId(b._id); setBrandAnchor(null); }} selected={companyId === b._id}>
-                              <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                          ))}
+                          {filteredBrands.map((b) => {
+                            const isSelected = companyId.includes(b._id);
+                            return (
+                              <ListItemButton
+                                key={b._id}
+                                onClick={() => {
+                                  setCompanyId(prev =>
+                                    isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id]
+                                  );
+                                }}
+                                selected={isSelected}
+                              >
+                                <Checkbox size="small" checked={isSelected} />
+                                <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                            );
+                          })}
                         </List>
                       </Popover>
                     </TableCell>
@@ -791,6 +895,7 @@ export default function OrderManagementPage(): JSX.Element {
                   setRowsPerPage(parseInt(e.target.value, 10));
                   setPage(0);
                 }}
+                rowsPerPageOptions={[25, 50, 100]}
               />
             </Box>
           </Paper>
