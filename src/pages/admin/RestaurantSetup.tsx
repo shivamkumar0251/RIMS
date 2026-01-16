@@ -11,7 +11,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  Typography,
   IconButton,
 } from "@mui/material";
 

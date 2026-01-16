@@ -38,6 +38,8 @@ import {
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
 import { addBulkPurchases } from "../../redux/slices/purchaseSlice";
+import { addStoreStock } from "../../redux/slices/storeStockSlice";
+import { addKitchenStock } from "../../redux/slices/kitchenStockSlice";
 
 const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -58,6 +60,7 @@ const Purchase: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [moveAnchorEl, setMoveAnchorEl] = useState<null | HTMLElement>(null);
 
   // State for receipt data (Receive Mode)
   const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string }>>({});
@@ -128,6 +131,9 @@ const Purchase: React.FC = () => {
     }
 
     try {
+      const target = location.state?.target || 'Kitchen';
+
+      // 1. Update Vendor Order Status
       await dispatch(updateVendorOrder({
         vendorOrderId: vendorOrder._id,
         orderStatus: 'Delivered',
@@ -138,7 +144,22 @@ const Purchase: React.FC = () => {
         }))
       })).unwrap();
 
-      toast.success("Order received and stock updated successfully!");
+      // 2. Add to respective stock collection
+      if (target === 'Store') {
+        const storePayload = validItems.map(item => ({
+          productId: item.productId._id,
+          qty: item.receivedQty
+        }));
+        await dispatch(addStoreStock(storePayload)).unwrap();
+      } else {
+        const kitchenPayload = validItems.map(item => ({
+          productId: item.productId._id,
+          qty: item.receivedQty
+        }));
+        await dispatch(addKitchenStock(kitchenPayload)).unwrap();
+      }
+
+      toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
       setTimeout(() => navigate('/admin/vendorsOrder'), 500);
     } catch (error: any) {
       console.error("Error processing receipt:", error);
@@ -189,60 +210,116 @@ const Purchase: React.FC = () => {
       <AdminLayout>
         <Box className="flex items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
-          <Typography variant="h6" className="font-bold text-gray-800">Receive Purchase Order - #{vendorOrder.orderNumber}</Typography>
+          <Typography variant="h6" className="font-bold text-gray-800">
+            Move to {location.state?.target === 'Store' ? 'Main Store' : 'Kitchen Store'} - #{vendorOrder.orderNumber}
+          </Typography>
           <Box className="ml-auto">
             <Button variant="contained" onClick={handleConfirmReceipt} disabled={isProcessing} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold">
-              {isProcessing ? "Processing..." : "Confirm Receipt"}
+              {isProcessing ? "Processing..." : `MOVE TO ${location.state?.target === 'Store' ? 'STORE' : 'KITCHEN STORE'}`}
             </Button>
           </Box>
         </Box>
-        <Box className="p-4">
-          <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-            <TableContainer>
-              <Table>
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">Product</TableCell>
-                    <TableCell className="font-bold">Ordered Qty</TableCell>
-                    <TableCell className="font-bold">Unit</TableCell>
-                    <TableCell className="font-bold">Received Qty</TableCell>
-                    <TableCell className="font-bold">Damaged Qty</TableCell>
-                    <TableCell className="font-bold">Accepted Qty</TableCell>
-                    <TableCell className="font-bold">Remarks</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {vendorOrder.products.filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0).map((row: any) => {
-                    const pid = row.productId?._id;
-                    const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
-                    const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
-                    return (
-                      <TableRow key={row._id} hover>
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2" className="font-medium text-gray-800">{row.productId?.productName}</Typography>
-                            <Typography variant="caption" className="text-gray-500">{row.productId?.brandName} | {row.productId?.categoryName}</Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{row.sendToPurchaseQty || row.orderQty}</TableCell>
-                        <TableCell>{row.productId?.unit}</TableCell>
-                        <TableCell>
-                          <TextField type="number" size="small" sx={{ width: 100 }} value={data.receivedQty} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'receivedQty', Number(e.target.value))} />
-                        </TableCell>
-                        <TableCell>
-                          <TextField type="number" size="small" sx={{ width: 100 }} value={data.damagedQty} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'damagedQty', Number(e.target.value))} />
-                        </TableCell>
-                        <TableCell className="font-bold text-blue-600">{acceptedQty}</TableCell>
-                        <TableCell>
-                          <TextField size="small" fullWidth placeholder="Add remarks..." value={data.remarks || ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'remarks', e.target.value)} />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+        <Box className="p-6 bg-slate-50 min-h-[calc(100vh-64px)]">
+          <Box className="max-w-6xl mx-auto">
+            <Paper className="shadow-xl rounded-2xl overflow-hidden border border-slate-200 bg-white">
+              <Box className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <Box>
+                  <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receiving Items For</Typography>
+                  <Typography variant="subtitle1" className="font-black text-slate-800">#{vendorOrder.orderNumber}</Typography>
+                </Box>
+                <Box className="text-right">
+                  <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Location</Typography>
+                  <Typography className="font-black text-indigo-600 uppercase italic">
+                    {location.state?.target === 'Store' ? 'Main Store Inventory' : 'Kitchen Store Stock'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <TableContainer>
+                <Table>
+                  <TableHead className="bg-slate-50/50">
+                    <TableRow>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4">ITEM DESCRIPTION</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">ORDERED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">UNIT</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">RECEIVED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">DAMAGED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">ACCEPTED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4">REMARKS</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {vendorOrder.products.filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0).map((row: any) => {
+                      const pid = row.productId?._id;
+                      const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
+                      const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
+                      return (
+                        <TableRow key={row._id} hover className="group transition-colors hover:bg-slate-50/50">
+                          <TableCell className="py-4">
+                            <Box>
+                              <Typography className="text-sm font-bold text-slate-800">{row.productId?.productName}</Typography>
+                              <Typography className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">
+                                {row.productId?.brandName || 'Generic'} | {row.productId?.categoryName}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center" className="text-sm font-black text-slate-700">{row.sendToPurchaseQty || row.orderQty}</TableCell>
+                          <TableCell align="center" className="text-xs font-bold text-slate-500 italic">{row.productId?.unit}</TableCell>
+                          <TableCell align="center">
+                            <TextField
+                              type="number"
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                width: 80,
+                                '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }
+                              }}
+                              value={data.receivedQty}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'receivedQty', Number(e.target.value))}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <TextField
+                              type="number"
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                width: 80,
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  fontWeight: 'bold',
+                                  color: data.damagedQty > 0 ? '#e11d48' : 'inherit'
+                                }
+                              }}
+                              value={data.damagedQty}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'damagedQty', Number(e.target.value))}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box className={`text-sm font-black p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 inline-block min-w-[40px]`}>
+                              {acceptedQty}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              variant="outlined"
+                              placeholder="Any comments..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' } }}
+                              value={data.remarks || ""}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'remarks', e.target.value)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </Box>
         </Box>
       </AdminLayout>
     );
@@ -284,12 +361,12 @@ const Purchase: React.FC = () => {
           <Box className="flex-1 overflow-y-auto flex flex-col">
             {/* Detail Header */}
             <Box className="px-6 py-2.5 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
-              <Box className="flex items-center gap-4">
-                <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600"><ArrowBackIcon /></IconButton>
-                <Typography variant="h6" className="font-bold text-slate-800">{selectedOrder.orderNumber}</Typography>
-                <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase border ${getStatusColor(selectedOrder.status)}`}>{selectedOrder.status}</span>
+              <Box className="flex items-center gap-4 min-w-0 flex-shrink-1">
+                <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><ArrowBackIcon /></IconButton>
+                <Typography variant="h6" className="font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{selectedOrder.orderNumber}</Typography>
+                <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border flex-shrink-0 ${getStatusColor(selectedOrder.status)}`}>{selectedOrder.status}</span>
               </Box>
-              <Box className="flex items-center gap-2">
+              <Box className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   variant="outlined"
                   startIcon={<FiEdit />}
@@ -301,13 +378,53 @@ const Purchase: React.FC = () => {
                 <Button variant="outlined" startIcon={<FiPrinter />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Print</Button>
                 <Button variant="outlined" startIcon={<FiMail />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Email</Button>
                 {selectedOrder.status !== 'Received' && (
-                  <Button
-                    variant="contained"
-                    onClick={() => navigate('/admin/purchase', { state: { vendorOrder: selectedOrder } })}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold normal-case shadow-md"
-                  >
-                    Receive Order
-                  </Button>
+                  <>
+                    <Button
+                      variant="contained"
+                      endIcon={<FiChevronDown />}
+                      onClick={(e) => setMoveAnchorEl(e.currentTarget)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold normal-case shadow-md whitespace-nowrap px-4"
+                    >
+                      MOVE STOCK
+                    </Button>
+                    <Menu
+                      anchorEl={moveAnchorEl}
+                      open={Boolean(moveAnchorEl)}
+                      onClose={() => setMoveAnchorEl(null)}
+                      PaperProps={{
+                        elevation: 3,
+                        sx: {
+                          mt: 1,
+                          minWidth: 180,
+                          borderRadius: '10px',
+                          border: '1px solid #e2e8f0',
+                        }
+                      }}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    >
+                      <MenuItem
+                        onClick={() => {
+                          setMoveAnchorEl(null);
+                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Store' } });
+                        }}
+                        className="text-xs font-bold text-slate-700 py-2.5"
+                      >
+                        <Box className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                        MOVE TO MAIN STORE
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          setMoveAnchorEl(null);
+                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Kitchen' } });
+                        }}
+                        className="text-xs font-bold text-slate-700 py-2.5"
+                      >
+                        <Box className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
+                        MOVE TO KITCHEN
+                      </MenuItem>
+                    </Menu>
+                  </>
                 )}
               </Box>
             </Box>
