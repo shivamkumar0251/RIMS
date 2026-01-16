@@ -29,7 +29,7 @@ export interface ProductInterface {
   packSize: string;
   unit: string;
   productDescription?: string;
-  // quantity: number;
+  quantity: number;
   productType?: string;
   shape: string;
   colour: string;
@@ -42,6 +42,8 @@ export interface ProductInterface {
   // totalMRP: number;
   stockAlert: number;
   isActive?: boolean;
+  warrantyStart?: string;
+  warrantyEnd?: string;
   createdAt: string;
 }
 

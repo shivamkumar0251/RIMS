@@ -105,6 +105,7 @@ export default function ProductTable() {
     gstPct: 0,
     taxableValue: 0,
     perUnitRate: 0,
+    quantity: 0,
     // stockAlert: 0,
     createdAt: new Date().toISOString(),
   });
