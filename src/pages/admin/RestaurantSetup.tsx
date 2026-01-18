@@ -24,7 +24,7 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
+import { addProduct, updateProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-hot-toast";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
@@ -76,6 +76,8 @@ export default function RestaurantSetup() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [editData, setEditData] = useState<Partial<ProductInterface>>({});
 
   React.useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
@@ -103,9 +105,17 @@ export default function RestaurantSetup() {
   const isAddMode = action === "add";
 
   const handleCloseForm = () => {
+    setIsEdit(false);
+    setEditData({});
     navigate("/admin/restaurant-setup");
     // Refresh products after closing form
     dispatch(getProducts({ page: 1, limit: 1000 }));
+  };
+
+  const handleEditProduct = (item: ProductInterface) => {
+    setEditData(item);
+    setIsEdit(true);
+    navigate("?action=add");
   };
 
   const handleSaveProduct = async (productData: ProductInterface) => {
@@ -115,16 +125,21 @@ export default function RestaurantSetup() {
         gstPct: Number(productData.gstPct || 0),
         taxableValue: Number(productData.taxableValue || 0),
         perUnitRate: Number(productData.perUnitRate || 0),
-        // Ensure we send string IDs if objects are populated
-        categoryId: productData.categoryId?._id ? productData.categoryId : undefined,
-        vendorsId: productData.vendorsId?._id ? productData.vendorsId : undefined,
-        companyId: productData.companyId?._id ? productData.companyId : undefined,
+        // Ensure we send string IDs
+        categoryId: typeof productData.categoryId === 'object' ? productData.categoryId?._id : productData.categoryId,
+        vendorsId: typeof productData.vendorsId === 'object' ? productData.vendorsId?._id : productData.vendorsId,
+        companyId: typeof productData.companyId === 'object' ? productData.companyId?._id : productData.companyId,
       };
 
-      await dispatch(addProduct(payload)).unwrap();
-      toast.success("Item added successfully");
-      dispatch(getProducts({ page: 1, limit: 1000 }));
-      navigate("/admin/restaurant-setup");
+      if (isEdit && productData._id) {
+        await dispatch(updateProduct({ productId: productData._id, productData: payload })).unwrap();
+        toast.success("Item updated successfully");
+      } else {
+        await dispatch(addProduct(payload)).unwrap();
+        toast.success("Item added successfully");
+      }
+
+      handleCloseForm();
     } catch (err: any) {
       toast.error(err.message || "Failed to save item");
     }
@@ -220,6 +235,7 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Equipment Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
                         <TableCell className="font-bold">Vendor</TableCell>
                         <TableCell className="font-bold">Brand</TableCell>
                         <TableCell className="font-bold">Description</TableCell>
@@ -247,6 +263,7 @@ export default function RestaurantSetup() {
                             <TableCell className="font-medium text-blue-600">
                               {item.productName}
                             </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
                             <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
                             <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
                             <TableCell>
@@ -265,7 +282,7 @@ export default function RestaurantSetup() {
                             </TableCell>
                             <TableCell align="right">
                               <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
                                   <FiEdit size={18} />
                                 </IconButton>
                                 <IconButton size="small" className="text-red-600">
@@ -287,6 +304,7 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Item Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
                         <TableCell className="font-bold">Vendor</TableCell>
                         <TableCell className="font-bold">Brand</TableCell>
                         <TableCell className="font-bold">Description</TableCell>
@@ -314,6 +332,7 @@ export default function RestaurantSetup() {
                             <TableCell className="font-medium text-orange-600">
                               {item.productName}
                             </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
                             <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
                             <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
                             <TableCell>
@@ -332,7 +351,7 @@ export default function RestaurantSetup() {
                             </TableCell>
                             <TableCell align="right">
                               <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
                                   <FiEdit size={18} />
                                 </IconButton>
                                 <IconButton size="small" className="text-red-600">
@@ -354,6 +373,7 @@ export default function RestaurantSetup() {
                       <TableRow>
                         <TableCell className="font-bold">S/N</TableCell>
                         <TableCell className="font-bold">Furniture Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
                         <TableCell className="font-bold">Vendor</TableCell>
                         <TableCell className="font-bold">Brand</TableCell>
                         <TableCell className="font-bold">Description</TableCell>
@@ -381,6 +401,7 @@ export default function RestaurantSetup() {
                             <TableCell className="font-medium text-purple-600">
                               {item.productName}
                             </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
                             <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
                             <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
                             <TableCell>
@@ -399,7 +420,7 @@ export default function RestaurantSetup() {
                             </TableCell>
                             <TableCell align="right">
                               <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
                                   <FiEdit size={18} />
                                 </IconButton>
                                 <IconButton size="small" className="text-red-600">
@@ -424,8 +445,8 @@ export default function RestaurantSetup() {
           <ProductDrawerForm
             open={true}
             onClose={handleCloseForm}
-            isEdit={false}
-            initialData={{ productType: categories[value] }}
+            isEdit={isEdit}
+            initialData={isEdit ? editData : { productType: categories[value] }}
             categories={categoriesList}
             vendors={vendors}
             companies={companies}

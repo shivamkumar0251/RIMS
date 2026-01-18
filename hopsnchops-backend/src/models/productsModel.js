@@ -47,8 +47,10 @@ const productsSchema = new mongoose.Schema({
     alias: 'company'
   },
   productName: { type: String, required: true, trim: true },
+  productDescription: { type: String, trim: true },
   packSize: { type: String, },
   unit: { type: String, required: true, },
+  quantity: { type: Number, default: 0 },
   shape: { type: String, },
   colour: { type: String, },
   printStatus: { type: String },
@@ -59,13 +61,13 @@ const productsSchema = new mongoose.Schema({
   stockAlert: { type: Number, required: false, default: 0 },
   productType: {
     type: String,
-    enum: ["Inventory Item", "Packaging Item"],
+    enum: ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"],
     default: "Inventory Item",
   },
+  isActive: { type: Boolean, default: true },
   expiryDate: { type: Date },
-  // quantity: { type: Number, default: 0, },
-  // productMRP: { type: Number, required: true, },
-  // totalMRP: { type: Number, required: true, }, 
+  warrantyStart: { type: String },
+  warrantyEnd: { type: String },
 }, {
   timestamps: true
 });

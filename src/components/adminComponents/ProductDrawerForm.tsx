@@ -155,6 +155,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
     if (!form.unit) newErrors.unit = "Unit is required";
     if (!form.packSize) newErrors.packSize = "Pack Size is required";
+    if (!form.vendorsId) newErrors.vendorsId = "Vendor is required";
 
     if (form.isActive === undefined)
       newErrors.isActive = "Active Status is required";
@@ -196,16 +197,6 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
           finalizedForm.companyId = { _id: res._id, brandName: res.brandName };
           dispatch(getCompanies({ page: 1, limit: 1000 }));
         }
-      }
-
-      if (finalizedForm.vendorsId && !finalizedForm.vendorsId._id) {
-        delete finalizedForm.vendorsId;
-      }
-      if (finalizedForm.companyId && !finalizedForm.companyId._id) {
-        delete finalizedForm.companyId;
-      }
-      if (finalizedForm.categoryId && !finalizedForm.categoryId._id) {
-        delete finalizedForm.categoryId;
       }
 
       await onSave(finalizedForm as ProductInterface);
@@ -462,7 +453,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                     ) || null
                   }
                   onChange={(_, val) => handleInputChange("vendorsId", val ? val._id : "")}
-                  renderInput={(params) => <TextField {...params} size="small" label="Vendor" className="bg-white" />}
+                  renderInput={(params) => <TextField {...params} size="small" label="Vendor *" error={Boolean(errors.vendorsId)} helperText={errors.vendorsId} className="bg-white" />}
                 />
               </div>
 

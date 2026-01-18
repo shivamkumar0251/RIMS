@@ -126,7 +126,7 @@ export const addProduct = createAsyncThunk<
       });
 
       if (response.status === 201 || response.status === 200) {
-        return response.data as ProductInterface;
+        return (response.data as any).data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({
@@ -190,7 +190,7 @@ export const updateProduct = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as ProductInterface;
+        return (response.data as any).data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({
