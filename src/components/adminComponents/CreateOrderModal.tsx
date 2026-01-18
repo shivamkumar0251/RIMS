@@ -1,7 +1,6 @@
 
 import {
     Dialog,
-    DialogTitle,
     DialogContent,
     Button,
     Typography,
@@ -39,64 +38,71 @@ export const CreateOrderModal = ({
             maxWidth="sm"
             PaperProps={{
                 sx: {
-                    borderRadius: 3,
-                    p: 1,
+                    borderRadius: '12px',
+                    p: 0,
+                    overflow: 'hidden',
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'
                 },
             }}
+            BackdropProps={{
+                sx: { backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
+            }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+            <Box className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
                 <Box>
-                    <Typography variant="h6" className="font-bold text-gray-800">
+                    <Typography variant="h6" className="font-bold text-gray-900 leading-tight">
                         Create Order
                     </Typography>
-                    <Typography variant="body2" className="text-gray-500">
-                        Choose an action for {productCount} items
+                    <Typography variant="caption" className="text-gray-500 font-medium">
+                        Process {productCount} items in your inventory
                     </Typography>
                 </Box>
-                <IconButton onClick={onClose} size="small">
-                    <FiX />
+                <IconButton onClick={onClose} size="small" className="text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                    <FiX size={20} />
                 </IconButton>
-            </DialogTitle>
+            </Box>
 
-            <DialogContent sx={{ py: 3 }}>
-                <Box className="flex flex-col gap-4">
+            <DialogContent className="px-6 py-8">
+                <Box className="flex flex-col gap-6">
                     {/* WhatsApp Option */}
-                    <Box className="w-full">
+                    <Box>
                         <Button
                             fullWidth
                             variant="contained"
                             onClick={onSendWhatsapp}
                             startIcon={<FaWhatsapp className="text-2xl" />}
-                            className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl capitalize text-lg shadow-sm"
-                            sx={{ justifyContent: "flex-start", px: 4 }}
+                            className="bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl capitalize shadow-none transition-all hover:scale-[1.01]"
+                            sx={{ justifyContent: "center", px: 4 }}
+                            disableElevation
                         >
                             <Box className="text-left ml-2">
-                                <Typography className="font-bold line-clamp-1">Send via WhatsApp</Typography>
-                                <Typography variant="caption" className="opacity-90">
-                                    Save to DB & Open WhatsApp
+                                <Typography className="font-bold text-lg">Send via WhatsApp</Typography>
+                                <Typography variant="caption" className="opacity-90 block">
+                                    Save order details & notify on WhatsApp
                                 </Typography>
                             </Box>
                         </Button>
                     </Box>
 
-                    <Box className="w-full">
-                        <Typography variant="subtitle2" className="text-gray-400 text-center my-1 uppercase text-xs font-bold tracking-wider">
-                            OR Download As
+                    <Box className="flex items-center gap-4 px-2">
+                        <Box className="h-px bg-gray-100 flex-1" />
+                        <Typography variant="caption" className="text-gray-400 font-bold tracking-widest uppercase">
+                            OR DOWNLOAD AS
                         </Typography>
+                        <Box className="h-px bg-gray-100 flex-1" />
                     </Box>
 
                     {/* Download Options */}
-                    <Box className="grid grid-cols-3 gap-3">
+                    <Box className="grid grid-cols-3 gap-4">
                         {/* PDF Option */}
                         <Button
                             fullWidth
                             variant="outlined"
                             onClick={onDownloadPDF}
-                            className="flex flex-col gap-2 py-4 border-gray-200 hover:border-red-500 hover:bg-red-50 rounded-xl"
-                            sx={{ height: '100%' }}
+                            className="flex flex-col gap-3 py-6 border-gray-100 hover:border-red-500 hover:bg-red-50 rounded-xl transition-all"
                         >
                             <FaFilePdf className="text-3xl text-red-500" />
-                            <Typography variant="caption" className="font-bold text-gray-700">PDF</Typography>
+                            <Typography className="font-bold text-gray-700 text-sm">PDF</Typography>
                         </Button>
 
                         {/* Excel Option */}
@@ -104,11 +110,10 @@ export const CreateOrderModal = ({
                             fullWidth
                             variant="outlined"
                             onClick={onDownloadExcel}
-                            className="flex flex-col gap-2 py-4 border-gray-200 hover:border-green-600 hover:bg-green-50 rounded-xl"
-                            sx={{ height: '100%' }}
+                            className="flex flex-col gap-3 py-6 border-gray-100 hover:border-green-600 hover:bg-green-50 rounded-xl transition-all"
                         >
                             <FaFileExcel className="text-3xl text-green-600" />
-                            <Typography variant="caption" className="font-bold text-gray-700">Excel</Typography>
+                            <Typography className="font-bold text-gray-700 text-sm">Excel</Typography>
                         </Button>
 
                         {/* CSV Option */}
@@ -116,11 +121,10 @@ export const CreateOrderModal = ({
                             fullWidth
                             variant="outlined"
                             onClick={onDownloadCSV}
-                            className="flex flex-col gap-2 py-4 border-gray-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl"
-                            sx={{ height: '100%' }}
+                            className="flex flex-col gap-3 py-6 border-gray-100 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all"
                         >
                             <FaFileCsv className="text-3xl text-blue-500" />
-                            <Typography variant="caption" className="font-bold text-gray-700">CSV</Typography>
+                            <Typography className="font-bold text-gray-700 text-sm">CSV</Typography>
                         </Button>
                     </Box>
                 </Box>

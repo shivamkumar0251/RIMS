@@ -11,6 +11,7 @@ import {
   TableHead,
   TableRow,
   Button,
+  TablePagination,
   IconButton,
 } from "@mui/material";
 
@@ -22,7 +23,7 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, getProducts, deleteProduct, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
+import { addProduct, updateProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-hot-toast";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
@@ -43,9 +44,14 @@ function CustomTabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
+      className="flex-1 flex flex-col overflow-hidden"
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -74,17 +80,32 @@ export default function RestaurantSetup() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [editData, setEditData] = useState<Partial<ProductInterface>>({});
 
   React.useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
-    dispatch(getProducts({ page: 1, limit: 1000 }));
+    dispatch(getProducts({ page: 1, limit: 1000, productType: "Equipment,Crockery,Furniture" }));
   }, [dispatch]);
 
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
+    setPage(0); // Reset page on tab change
+  };
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const categories = ["Equipment", "Crockery", "Furniture"];
@@ -94,16 +115,30 @@ export default function RestaurantSetup() {
   const crockeryProducts = products.filter((p: ProductInterface) => p.productType === "Crockery");
   const furnitureProducts = products.filter((p: ProductInterface) => p.productType === "Furniture");
 
-  // const currentCategory = categories[value] as string;
+  const paginatedEquipment = equipmentProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedCrockery = crockeryProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedFurniture = furnitureProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const currentCount = [equipmentProducts.length, crockeryProducts.length, furnitureProducts.length][value];
+
+  const currentCategory = categories[value] as string;
 
   // Action Handling
   const action = searchParams.get("action");
   const isAddMode = action === "add";
 
   const handleCloseForm = () => {
+    setIsEdit(false);
+    setEditData({});
     navigate("/admin/restaurant-setup");
     // Refresh products after closing form
-    dispatch(getProducts({ page: 1, limit: 1000 }));
+    dispatch(getProducts({ page: 1, limit: 1000, productType: "Equipment,Crockery,Furniture" }));
+  };
+
+  const handleEditProduct = (item: ProductInterface) => {
+    setEditData(item);
+    setIsEdit(true);
+    navigate("?action=add");
   };
 
   const handleSaveProduct = async (productData: ProductInterface) => {
@@ -113,16 +148,21 @@ export default function RestaurantSetup() {
         gstPct: Number(productData.gstPct || 0),
         taxableValue: Number(productData.taxableValue || 0),
         perUnitRate: Number(productData.perUnitRate || 0),
-        // Ensure we send string IDs if objects are populated
-        categoryId: productData.categoryId?._id ? productData.categoryId : undefined,
-        vendorsId: productData.vendorsId?._id ? productData.vendorsId : undefined,
-        companyId: productData.companyId?._id ? productData.companyId : undefined,
+        // Ensure we send string IDs
+        categoryId: typeof productData.categoryId === 'object' ? productData.categoryId?._id : productData.categoryId,
+        vendorsId: typeof productData.vendorsId === 'object' ? productData.vendorsId?._id : productData.vendorsId,
+        companyId: typeof productData.companyId === 'object' ? productData.companyId?._id : productData.companyId,
       };
 
-      await dispatch(addProduct(payload)).unwrap();
-      toast.success("Item added successfully");
-      dispatch(getProducts({ page: 1, limit: 1000 }));
-      navigate("/admin/restaurant-setup");
+      if (isEdit && productData._id) {
+        await dispatch(updateProduct({ productId: productData._id, productData: payload })).unwrap();
+        toast.success("Item updated successfully");
+      } else {
+        await dispatch(addProduct(payload)).unwrap();
+        toast.success("Item added successfully");
+      }
+
+      handleCloseForm();
     } catch (err: any) {
       toast.error(err.message || "Failed to save item");
     }
@@ -154,212 +194,307 @@ export default function RestaurantSetup() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleEditProduct = (product: ProductInterface) => {
-    // We can use a query param or state to open the edit form
-    // For now, let's just log and navigate to add mode with product data
-    // In a real app, you'd pass the initialData to ProductDrawerForm
-    navigate(`?action=edit&id=${product._id}`);
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        await dispatch(deleteProduct(id)).unwrap();
-        toast.success("Product deleted successfully");
-        dispatch(getProducts({ page: 1, limit: 1000 })); // Refresh products after deletion
-      } catch (err: any) {
-        toast.error(err.message || "Failed to delete product");
-      }
-    }
-  };
-
-  const currentCategory = categories[value];
-
-  const renderTable = (data: ProductInterface[], nameField: string, accentColor: string) => {
-    // If no data, show some sample rows for visualization (as per user request "Implement mock data")
-    const displayData = data.length > 0 ? data : [
-      {
-        _id: "sample-1",
-        productName: `Sample ${currentCategory} 1`,
-        productDescription: "High quality item for restaurant needs",
-        quantity: 10,
-        perUnitRate: 1500,
-        gstPct: 18,
-        taxableValue: 1770,
-        vendorsId: { _id: "v1", vendor_name: "Global Supplies" } as any,
-        companyId: { _id: "c1", brandName: "PremiumBrand" } as any,
-        warrantyStart: "2023-01-01",
-        warrantyEnd: "2024-01-01",
-        productType: currentCategory,
-      },
-      {
-        _id: "sample-2",
-        productName: `Sample ${currentCategory} 2`,
-        productDescription: "Durable and efficient unit",
-        quantity: 5,
-        perUnitRate: 4500,
-        gstPct: 12,
-        taxableValue: 5040,
-        vendorsId: { _id: "v2", vendor_name: "Kitchen King" } as any,
-        companyId: { _id: "c2", brandName: "ChefChoice" } as any,
-        warrantyStart: "2023-06-15",
-        warrantyEnd: "2025-06-15",
-        productType: currentCategory,
-      }
-    ] as unknown as ProductInterface[];
-
-    return (
-      <TableContainer>
-        <Table>
-          <TableHead className="bg-gray-50">
-            <TableRow>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">S/N</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">{nameField}</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Vendor</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Brand</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Description</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Quantity</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Rate</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">GST %</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Taxable</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500">Warranty (Start - End)</TableCell>
-              <TableCell className="font-black text-[10px] py-3 text-slate-500" align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {displayData.map((item, idx) => (
-              <TableRow key={item._id} hover className="group">
-                <TableCell className="text-xs font-bold text-slate-500">{idx + 1}</TableCell>
-                <TableCell className={`text-xs font-black ${accentColor}`}>{item.productName}</TableCell>
-                <TableCell className="text-xs font-medium text-slate-600">{item.vendorsId?.vendor_name || "N/A"}</TableCell>
-                <TableCell className="text-xs font-medium text-slate-600">{item.companyId?.brandName || "N/A"}</TableCell>
-                <TableCell className="text-xs font-medium text-slate-500">
-                  <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                    {item.productDescription || "N/A"}
-                  </span>
-                </TableCell>
-                <TableCell className="text-xs font-black text-slate-700">{item.quantity || 0}</TableCell>
-                <TableCell className="text-xs font-black text-slate-700">₹{item.perUnitRate?.toLocaleString() || 0}</TableCell>
-                <TableCell className="text-xs font-bold text-slate-600">{item.gstPct}%</TableCell>
-                <TableCell className="text-xs font-bold text-slate-600">₹{item.taxableValue?.toLocaleString() || 0}</TableCell>
-                <TableCell className="text-xs font-medium text-slate-500 italic">
-                  {item.warrantyStart && item.warrantyEnd
-                    ? `${item.warrantyStart} - ${item.warrantyEnd}`
-                    : "N/A"
-                  }
-                </TableCell>
-                <TableCell align="right">
-                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                      <FiEdit size={14} />
-                    </IconButton>
-                    <IconButton size="small" className="text-rose-600" onClick={() => handleDeleteProduct(item._id)}>
-                      <FiTrash2 size={14} />
-                    </IconButton>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    );
-  };
-
-  const renderContent = () => {
-    if (vendorDrawerOpen) {
-      return (
-        <VendorModal
-          open={true}
-          onClose={() => setVendorDrawerOpen(false)}
-          onAddVendor={handleSaveVendor}
-          variant="embedded"
-        />
-      );
-    }
-
-    if (isAddMode || searchParams.get("action") === "edit") {
-      const editId = searchParams.get("id");
-      const initialEditData = editId ? products.find(p => p._id === editId) || {} : {};
-
-      return (
-        <ProductDrawerForm
-          open={true}
-          onClose={handleCloseForm}
-          isEdit={!!editId}
-          initialData={initialEditData}
-          categories={categoriesList}
-          vendors={vendors}
-          companies={companies}
-          productNames={[]}
-          onSave={handleSaveProduct}
-          onAddCategory={() => setCategoryModalOpen(true)}
-          onAddVendor={() => setVendorDrawerOpen(true)}
-          onAddBrand={() => setBrandModalOpen(true)}
-          onFillFromSearch={() => { }}
-          allowedProductTypes={[currentCategory]}
-        />
-      );
-    }
-
-    return (
-      <Paper className="shadow-md rounded-xl overflow-hidden">
-        <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
-          <Tabs
-            value={value}
-            onChange={handleChange}
-            aria-label="restaurant setup tabs"
-            textColor="primary"
-            indicatorColor="primary"
-          >
-            <Tab
-              label="EQUIPMENT"
-              {...a11yProps(0)}
-              className="font-bold text-xs"
-            />
-            <Tab
-              label="CROCKERY"
-              {...a11yProps(1)}
-              className="font-bold text-xs"
-            />
-            <Tab
-              label="FURNITURE"
-              {...a11yProps(2)}
-              className="font-bold text-xs"
-            />
-          </Tabs>
-          <Button
-            variant="contained"
-            startIcon={<FiPlus />}
-            onClick={() => navigate("?action=add")}
-            className="!bg-blue-600 hover:!bg-blue-700 font-bold text-xs"
-            sx={{ borderRadius: '6px', px: 3, py: 1 }}
-          >
-            ADD {currentCategory.toUpperCase()}
-          </Button>
-        </Box>
-
-        <CustomTabPanel value={value} index={0}>
-          {renderTable(equipmentProducts, "Equipment Name", "text-blue-600")}
-        </CustomTabPanel>
-
-        <CustomTabPanel value={value} index={1}>
-          {renderTable(crockeryProducts, "Item Name", "text-orange-600")}
-        </CustomTabPanel>
-
-        <CustomTabPanel value={value} index={2}>
-          {renderTable(furnitureProducts, "Furniture Name", "text-purple-600")}
-        </CustomTabPanel>
-      </Paper>
-    );
-  };
-
   return (
     <AdminLayout>
-      <div>
-        {renderContent()}
+      <div className="flex flex-col h-[calc(100vh-20px)]">
+        {!isAddMode ? (
+          <>
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden">
+              <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
+                <Tabs
+                  value={value}
+                  onChange={handleChange}
+                  aria-label="restaurant setup tabs"
+                  textColor="primary"
+                  indicatorColor="primary"
+                >
+                  <Tab
+                    label="Equipment"
+                    {...a11yProps(0)}
+                    className="normal-case font-semibold"
+                  />
+                  <Tab
+                    label="Crockery"
+                    {...a11yProps(1)}
+                    className="normal-case font-semibold"
+                  />
+                  <Tab
+                    label="Furniture"
+                    {...a11yProps(2)}
+                    className="normal-case font-semibold"
+                  />
+                </Tabs>
+                <Button
+                  variant="contained"
+                  startIcon={<FiPlus />}
+                  onClick={() => navigate("?action=add")}
+                  className="!bg-blue-600 hover:!bg-blue-700 normal-case"
+                >
+                  Add {currentCategory}
+                </Button>
+              </Box>
+
+              {/* <div className="p-4 flex justify-between items-center bg-gray-50/50">
+                <TextField
+                  size="small"
+                  placeholder={`Search ${currentCategory}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FiSearch className="text-gray-400" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  className="w-full sm:w-80 bg-white"
+                />
+              </div> */}
+
+              <CustomTabPanel value={value} index={0}>
+                <TableContainer className="flex-1 overflow-auto">
+                  <Table stickyHeader>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Equipment Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {equipmentProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
+                            No equipment found. Click "Add Equipment" to get started.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedEquipment.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                            <TableCell className="font-medium text-blue-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
+
+              <CustomTabPanel value={value} index={1}>
+                <TableContainer className="flex-1 overflow-auto">
+                  <Table stickyHeader>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Item Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {crockeryProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
+                            No crockery found. Click "Add Crockery" to get started.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedCrockery.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                            <TableCell className="font-medium text-orange-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
+
+              <CustomTabPanel value={value} index={2}>
+                <TableContainer className="flex-1 overflow-auto">
+                  <Table stickyHeader>
+                    <TableHead className="bg-gray-50">
+                      <TableRow>
+                        <TableCell className="font-bold">S/N</TableCell>
+                        <TableCell className="font-bold">Furniture Name</TableCell>
+                        <TableCell className="font-bold">Category</TableCell>
+                        <TableCell className="font-bold">Vendor</TableCell>
+                        <TableCell className="font-bold">Brand</TableCell>
+                        <TableCell className="font-bold">Description</TableCell>
+                        <TableCell className="font-bold">Quantity</TableCell>
+                        <TableCell className="font-bold">Rate</TableCell>
+                        <TableCell className="font-bold">GST %</TableCell>
+                        <TableCell className="font-bold">Taxable</TableCell>
+                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
+                        <TableCell className="font-bold" align="right">
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {furnitureProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
+                            No furniture found. Click "Add Furniture" to get started.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedFurniture.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover>
+                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                            <TableCell className="font-medium text-purple-600">
+                              {item.productName}
+                            </TableCell>
+                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                            <TableCell>
+                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                {item.productDescription || 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                            <TableCell>{item.gstPct}%</TableCell>
+                            <TableCell>₹{item.taxableValue || 0}</TableCell>
+                            <TableCell>
+                              {item.warrantyStart && item.warrantyEnd
+                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <div className="flex justify-end gap-2">
+                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                  <FiEdit size={18} />
+                                </IconButton>
+                                <IconButton size="small" className="text-red-600">
+                                  <FiTrash2 size={18} />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CustomTabPanel>
+              
+              <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
+                <TablePagination
+                  component="div"
+                  count={currentCount}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                />
+              </Box>
+            </Paper>
+
+          </>
+        ) : (
+          <ProductDrawerForm
+            open={true}
+            onClose={handleCloseForm}
+            isEdit={isEdit}
+            title={isEdit ? `Edit ${editData.productName}` : `Add ${categories[value]}`}
+            initialData={isEdit ? editData : { productType: categories[value] }}
+            categories={categoriesList}
+            vendors={vendors}
+            companies={companies}
+            productNames={[]}
+            onSave={handleSaveProduct}
+            allowedProductTypes={["Equipment", "Crockery", "Furniture"]}
+            onAddCategory={() => setCategoryModalOpen(true)}
+            onAddVendor={() => setVendorDrawerOpen(true)}
+            onAddBrand={() => setBrandModalOpen(true)}
+            onFillFromSearch={() => { }}
+          />
+        )}
+
         <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
         <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
+        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
       </div>
     </AdminLayout >
   );

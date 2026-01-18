@@ -29,7 +29,7 @@ import { useSearchParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "jspdf-autotable";
-import * as XLSX from 'xlsx';
+// import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -126,6 +126,16 @@ export default function OrderManagementPage(): JSX.Element {
     if (mode === 'brand' && companyId.length === 0) return false;
     return true;
   }, [mode, vendorId, categoryId, companyId]);
+
+  // Vendor detection for selected items
+  const selectedVendorIds = useMemo(() => {
+    const selectedProds = ordersList.filter(p => selected.includes(p._id));
+    const vIds = selectedProds.map(p => p.vendorsId?._id).filter(Boolean);
+    return Array.from(new Set(vIds));
+  }, [selected, ordersList]);
+
+  const isMultipleVendorsSelected = selectedVendorIds.length > 1;
+  const singleSelectedVendorId = selectedVendorIds.length === 1 ? selectedVendorIds[0] as string : null;
 
   // Load dropdowns
   useEffect(() => {
@@ -267,14 +277,18 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Generic Action Handler
   const handleOrderAction = async (type: "whatsapp" | "pdf" | "excel" | "csv") => {
-    // 1. Identify selected vendor (assuming single vendor selection enforced by UI logic)
-    // If mixed vendors, we might need a distinct check. But current UI enforces single vendor for valid order.
-    // We can pick the vendor from the first selected product or the filter.
-
-    // Safer to rely on the filter 'vendorId' being set.
-    const currentVendor = vendorsData.find(v => v._id === vendorId);
+    // 1. Identify selected vendor
+    // Use the filter 'vendorId' if set, otherwise use the auto-detected single vendor from selection
+    const targetVendorId = vendorId || singleSelectedVendorId;
+    const currentVendor = vendorsData.find(v => v._id === targetVendorId);
+    
     if (!currentVendor) {
       alert("Please select a vendor first.");
+      return;
+    }
+    
+    if (isMultipleVendorsSelected) {
+      alert("Please select products from only one vendor.");
       return;
     }
 
@@ -503,14 +517,13 @@ export default function OrderManagementPage(): JSX.Element {
                 getOptionLabel={(option) => option.vendor_name || ""}
                 value={vendorsData.find(v => v._id === vendorId) || null}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
+                  const newVal = newValue?._id || "";
                   setVendorId(newVal);
                   const currentParams = Object.fromEntries(searchParams.entries());
                   if (newVal) {
                     setSearchParams({ ...currentParams, vendorId: newVal });
                   } else {
                     delete currentParams.vendorId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -535,7 +548,6 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
                   } else {
                     delete currentParams.categoryId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -560,7 +572,6 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams({ ...currentParams, companyId: newVals.join(',') });
                   } else {
                     delete currentParams.companyId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -571,15 +582,21 @@ export default function OrderManagementPage(): JSX.Element {
             )}
 
             {shouldShowTable && (
-              <Button
-                variant="contained"
-                size="medium"
-                onClick={() => setCreateOrderOpen(true)}
-                disabled={selected.length === 0}
-              // className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
-              >
-                Create Order
-              </Button>
+              <Box className="flex flex-col items-end gap-1">
+                <Button
+                  variant="contained"
+                  size="medium"
+                  onClick={() => setCreateOrderOpen(true)}
+                  disabled={selected.length === 0 || isMultipleVendorsSelected}
+                >
+                  Create Order
+                </Button>
+                {isMultipleVendorsSelected && (
+                  <Typography variant="caption" color="error" className="font-medium">
+                    Multiple vendors selected
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
         </Box>

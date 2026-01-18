@@ -37,7 +37,7 @@ const VendorsOrder: React.FC = () => {
   });
 
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   useEffect(() => {
     dispatch(getVendorOrders({
@@ -94,7 +94,7 @@ const VendorsOrder: React.FC = () => {
 
   return (
     <AdminLayout>
-      <Box className="bg-[#f8f9fa] min-h-screen">
+      <Box className="bg-[#f8f9fa] h-[calc(100vh-10px)] flex flex-col">
 
         {/* Filters Section */}
         <Box className="bg-white p-4 border border-gray-100 shadow-sm flex flex-wrap items-center gap-4">
@@ -152,17 +152,17 @@ const VendorsOrder: React.FC = () => {
         </Box>
 
         {/* Table Section */}
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-200">
-          <TableContainer>
-            <Table>
+        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-200 bg-white mx-4 mb-4">
+          <TableContainer className="flex-1 overflow-auto">
+            <Table stickyHeader>
               <TableHead className="bg-gray-50">
                 <TableRow>
-                  <TableCell className="font-bold text-gray-700 py-4">Order ID</TableCell>
-                  <TableCell className="font-bold text-gray-700">Vendor Name</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700">Total Items</TableCell>
-                  <TableCell className="font-bold text-gray-700">Order Date</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700">Status</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700 pr-10">Actions</TableCell>
+                  <TableCell className="font-bold text-gray-700 py-4 bg-gray-50">Order ID</TableCell>
+                  <TableCell className="font-bold text-gray-700 bg-gray-50">Vendor Name</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700 bg-gray-50">Total Items</TableCell>
+                  <TableCell className="font-bold text-gray-700 bg-gray-50">Order Date</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700 bg-gray-50">Status</TableCell>
+                  <TableCell align="center" className="font-bold text-gray-700 pr-10 bg-gray-50">Actions</TableCell>
                 </TableRow>
               </TableHead>
 

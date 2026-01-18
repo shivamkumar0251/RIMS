@@ -244,7 +244,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                               isGroup = sub.type === "group";
                             }
 
-                            const isSubActive = location.pathname + location.search === subPath;
+                            const isSubActive = location.pathname === subPath.split('?')[0] && 
+                              (subPath.includes('?') ? location.search.includes(subPath.split('?')[1]) : true);
 
                             if (isGroup) return null; // Simplified 
 
@@ -266,7 +267,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        navigate(`${subPath.split('?')[0]}?action=add`);
+                                        navigate(subPath.includes('?') ? `${subPath}&action=add` : `${subPath}?action=add`);
                                       }}
                                     />
                                   )}

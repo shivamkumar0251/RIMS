@@ -2,8 +2,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Divider,
-  Drawer,
   IconButton,
   InputAdornment,
   List,
@@ -23,7 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiDownload, FiEdit, FiPlus, FiSearch, FiTrash2, FiUpload, FiRefreshCw, FiFilter } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
@@ -31,7 +29,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
-import VendorModal, { VendorFormData } from "../../layouts/VendorModal";
+import VendorModal from "../../layouts/VendorModal";
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -49,7 +47,7 @@ import {
 // Category, Company, Vendor slices
 import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
 import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { addVendor, getVendorNameList, selectVendorNames, type GetVendorData, type VendorFormType } from "../../redux/slices/vendorSlice";
+import { addVendor, getVendorNameList, selectVendorNames } from "../../redux/slices/vendorSlice";
 import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
 
 type PartialProductForm = Partial<ProductInterface>;
@@ -87,7 +85,6 @@ export default function ProductTable() {
   const [vendorSearch, setVendorSearch] = useState("");
 
   // Drawer form state
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductInterface | null>(null);
   const [form, setForm] = useState<PartialProductForm>({
     categoryId: { _id: "", categoryName: '' },
@@ -113,7 +110,6 @@ export default function ProductTable() {
   // Navigation & URL Params
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const action = searchParams.get("action");
   const isAddMode = action === "add";
   const isEditMode = action === "edit";
@@ -150,6 +146,7 @@ export default function ProductTable() {
       category: categoryId || '',
       vendor: vendorId || '',
       company: companyId || '',
+      productType: "Inventory Item,Packaging Item",
     }));
   };
 
@@ -282,7 +279,6 @@ export default function ProductTable() {
         toast.success("Product added successfully");
       }
 
-      setDrawerOpen(false);
       // If we are in add mode, go back to list
       if (isAddMode) {
         navigate("/admin/products");
@@ -331,10 +327,6 @@ export default function ProductTable() {
   );
 
   // Dropdown options for Drawer
-  const categoryOptions = categories.map((c: any) => ({ label: c.categoryName || "", id: c._id }));
-  const companyOptions = companies.map((c: any) => ({ label: c.brandName || "", id: c._id }));
-  const vendorOptions = vendors.map((v: any) => ({ label: v.vendor_name || "", id: v._id }));
-
   const productNames = useMemo(() => (products || []).map((p: ProductInterface) => p.productName), [products]);
 
 
@@ -398,13 +390,14 @@ export default function ProductTable() {
     navigate("/admin/products");
   };
 
-  if (isAddMode || (isEditMode && productToEdit)) {
-    return (
-      <AdminLayout>
+  return (
+    <AdminLayout>
+      {isAddMode || (isEditMode && productToEdit) ? (
         <ProductDrawerForm
           open={true}
           onClose={handleCloseForm}
           isEdit={isEditMode}
+          title={isEditMode ? `Edit ${productToEdit?.productName}` : "Add Daily Product"}
           initialData={isEditMode && productToEdit ? productToEdit : form}
           categories={categories}
           vendors={vendors}
@@ -418,19 +411,10 @@ export default function ProductTable() {
             setForm({ ...matched });
             setEditingProduct(matched);
           }}
+          allowedProductTypes={["Inventory Item", "Packaging Item"]}
         />
-        {/* Still keep modals available if needed by the form */}
-        <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
-        <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
-        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
-        <Toaster position="top-right" />
-      </AdminLayout>
-    );
-  }
-
-  return (
-    <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-10px)]">
+      ) : (
+        <Box className="flex flex-col h-[calc(100vh-10px)]">
         {/* Combined Tool Bar */}
         <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white mb-4">
           {/* Filters Area */}
@@ -692,25 +676,25 @@ export default function ProductTable() {
             />
           </Box>
         </Paper>
+        </Box>
+      )}
 
-
-
-
-
-        {/* QUICK ADD MODALS */}
-        <CreateCategoryModal
-          open={categoryModalOpen}
-          onClose={() => setCategoryModalOpen(false)}
-          onSave={handleSaveCategory}
-        />
-        <CreateBrandModal
-          open={brandModalOpen}
-          onClose={() => setBrandModalOpen(false)}
-          onSave={handleSaveBrand}
-        />
-
-        <Toaster position="top-right" />
-      </Box>
+      <Toaster position="top-right" />
+      <CreateCategoryModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onSave={handleSaveCategory}
+      />
+      <CreateBrandModal
+        open={brandModalOpen}
+        onClose={() => setBrandModalOpen(false)}
+        onSave={handleSaveBrand}
+      />
+      <VendorModal
+        open={vendorDrawerOpen}
+        onClose={() => setVendorDrawerOpen(false)}
+        onAddVendor={handleSaveVendor}
+      />
     </AdminLayout>
   );
 }
