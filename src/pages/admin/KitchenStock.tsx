@@ -27,7 +27,7 @@ import { AdminLayout } from "../../layouts/AdminLayout";
 
 import {
   getKitchenStocks,
-  selectKitchenStockState
+  selectKitchenStockState,
 } from "../../redux/slices/kitchenStockSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -58,6 +58,7 @@ const KitchenStockPage: React.FC = () => {
   
   const [catSearch, setCatSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
+
 
   // ---------------- Load Dropdowns ----------------
   useEffect(() => {
@@ -268,21 +269,23 @@ const KitchenStockPage: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  kitchenStocks.map((row) => (
-                    <TableRow key={row._id} hover>
-                      <TableCell>
-                        <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
-                      </TableCell>
-                      <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                      <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
-                      <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
-                      <TableCell className="text-center">
-                        {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  kitchenStocks.map((row) => {
+                    return (
+                      <TableRow key={row._id} hover>
+                        <TableCell>
+                          <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
+                          <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
+                        </TableCell>
+                        <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                        <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
+                        <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
+                        <TableCell className="text-center">
+                          {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

@@ -9,7 +9,8 @@ import type { ProductInterface } from './productSlice';
 
 export interface StoreStockPostData {
   productId: string;
-  qty: number
+  qty: number;
+  expiryDate?: string;
 }
 
 export interface StoreStock {
@@ -20,6 +21,7 @@ export interface StoreStock {
   rcvdStoreQty: number;
   transfersToKitchenStore: number;
   closingStock: number;
+  expiryDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -128,7 +130,9 @@ export const updateStoreStock = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as StoreStock;
+        // Support both wrapped { data: ... } and direct formats
+        const responseData = response.data as any;
+        return (responseData.data || responseData) as StoreStock;
       }
 
       return thunkAPI.rejectWithValue({
@@ -216,7 +220,7 @@ const storeStockSlice = createSlice({
       .addCase(updateStoreStock.fulfilled, (state, action) => {
         state.loading = false;
         state.storeStocks = state.storeStocks.map((storeStock) =>
-          storeStock._id === action.payload._id ? action.payload : storeStock
+          storeStock._id === action.payload._id ? { ...storeStock, ...action.payload } : storeStock
         );
       })
       .addCase(updateStoreStock.rejected, (state, action) => {

@@ -547,6 +547,19 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Expiry Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.expiryDate || ""}
+                  onChange={(e) => handleInputChange("expiryDate", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
+                />
+              </div>
             </div>
           </Box>
 
