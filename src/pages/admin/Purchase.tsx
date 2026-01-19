@@ -53,10 +53,10 @@ const Purchase: React.FC = () => {
 
   // Check if we are in "Receive Mode" (coming from Vendor Order Details)
   // Support both single vendorOrder (backward compat) and multiple vendorOrders
-  const selectedVendorOrders: any[] = location.state?.vendorOrders || 
+  const selectedVendorOrders: any[] = location.state?.vendorOrders ||
     (location.state?.vendorOrder ? [location.state.vendorOrder] : []);
   const isReceiveMode = selectedVendorOrders.length > 0;
-  
+
   // Flatten all products from all selected orders
   const allProductsToReceive = useMemo(() => {
     const products: any[] = [];
@@ -168,7 +168,7 @@ const Purchase: React.FC = () => {
           await dispatch(updateVendorOrder({
             vendorOrderId: order._id,
             // If target exists, it's being moved to stock (Received). Otherwise, it's just confirmed (Sent)
-            orderStatus: target ? 'Received' : 'Sent',
+            orderStatus: target === "Store" ? 'MoveToStore' : target === "Kitchen" ? 'MoveToKitchen' : "Delivered",
             products: orderProducts.map(item => ({
               productId: item.productId._id,
               sendToPurchaseQty: item.receivedQty,
@@ -251,8 +251,8 @@ const Purchase: React.FC = () => {
         <Box className="flex flex-wrap items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
           <Typography variant="h6" className="font-bold text-gray-800 flex-1">
-            {location.state?.target 
-              ? `Move to ${location.state.target === 'Store' ? 'Main Store' : 'Kitchen Store'}` 
+            {location.state?.target
+              ? `Move to ${location.state.target === 'Store' ? 'Main Store' : 'Kitchen Store'}`
               : 'Confirm Purchase Order'
             }
             {selectedVendorOrders.length === 1 ? ` - #${orderNumbers}` : ` (${selectedVendorOrders.length} Orders)`}
@@ -587,7 +587,7 @@ const Purchase: React.FC = () => {
           <Box className="flex items-center gap-2 sm:gap-4">
             <Typography variant={isMobile ? "h6" : "h5"} className="font-black text-slate-800 tracking-tight">Purchase Orders</Typography>
           </Box>
-          
+
           <Box className={`flex items-center gap-2 sm:gap-3 ${isMobile ? 'w-full justify-end' : ''}`}>
             <Button
               variant="contained"
@@ -608,15 +608,15 @@ const Purchase: React.FC = () => {
             >
               {isMobile ? 'MOVE' : 'MOVE STOCK'}
               {checkedOrderIds.length > 0 && (
-                <Box 
-                  component="span" 
+                <Box
+                  component="span"
                   className="ml-2 px-1.5 py-0.5 text-[10px] font-black bg-white text-emerald-600 rounded-full min-w-[18px] text-center"
                 >
                   {checkedOrderIds.length}
                 </Box>
               )}
             </Button>
-            
+
             <Menu
               anchorEl={moveAnchorEl}
               open={Boolean(moveAnchorEl)}
@@ -643,8 +643,8 @@ const Purchase: React.FC = () => {
                   // Get all selected orders for move
                   const ordersToMove = vendorOrders.filter(o => checkedOrderIds.includes(o._id));
                   if (ordersToMove.length > 0) {
-                    navigate('/admin/purchase', { 
-                      state: { vendorOrders: ordersToMove, target: 'Store' } 
+                    navigate('/admin/purchase', {
+                      state: { vendorOrders: ordersToMove, target: 'Store' }
                     });
                   }
                 }}
@@ -663,8 +663,8 @@ const Purchase: React.FC = () => {
                   // Get all selected orders for move
                   const ordersToMove = vendorOrders.filter(o => checkedOrderIds.includes(o._id));
                   if (ordersToMove.length > 0) {
-                    navigate('/admin/purchase', { 
-                      state: { vendorOrders: ordersToMove, target: 'Kitchen' } 
+                    navigate('/admin/purchase', {
+                      state: { vendorOrders: ordersToMove, target: 'Kitchen' }
                     });
                   }
                 }}
@@ -674,7 +674,7 @@ const Purchase: React.FC = () => {
                 MOVE TO KITCHEN
               </MenuItem>
             </Menu>
-       
+
           </Box>
         </Box>
 
@@ -716,52 +716,52 @@ const Purchase: React.FC = () => {
                     vendorOrders.map((row) => {
                       const isRowChecked = checkedOrderIds.includes(row._id);
                       return (
-                      <TableRow 
-                        key={row._id} 
-                        hover 
-                        selected={isRowChecked}
-                        className="cursor-pointer group"
-                        sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
-                      >
-                        <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={isRowChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setCheckedOrderIds([...checkedOrderIds, row._id]);
-                              } else {
-                                setCheckedOrderIds(checkedOrderIds.filter(id => id !== row._id));
-                              }
-                            }}
-                            sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
-                          />
-                        </TableCell>
-                        <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
-                        <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
-                        <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
-                        <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus}</span>
-                        </TableCell>
-                        <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
-                        <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
-                          <Box className="flex items-center justify-center">
-                            <ButtonGroup size="small">
-                              <Button
-                                className="px-3 py-1 text-[11px] font-bold border-slate-200 bg-white hover:bg-slate-50 text-slate-600 normal-case rounded-l-md"
-                                onClick={() => setSelectedOrderId(row._id)}
-                              >
-                                View / Print
-                              </Button>
-                              <Button
-                                className="px-1 border border-slate-200 min-w-0 bg-white hover:bg-slate-50 text-slate-600 rounded-r-md"
-                                onClick={(ev: React.MouseEvent<HTMLElement>) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
-                              >
-                                <FiChevronDown size={14} />
-                              </Button>
-                            </ButtonGroup>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
+                        <TableRow
+                          key={row._id}
+                          hover
+                          selected={isRowChecked}
+                          className="cursor-pointer group"
+                          sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
+                        >
+                          <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={isRowChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setCheckedOrderIds([...checkedOrderIds, row._id]);
+                                } else {
+                                  setCheckedOrderIds(checkedOrderIds.filter(id => id !== row._id));
+                                }
+                              }}
+                              sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
+                            />
+                          </TableCell>
+                          <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                          <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
+                          <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                          <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus}</span>
+                          </TableCell>
+                          <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
+                          <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
+                            <Box className="flex items-center justify-center">
+                              <ButtonGroup size="small">
+                                <Button
+                                  className="px-3 py-1 text-[11px] font-bold border-slate-200 bg-white hover:bg-slate-50 text-slate-600 normal-case rounded-l-md"
+                                  onClick={() => setSelectedOrderId(row._id)}
+                                >
+                                  View / Print
+                                </Button>
+                                <Button
+                                  className="px-1 border border-slate-200 min-w-0 bg-white hover:bg-slate-50 text-slate-600 rounded-r-md"
+                                  onClick={(ev: React.MouseEvent<HTMLElement>) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
+                                >
+                                  <FiChevronDown size={14} />
+                                </Button>
+                              </ButtonGroup>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
                       );
                     })
                   )}

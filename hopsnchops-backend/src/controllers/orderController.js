@@ -305,7 +305,12 @@ exports.getOrders = async (req, res) => {
     }
     // ✅ Payment status filter
     if (orderStatus) {
-      query.orderStatus = orderStatus;
+      if (orderStatus === "Delivered") {
+        query.orderStatus = { $ne: "Draft" };
+      } else {
+
+        query.orderStatus = orderStatus;
+      }
     }
 
     const p = Math.max(1, parseInt(page));
