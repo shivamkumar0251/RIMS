@@ -40,7 +40,7 @@ const OrderRequiredSchema = new mongoose.Schema(
     totalClosingAmount: { type: Number, default: 0 },
     orderStatus: {
       type: String,
-      enum: ["Draft", "Delivered"],
+      enum: ["Draft", "Delivered", "MoveToKitchen", "MoveToStore"],
       default: "Draft",
     },
     vendorsId: {
