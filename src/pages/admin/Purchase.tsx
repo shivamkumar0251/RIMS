@@ -698,7 +698,7 @@ const Purchase: React.FC = () => {
         </Box>
 
         {/* Main Table */}
-        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           <Paper className="flex-1 flex flex-col shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
             <TableContainer className="flex-1 overflow-auto">
               <Table stickyHeader sx={{ minWidth: 700 }}>

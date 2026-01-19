@@ -395,7 +395,7 @@ const Consumables: React.FC = () => {
         </Box>
 
         {/* Content Section */}
-        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           {/* Summary Cards */}
           <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 shrink-0">
             <Card className="shadow-sm">
