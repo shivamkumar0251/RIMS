@@ -155,33 +155,32 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
   const content = (
     <>
       {/* Header */}
-      <Box className="px-8 py-5 flex items-center justify-between border-b border-gray-100 shrink-0 bg-white z-10">
+      <Box className="px-6 py-4 flex items-center justify-between border-b border-gray-200 shrink-0 bg-white shadow-sm z-10">
         <Box>
-          <Typography variant="h6" className="font-bold text-gray-900">
+          <Typography variant="h6" className="font-bold text-slate-800">
             {formData.companyType === "Vendor" ? "Add New Vendor" : "Add New Customer"}
           </Typography>
-          <Typography variant="caption" className="text-gray-500 font-medium">
-            Create a new {formData.companyType.toLowerCase()} profile efficiently
+          <Typography variant="body2" className="text-slate-500 mt-1">
+            Create a new {formData.companyType.toLowerCase()} profile to organize your business efficiently
           </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small" className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <IconButton onClick={onClose} size="small" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100">
           <FiX size={22} />
         </IconButton>
       </Box>
 
       {/* Content */}
-      <Box className="flex-1 overflow-auto px-8 py-8 custom-scrollbar bg-slate-50/30">
-        <Box className="w-full space-y-8">
+      <Box className="flex-1 overflow-auto px-4 py-6 custom-scrollbar bg-white">
+        <Box className="w-full lg:w-3/4 space-y-6">
           
           {/* 1. Basic Details */}
-          <Box className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
-             <Typography variant="subtitle2" className="font-bold text-gray-900 tracking-tight block mb-6 flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+             <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
               BASIC DETAILS
             </Typography>
 
             <Box className="mb-4">
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 gap-4">
                  {/* GSTIN Row */}
                  {/* GSTIN Row */}
                  <Box>
@@ -284,15 +283,15 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
           </Box>
 
           {/* 2. Billing Address */}
-          <Box className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
-            <Typography variant="subtitle2" className="font-bold text-gray-900 tracking-tight block mb-6 flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+            <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
               BILLING ADDRESS
             </Typography>
 
-            <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 gap-4">
                {/* Address Lines */}
-                <Box className="flex flex-col gap-6">
+               <Box>
+                  <div className="space-y-2">
                     <TextField
                       fullWidth
                       size="small"
@@ -311,12 +310,13 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
                       onChange={(e) => handleChange("billingAddress2", e.target.value)}
                       sx={inputSx}
                     />
-                </Box>
+                  </div>
+               </Box>
                
             
 
                {/* Country & State */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <Box>
                       <TextField
                         select
@@ -349,57 +349,55 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
                </div>
 
 
-                {/* Landmark & City */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Box>
-                       <TextField
-                         fullWidth
-                         size="small"
-                         label="Landmark"
-                         placeholder="Landmark"
-                         value={formData.billingLandmark}
-                         onChange={(e) => handleChange("billingLandmark", e.target.value)}
-                         sx={inputSx}
-                       />
-                    </Box>
-                    <Box>
-                       <TextField
-                         fullWidth
-                         size="small"
-                         label="City *"
-                         placeholder="City"
-                         value={formData.billingCity}
-                         onChange={(e) => handleChange("billingCity", e.target.value)}
-                         sx={inputSx}
-                       />
-                    </Box>
-                </div>
-
+   {/* Landmark & City */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Landmark"
+                        placeholder="Landmark"
+                        value={formData.billingLandmark}
+                        onChange={(e) => handleChange("billingLandmark", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="City *"
+                        placeholder="City"
+                        value={formData.billingCity}
+                        onChange={(e) => handleChange("billingCity", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+               </div>
                 {/* Pincode & Distance */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Box>
-                       <TextField
-                         fullWidth
-                         size="small"
-                         label="Pincode"
-                         placeholder="Pincode"
-                         value={formData.billingZip}
-                         onChange={(e) => handleChange("billingZip", e.target.value)}
-                         sx={inputSx}
-                       />
-                    </Box>
-                </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <Box>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Pincode"
+                        placeholder="Pincode"
+                        value={formData.billingZip}
+                        onChange={(e) => handleChange("billingZip", e.target.value)}
+                        sx={inputSx}
+                      />
+                   </Box>
+               </div>
             </div>
           </Box>
 
           {/* 3. Bank Details */}
-          <Box className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
-            <Typography variant="subtitle2" className="font-bold text-gray-900 tracking-tight block mb-6 flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+            <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
               VENDOR BANK DETAILS
             </Typography>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <Box>
                     <TextField
                       fullWidth
@@ -450,19 +448,19 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
     </Box>
 
       {/* Footer */}
-      <Box className="px-8 py-5 bg-white border-t border-gray-100 shrink-0 flex justify-end gap-3 z-10">
+      <Box className="px-6 py-4 bg-gray-50 border-t border-gray-200 shrink-0 flex justify-start gap-4 z-10">
         <Button
-          variant="text"
+          variant="outlined"
           onClick={onClose}
-          className="px-6 text-gray-500 hover:bg-gray-100 font-bold normal-case"
+          startIcon={<FiX />}
+          className="px-6 py-2 border-blue-200 text-blue-600 hover:bg-blue-50 normal-case font-medium rounded-lg"
         >
           Cancel
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
-          className="px-10 bg-blue-600 hover:bg-blue-700 text-white shadow-none font-bold normal-case"
-          disableElevation
+          className="px-8 py-2 bg-[#6200ea] hover:bg-[#5000d6] text-white shadow-md normal-case font-medium rounded-lg"
         >
           Save Details
         </Button>
@@ -472,7 +470,7 @@ const VendorModal: React.FC<VendorModalProps> = ({ open, onClose, onAddVendor, v
 
   if (variant === "embedded") {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: "#f9fafb" }}>
+      <Box className="flex flex-col h-full bg-white rounded-lg shadow-sm">
         {content}
       </Box>
     );
