@@ -599,7 +599,7 @@ export default function OrderManagementPage(): JSX.Element {
         </Box>
 
         {/* Main Content Area */}
-        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           {!shouldShowTable ? (
             <Paper className="flex-1 flex items-center justify-center shadow-md rounded-xl border border-gray-100 bg-white">
               <Box className="text-center py-20 px-6">

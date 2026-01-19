@@ -487,7 +487,7 @@ export default function ProductTable() {
             </Box>
           </Box>
 
-          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
             <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
               <TableContainer className="flex-1 overflow-auto">
                 <Table stickyHeader size="medium">
