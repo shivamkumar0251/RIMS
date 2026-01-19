@@ -64,6 +64,7 @@ exports.addStoreStock = async (req, res) => {
         rcvdStoreQty: 0,
         transfersToKitchenStore: 0,
         closingStock: 0,
+        expiryDate: req.body.expiryDate
       });
     } else {
       rolloverIfNeeded(storeStock);
@@ -173,6 +174,7 @@ exports.addBulkStoreStock = async (req, res) => {
             rcvdStoreQty: 0,
             transfersToKitchenStore: 0,
             closingStock: 0,
+            expiryDate: transfers[i].expiryDate
           });
         } else {
           rolloverIfNeeded(storeStock);
@@ -306,7 +308,7 @@ exports.getStoreStock = async (req, res) => {
     let stocks = await StoreStock.find(query)
       .populate({
         path: "productId",
-        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId",
+        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId expiryDate",
         populate: [
           { path: "categoryId", select: "_id categoryName" },
           { path: "vendorsId", select: "_id vendor_name" },
@@ -352,10 +354,21 @@ exports.updateStoreStock = async (req, res) => {
       });
     }
 
+    const populated = await StoreStock.findById(updatedStoreStock._id)
+      .populate({
+        path: "productId",
+        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId expiryDate",
+        populate: [
+          { path: "categoryId", select: "_id categoryName" },
+          { path: "vendorsId", select: "_id vendor_name" },
+          { path: "companyId", select: "_id brandName" }
+        ]
+      });
+
     return res.status(200).json({
       success: true,
       message: "StoreStock updated successfully",
-      data: updatedStoreStock
+      data: populated
     });
 
   } catch (error) {

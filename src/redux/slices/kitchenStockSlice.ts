@@ -9,7 +9,8 @@ import type { ProductInterface } from './productSlice';
 
 export interface KitchenStockPost {
   productId: string;
-  qty: number
+  qty: number;
+  expiryDate?: string;
 }
 
 export interface KitchenStock {
@@ -20,6 +21,7 @@ export interface KitchenStock {
   rcvdKitchenQty: number;
   transfersToConsumable: number;
   closingStock: number;
+  expiryDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -128,7 +130,9 @@ export const updateKitchenStock = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as KitchenStock;
+        // Support both wrapped { data: ... } and direct formats
+        const responseData = response.data as any;
+        return (responseData.data || responseData) as KitchenStock;
       }
 
       return thunkAPI.rejectWithValue({
@@ -216,7 +220,7 @@ const kitchenStockSlice = createSlice({
       .addCase(updateKitchenStock.fulfilled, (state, action) => {
         state.loading = false;
         state.kitchenStocks = state.kitchenStocks.map((kitchenStock) =>
-          kitchenStock._id === action.payload._id ? action.payload : kitchenStock
+          kitchenStock._id === action.payload._id ? { ...kitchenStock, ...action.payload } : kitchenStock
         );
       })
       .addCase(updateKitchenStock.rejected, (state, action) => {

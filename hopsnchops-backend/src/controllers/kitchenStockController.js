@@ -63,7 +63,8 @@ exports.addKitchenStock = async (req, res) => {
         openingStock: 0,
         rcvdKitchenQty: 0,
         transfersToConsumable: transferQty,
-        closingStock: 0
+        closingStock: 0,
+        expiryDate: req.body.expiryDate
       });
     } else {
       rolloverKitchenIfNeeded(kitchenStock);
@@ -173,7 +174,8 @@ exports.addBulkKitchenStock = async (req, res) => {
             openingStock: 0,
             rcvdKitchenQty: 0,
             transfersToConsumable: transferQty,
-            closingStock: 0
+            closingStock: 0,
+            expiryDate: transfers[i].expiryDate
           });
         } else {
           rolloverKitchenIfNeeded(kitchenStock);
@@ -339,7 +341,7 @@ exports.getKitchenStocks = async (req, res) => {
     const stocks = await KitchenStocks.find(query)
       .populate({
         path: "productId",
-        select: "productName unit packSize stockAlert categoryId vendorsId companyId",
+        select: "productName unit packSize stockAlert categoryId vendorsId companyId expiryDate",
         populate: [
           { path: "categoryId", select: "_id categoryName" },
           { path: "vendorsId", select: "_id vendor_name" },
@@ -389,10 +391,21 @@ exports.updateKitchenStock = async (req, res) => {
       });
     }
 
+    const populated = await KitchenStocks.findById(updated._id)
+      .populate({
+        path: "productId",
+        select: "productName unit packSize stockAlert categoryId vendorsId companyId expiryDate",
+        populate: [
+          { path: "categoryId", select: "_id categoryName" },
+          { path: "vendorsId", select: "_id vendor_name" },
+          { path: "companyId", select: "_id brandName" }
+        ]
+      });
+
     return res.status(200).json({
       success: true,
       message: "KitchenStock updated successfully",
-      data: updated
+      data: populated
     });
 
   } catch (error) {

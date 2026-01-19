@@ -45,6 +45,7 @@ export interface ProductInterface {
   isActive?: boolean;
   warrantyStart?: string;
   warrantyEnd?: string;
+  expiryDate?: string;
   createdAt: string;
 }
 
