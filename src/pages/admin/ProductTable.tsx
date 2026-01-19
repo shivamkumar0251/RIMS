@@ -414,268 +414,268 @@ export default function ProductTable() {
           allowedProductTypes={["Inventory Item", "Packaging Item"]}
         />
       ) : (
-        <Box className="flex flex-col h-[calc(100vh-10px)]">
-        {/* Combined Tool Bar */}
-        <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm bg-white mb-4">
-          {/* Filters Area */}
-          <Box className="flex flex-col sm:flex-row xl:flex-row items-start sm:items-end gap-3 w-full lg:w-auto">
-            <TextField
-              placeholder="Search products..."
-              size="small"
-              value={searchName}
-              onChange={(e) => { setSearchName(e.target.value); setPage(0); }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <FiSearch className="text-gray-400" />
-                  </InputAdornment>
-                ),
-              }}
-              className="w-full sm:w-64"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
-            />
+        <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+          {/* Combined Tool Bar */}
+          <Box className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 border-b border-gray-100 shadow-sm bg-white shrink-0">
+            {/* Filters Area */}
+            <Box className="flex flex-col sm:flex-row xl:flex-row items-start sm:items-end gap-3 w-full lg:w-auto">
+              <TextField
+                placeholder="Search products..."
+                size="small"
+                value={searchName}
+                onChange={(e) => { setSearchName(e.target.value); setPage(0); }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FiSearch className="text-gray-400" />
+                    </InputAdornment>
+                  ),
+                }}
+                className="w-full sm:w-64"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
+              />
 
-            <Box className="flex flex-col sm:flex-row items-end gap-3 w-full sm:w-auto">
-              <TextField
-                type="date"
-                size="small"
-                label="From"
-                InputLabelProps={{ shrink: true }}
-                value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
-                className="w-full sm:w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-              />
-              <TextField
-                type="date"
-                size="small"
-                label="To"
-                InputLabelProps={{ shrink: true }}
-                value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setPage(0); }}
-                className="w-full sm:w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-              />
-              <Button
-                size="small"
-                variant="text"
-                startIcon={<FiRefreshCw />}
-                onClick={handleResetFilters}
-                className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-[40px] shrink-0"
-              >
-                Reset
+              <Box className="flex flex-col sm:flex-row items-end gap-3 w-full sm:w-auto">
+                <TextField
+                  type="date"
+                  size="small"
+                  label="From"
+                  InputLabelProps={{ shrink: true }}
+                  value={fromDate}
+                  onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+                  className="w-full sm:w-40"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                />
+                <TextField
+                  type="date"
+                  size="small"
+                  label="To"
+                  InputLabelProps={{ shrink: true }}
+                  value={toDate}
+                  onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+                  className="w-full sm:w-40"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                />
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<FiRefreshCw />}
+                  onClick={handleResetFilters}
+                  className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-[40px] shrink-0"
+                >
+                  Reset
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Actions Area */}
+            <Box className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
+              <Tooltip title="Download Template">
+                <Button variant="outlined" onClick={handleDownloadTemplate} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
+                  <FiDownload size={18} />
+                </Button>
+              </Tooltip>
+              <input id="product-excel" type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleExcelUpload} />
+              <Tooltip title="Import Products">
+                <Button variant="outlined" onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
+                  <FiUpload size={18} />
+                </Button>
+              </Tooltip>
+              <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 normal-case shadow-none h-[40px]">
+                Add Product
               </Button>
             </Box>
           </Box>
 
-          {/* Actions Area */}
-          <Box className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0">
-            <Tooltip title="Download Template">
-              <Button variant="outlined" onClick={handleDownloadTemplate} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
-                <FiDownload size={18} />
-              </Button>
-            </Tooltip>
-            <input id="product-excel" type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleExcelUpload} />
-            <Tooltip title="Import Products">
-              <Button variant="outlined" onClick={() => (document.getElementById("product-excel") as HTMLInputElement).click()} size="small" className="flex-1 sm:flex-none normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-[40px] min-w-[44px]">
-                <FiUpload size={18} />
-              </Button>
-            </Tooltip>
-            <Button variant="contained" startIcon={<FiPlus />} onClick={openAddDrawer} size="small" className="w-full sm:w-auto !bg-blue-600 hover:!bg-blue-700 normal-case shadow-none h-[40px]">
-              Add Product
-            </Button>
-          </Box>
-        </Box>
-
-        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-          <TableContainer className="flex-1 overflow-auto">
-            <Table stickyHeader size="medium">
-              <TableHead>
-                <TableRow>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Product Name</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Type</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
-                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                      Category
-                      <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
-                    </Box>
-                    <Popover open={Boolean(catAnchor)} anchorEl={catAnchor} onClose={() => setCatAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField placeholder="Search Category..." size="small" fullWidth variant="outlined" value={catSearch} onChange={(e) => setCatSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                        <ListItemButton onClick={() => { setCategoryId(""); setCatAnchor(null); }} selected={!categoryId}>
-                          <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                        </ListItemButton>
-                        {filteredCats.map((c: any) => (
-                          <ListItemButton key={c._id} onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} selected={categoryId === c._id}>
-                            <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                          </ListItemButton>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
-                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setVendorAnchor(e.currentTarget)}>
-                      Vendor
-                      <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
-                    </Box>
-                    <Popover open={Boolean(vendorAnchor)} anchorEl={vendorAnchor} onClose={() => setVendorAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField placeholder="Search Vendor..." size="small" fullWidth variant="outlined" value={vendorSearch} onChange={(e) => setVendorSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                        <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
-                          <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                        </ListItemButton>
-                        {filteredVendors.map((v: any) => (
-                          <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
-                            <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                          </ListItemButton>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">
-                    <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCompanyAnchor(e.currentTarget)}>
-                      Brand
-                      <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
-                    </Box>
-                    <Popover open={Boolean(companyAnchor)} anchorEl={companyAnchor} onClose={() => setCompanyAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
-                      <Box className="p-2 border-b bg-gray-50">
-                        <TextField placeholder="Search Brand..." size="small" fullWidth variant="outlined" value={companySearch} onChange={(e) => setCompanySearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
-                      </Box>
-                      <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                        <ListItemButton onClick={() => { setCompanyId(""); setCompanyAnchor(null); }} selected={!companyId}>
-                          <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                        </ListItemButton>
-                        {filteredCompanies.map((c: any) => (
-                          <ListItemButton key={c._id} onClick={() => { setCompanyId(c._id); setCompanyAnchor(null); }} selected={companyId === c._id}>
-                            <ListItemText primary={c.brandName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-                          </ListItemButton>
-                        ))}
-                      </List>
-                    </Popover>
-                  </TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Pack Size</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Attributes</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Print</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Rate</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">GST%</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Taxable</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Created</TableCell>
-                  <TableCell align="right" className="bg-gray-50 font-bold text-gray-700 py-3">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={13} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
-                ) : (products || []).length === 0 ? (
-                  <TableRow><TableCell colSpan={13} align="center" className="py-20 text-gray-500 text-sm">No products found.</TableCell></TableRow>
-                ) : (
-                  (products || []).map((p: ProductInterface) => (
-                    <TableRow key={p._id} hover className="transition-colors">
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="font-medium text-slate-800">{p.productName || "Unnamed Product"}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Box className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${p.productType === 'Packaging Item' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
-                          {p.productType === 'Packaging Item' ? 'Packaging' : 'Inventory'}
+          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+              <TableContainer className="flex-1 overflow-auto">
+                <Table stickyHeader size="medium">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Product Name</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Type</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
+                          Category
+                          <FiFilter size={14} className={categoryId ? "text-blue-600" : "text-gray-400"} />
                         </Box>
-                      </TableCell>
-                      <TableCell className="text-gray-600 capitalize text-sm py-3">
-                        {(() => {
-                          if (p.categoryId && typeof p.categoryId === "object") return p.categoryId.categoryName;
-                          if (typeof p.categoryId === "string") {
-                            const found = categories.find((c: any) => c._id === p.categoryId);
-                            return found?.categoryName || p.categoryId; // Fallback to ID if not found, but lookup tries first
-                          }
-                          return "N/A";
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-gray-600 text-sm py-3">
-                        {(() => {
-                          if (p.vendorsId && typeof p.vendorsId === "object") return p.vendorsId.vendor_name;
-                          if (typeof p.vendorsId === "string") {
-                            const found = vendors.find((v: any) => v._id === p.vendorsId);
-                            return found?.vendor_name || p.vendorsId;
-                          }
-                          return "N/A";
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-gray-600 italic text-sm py-3">
-                        {p.productType === 'Inventory Item' ? (
-                          (() => {
-                            if (p.companyId && typeof p.companyId === "object") return p.companyId.brandName;
-                            if (typeof p.companyId === "string") {
-                              const found = companies.find((c: any) => c._id === p.companyId);
-                              return found?.brandName || p.companyId;
-                            }
-                            return "N/A";
-                          })()
-                        ) : (
-                          <Typography variant="caption" className="text-gray-400">-</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Box className="flex flex-col">
-                          <Typography variant="body2" className="font-medium">{p.packSize || "-"}</Typography>
-                          <Typography variant="caption" className="text-gray-400">{p.unit || "-"}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        {p.productType === "Packaging Item" ? (
-                          <Box className="flex flex-col gap-0.5">
-                            {p.shape && <Typography variant="caption" className="text-slate-500 block leading-tight">S: {p.shape}</Typography>}
-                            {p.colour && <Typography variant="caption" className="text-slate-500 block leading-tight">C: {p.colour}</Typography>}
-                            {!p.shape && !p.colour && <Typography variant="caption" className="text-gray-400">-</Typography>}
+                        <Popover open={Boolean(catAnchor)} anchorEl={catAnchor} onClose={() => setCatAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField placeholder="Search Category..." size="small" fullWidth variant="outlined" value={catSearch} onChange={(e) => setCatSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
                           </Box>
-                        ) : (
-                          <Typography variant="caption" className="text-gray-400">-</Typography>
-                        )}
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => { setCategoryId(""); setCatAnchor(null); }} selected={!categoryId}>
+                              <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                            </ListItemButton>
+                            {filteredCats.map((c: any) => (
+                              <ListItemButton key={c._id} onClick={() => { setCategoryId(c._id); setCatAnchor(null); }} selected={categoryId === c._id}>
+                                <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                              </ListItemButton>
+                            ))}
+                          </List>
+                        </Popover>
                       </TableCell>
-                      <TableCell className="py-3">
-                        {p.productType === "Packaging Item" ? (
-                          <Box className={`px-2 py-0.5 rounded-md text-[10px] font-bold inline-block ${p.printStatus === 'Non Print' ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}`}>
-                            {p.printStatus || "N/A"}
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" className="text-gray-400">-</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center font-medium py-3">₹{p.perUnitRate}</TableCell>
-                      <TableCell className="text-center text-gray-600 py-3">{p.gstPct}%</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600 py-3">₹{p.taxableValue}</TableCell>
-                      <TableCell className="text-gray-500 text-xs py-3">
-                        {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
-                      </TableCell>
-                      <TableCell align="right" className="py-3">
-                        <Box className="flex gap-1 justify-end">
-                          <IconButton onClick={() => openEditDrawer(p)} size="small" className="text-blue-600"><FiEdit size={16} /></IconButton>
-                          <IconButton onClick={() => handleDeleteProduct(p._id)} size="small" className="text-red-500"><FiTrash2 size={16} /></IconButton>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setVendorAnchor(e.currentTarget)}>
+                          Vendor
+                          <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
                         </Box>
+                        <Popover open={Boolean(vendorAnchor)} anchorEl={vendorAnchor} onClose={() => setVendorAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField placeholder="Search Vendor..." size="small" fullWidth variant="outlined" value={vendorSearch} onChange={(e) => setVendorSearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
+                          </Box>
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
+                              <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                            </ListItemButton>
+                            {filteredVendors.map((v: any) => (
+                              <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
+                                <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                              </ListItemButton>
+                            ))}
+                          </List>
+                        </Popover>
                       </TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCompanyAnchor(e.currentTarget)}>
+                          Brand
+                          <FiFilter size={14} className={companyId ? "text-blue-600" : "text-gray-400"} />
+                        </Box>
+                        <Popover open={Boolean(companyAnchor)} anchorEl={companyAnchor} onClose={() => setCompanyAnchor(null)} PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}>
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField placeholder="Search Brand..." size="small" fullWidth variant="outlined" value={companySearch} onChange={(e) => setCompanySearch(e.target.value)} InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }} />
+                          </Box>
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => { setCompanyId(""); setCompanyAnchor(null); }} selected={!companyId}>
+                              <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                            </ListItemButton>
+                            {filteredCompanies.map((c: any) => (
+                              <ListItemButton key={c._id} onClick={() => { setCompanyId(c._id); setCompanyAnchor(null); }} selected={companyId === c._id}>
+                                <ListItemText primary={c.brandName} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+                              </ListItemButton>
+                            ))}
+                          </List>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Pack Size</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Attributes</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Print</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center bg-inherit backdrop-blur-md z-10">Rate</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center bg-inherit backdrop-blur-md z-10">GST%</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center bg-inherit backdrop-blur-md z-10">Taxable</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Created</TableCell>
+                      <TableCell align="right" className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Actions</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableHead>
 
-          <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
-            <TablePagination
-              component="div"
-              count={productsResponse?.total || 0}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-              rowsPerPageOptions={[25, 50, 100]}
-              className="text-sm text-gray-600"
-            />
+                  <TableBody>
+                    {loading ? (
+                      <TableRow><TableCell colSpan={13} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
+                    ) : (products || []).length === 0 ? (
+                      <TableRow><TableCell colSpan={13} align="center" className="py-20 text-gray-500 text-sm">No products found.</TableCell></TableRow>
+                    ) : (
+                      (products || []).map((p: ProductInterface) => (
+                        <TableRow key={p._id} hover className="transition-colors">
+                          <TableCell className="py-3">
+                            <Typography variant="body2" className="font-medium text-slate-800">{p.productName || "Unnamed Product"}</Typography>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Box className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${p.productType === 'Packaging Item' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                              {p.productType === 'Packaging Item' ? 'Packaging' : 'Inventory'}
+                            </Box>
+                          </TableCell>
+                          <TableCell className="text-gray-600 capitalize text-sm py-3">
+                            {(() => {
+                              if (p.categoryId && typeof p.categoryId === "object") return p.categoryId.categoryName;
+                              if (typeof p.categoryId === "string") {
+                                const found = categories.find((c: any) => c._id === p.categoryId);
+                                return found?.categoryName || p.categoryId; // Fallback to ID if not found, but lookup tries first
+                              }
+                              return "N/A";
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-gray-600 text-sm py-3">
+                            {(() => {
+                              if (p.vendorsId && typeof p.vendorsId === "object") return p.vendorsId.vendor_name;
+                              if (typeof p.vendorsId === "string") {
+                                const found = vendors.find((v: any) => v._id === p.vendorsId);
+                                return found?.vendor_name || p.vendorsId;
+                              }
+                              return "N/A";
+                            })()}
+                          </TableCell>
+                          <TableCell className="text-gray-600 italic text-sm py-3">
+                            {p.productType === 'Inventory Item' ? (
+                              (() => {
+                                if (p.companyId && typeof p.companyId === "object") return p.companyId.brandName;
+                                if (typeof p.companyId === "string") {
+                                  const found = companies.find((c: any) => c._id === p.companyId);
+                                  return found?.brandName || p.companyId;
+                                }
+                                return "N/A";
+                              })()
+                            ) : (
+                              <Typography variant="caption" className="text-gray-400">-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Box className="flex flex-col">
+                              <Typography variant="body2" className="font-medium">{p.packSize || "-"}</Typography>
+                              <Typography variant="caption" className="text-gray-400">{p.unit || "-"}</Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {p.productType === "Packaging Item" ? (
+                              <Box className="flex flex-col gap-0.5">
+                                {p.shape && <Typography variant="caption" className="text-slate-500 block leading-tight">S: {p.shape}</Typography>}
+                                {p.colour && <Typography variant="caption" className="text-slate-500 block leading-tight">C: {p.colour}</Typography>}
+                                {!p.shape && !p.colour && <Typography variant="caption" className="text-gray-400">-</Typography>}
+                              </Box>
+                            ) : (
+                              <Typography variant="caption" className="text-gray-400">-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {p.productType === "Packaging Item" ? (
+                              <Box className={`px-2 py-0.5 rounded-md text-[10px] font-bold inline-block ${p.printStatus === 'Non Print' ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}`}>
+                                {p.printStatus || "N/A"}
+                              </Box>
+                            ) : (
+                              <Typography variant="caption" className="text-gray-400">-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center font-medium py-3">₹{p.perUnitRate}</TableCell>
+                          <TableCell className="text-center text-gray-600 py-3">{p.gstPct}%</TableCell>
+                          <TableCell className="text-center font-bold text-blue-600 py-3">₹{p.taxableValue}</TableCell>
+                          <TableCell className="text-gray-500 text-xs py-3">
+                            {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
+                          </TableCell>
+                          <TableCell align="right" className="py-3">
+                            <Box className="flex gap-1 justify-end">
+                              <IconButton onClick={() => openEditDrawer(p)} size="small" className="text-blue-600"><FiEdit size={16} /></IconButton>
+                              <IconButton onClick={() => handleDeleteProduct(p._id)} size="small" className="text-red-500"><FiTrash2 size={16} /></IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <TablePagination
+                component="div"
+                count={productsResponse?.total || 0}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                rowsPerPageOptions={[25, 50, 100]}
+                className="border-t bg-gray-50 shrink-0"
+              />
+            </Paper>
           </Box>
-        </Paper>
         </Box>
       )}
 

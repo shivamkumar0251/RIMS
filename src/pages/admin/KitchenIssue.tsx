@@ -203,9 +203,9 @@ const KitchenIssue: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div>
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filter Bar */}
-        <Box className="flex flex-wrap items-center gap-4 p-4 border border-gray-100 shadow-sm">
+        <Box className="flex flex-wrap items-center gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
           <TextField
             placeholder="Search product..."
             size="small"
@@ -247,147 +247,148 @@ const KitchenIssue: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Table */}
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table>
-              <TableHead className="bg-gray-50">
-                <TableRow>
-                  <TableCell className="font-bold">Product</TableCell>
-                  <TableCell className="font-bold text-center">Available Qty</TableCell>
-                  <TableCell className="font-bold text-center">Issue Qty</TableCell>
-                  <TableCell className="font-bold">Unit</TableCell>
-                  <TableCell className="font-bold">Issued To</TableCell>
-                  <TableCell className="font-bold">Remarks</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
+        {/* Table Section */}
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader>
+                <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
                   <TableRow>
-                    <TableCell colSpan={6} align="center" className="py-10">
-                      <CircularProgress size={30} />
-                      <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
-                    </TableCell>
+                    <TableCell className="font-bold bg-inherit">Product</TableCell>
+                    <TableCell className="font-bold text-center bg-inherit">Available Qty</TableCell>
+                    <TableCell className="font-bold text-center bg-inherit">Issue Qty</TableCell>
+                    <TableCell className="font-bold bg-inherit">Unit</TableCell>
+                    <TableCell className="font-bold bg-inherit">Issued To</TableCell>
+                    <TableCell className="font-bold bg-inherit">Remarks</TableCell>
                   </TableRow>
-                ) : storeStocks.filter(s => s.productId?.productType !== "Packaging Item").length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" className="py-10 text-gray-500 text-sm">
-                      No issueable products found (Packaging items are restricted).
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  storeStocks
-                    .filter(s => s.productId?.productType !== "Packaging Item")
-                    .map((stock) => {
-                      const pid = stock.productId?._id;
-                      const item = issueItems[pid] || {
-                        productId: pid || "",
-                        productName: stock.productId?.productName || "",
-                        availableQty: stock.closingStock,
-                        issueQty: 0,
-                        unit: stock.productId?.unit || "",
-                        issuedTo: "",
-                        remarks: "",
-                      };
+                </TableHead>
 
-                      return (
-                        <TableRow key={stock._id} hover>
-                          <TableCell>
-                            <Typography variant="body2" className="font-medium">
-                              {stock.productId?.productName}
-                            </Typography>
-                            <Typography variant="caption" className="text-gray-500">
-                              {stock.productId?.packSize}
-                            </Typography>
-                          </TableCell>
-                          <TableCell className="text-center font-bold text-blue-600">
-                            {item.availableQty}
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              type="number"
-                              value={item.issueQty || ""}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                handleIssueQtyChange(pid || "", Number(e.target.value));
-                              }}
-                              inputProps={{
-                                min: 0,
-                                max: item.availableQty,
-                              }}
-                              sx={{
-                                width: 100,
-                                "& .MuiInputBase-input": {
-                                  textAlign: "center",
-                                  "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                                    display: "none",
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" className="py-10">
+                        <CircularProgress size={30} />
+                        <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : storeStocks.filter(s => s.productId?.productType !== "Packaging Item").length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
+                        No issueable products found (Packaging items are restricted).
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    storeStocks
+                      .filter(s => s.productId?.productType !== "Packaging Item")
+                      .map((stock) => {
+                        const pid = stock.productId?._id;
+                        const item = issueItems[pid] || {
+                          productId: pid || "",
+                          productName: stock.productId?.productName || "",
+                          availableQty: stock.closingStock,
+                          issueQty: 0,
+                          unit: stock.productId?.unit || "",
+                          issuedTo: "",
+                          remarks: "",
+                        };
+
+                        return (
+                          <TableRow key={stock._id} hover>
+                            <TableCell>
+                              <Typography variant="body2" className="font-medium">
+                                {stock.productId?.productName}
+                              </Typography>
+                              <Typography variant="caption" className="text-gray-500">
+                                {stock.productId?.packSize}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-blue-600">
+                              {item.availableQty}
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={item.issueQty || ""}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  handleIssueQtyChange(pid || "", Number(e.target.value));
+                                }}
+                                inputProps={{
+                                  min: 0,
+                                  max: item.availableQty,
+                                }}
+                                sx={{
+                                  width: 100,
+                                  "& .MuiInputBase-input": {
+                                    textAlign: "center",
+                                    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+                                      display: "none",
+                                    },
+                                    "&": {
+                                      MozAppearance: "textfield",
+                                    },
                                   },
-                                  "&": {
-                                    MozAppearance: "textfield",
-                                  },
-                                },
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-gray-600">{item.unit}</TableCell>
-                          <TableCell>
-                            <TextField
-                              select
-                              size="small"
-                              fullWidth
-                              value={item.issuedTo}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                handleIssuedToChange(pid || "", e.target.value as IssuedToType);
-                              }}
-                              sx={{ minWidth: 150 }}
-                            >
-                              <MenuItem value="">
-                                <em>Select Section</em>
-                              </MenuItem>
-                              {ISSUED_TO_OPTIONS.map((option) => (
-                                <MenuItem key={option} value={option}>
-                                  {option}
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell className="text-gray-600">{item.unit}</TableCell>
+                            <TableCell>
+                              <TextField
+                                select
+                                size="small"
+                                fullWidth
+                                value={item.issuedTo}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  handleIssuedToChange(pid || "", e.target.value as IssuedToType);
+                                }}
+                                sx={{ minWidth: 150 }}
+                              >
+                                <MenuItem value="">
+                                  <em>Select Section</em>
                                 </MenuItem>
-                              ))}
-                            </TextField>
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              placeholder="Enter remarks..."
-                              value={item.remarks}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                handleRemarksChange(pid || "", e.target.value);
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                                {ISSUED_TO_OPTIONS.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                placeholder="Enter remarks..."
+                                value={item.remarks}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  handleRemarksChange(pid || "", e.target.value);
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={allStoreStocksData?.pagination.total || 0}
-            page={page}
-            onPageChange={(_: React.MouseEvent<HTMLButtonElement> | null, p: number) => setPage(p)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            className="border-t bg-gray-50"
-          />
-        </Paper>
-      </div>
+            <TablePagination
+              component="div"
+              count={allStoreStocksData?.pagination.total || 0}
+              page={page}
+              onPageChange={(_: React.MouseEvent<HTMLButtonElement> | null, p: number) => setPage(p)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                setLimit(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              className="border-t bg-gray-50 shrink-0"
+            />
+          </Paper>
+        </Box>
+      </Box>
     </AdminLayout>
   );
 };
 
 export default KitchenIssue;
-

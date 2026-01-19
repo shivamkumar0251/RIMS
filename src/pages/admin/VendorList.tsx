@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   FormControl,
   IconButton,
   InputAdornment,
@@ -202,10 +201,9 @@ function VendorList() {
 
   return (
     <AdminLayout>
-
-      <Box className="flex flex-col h-[calc(100vh-10px)] p-4">
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Header Section */}
-        <Box className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+        <Box className="bg-white p-4 shadow-sm border-b border-gray-100 shrink-0">
           <Box className="flex flex-col xl:flex-row items-center justify-between gap-4">
             {/* Filters */}
             <Box className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -294,95 +292,95 @@ function VendorList() {
         </Box>
 
         {/* Table Section */}
-        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-          <TableContainer className="flex-1 overflow-auto">
-            <Table stickyHeader size="medium">
-              <TableHead>
-                <TableRow>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Vendor Info</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Contact Details</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Location</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Bank Info</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Terms</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Credit</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Outstanding</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Created</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3" align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Vendor Info</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Contact Details</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Location</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Bank Info</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Terms</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Credit</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Outstanding</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Created</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3" align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
 
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
-                ) : vendorsData.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-20 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
-                ) : (
-                  vendorsData.map((vendor) => (
-                    <TableRow key={vendor._id} hover className="transition-colors">
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="font-bold text-gray-800">{vendor.vendor_name}</Typography>
-                        <Box className="flex items-center gap-1 mt-0.5">
-                          <Typography variant="caption" className="text-gray-400 font-medium">GST:</Typography>
-                          <Typography variant="caption" className="text-gray-600">{vendor.vendor_gstNumber || "N/A"}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_mobileNo}</Typography>
-                        <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
-                          {vendor.vendor_registrationType}
-                        </Typography>
-                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "raj@gmail.com"}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3 max-w-[200px]">
-                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || 'Raj'}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || 9966332211}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3 max-w-[200px]">
-                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_state}, {vendor.vendor_country}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="font-medium text-gray-700">{vendor.vendor_bankName}</Typography>
-                        <Typography variant="caption" className="text-gray-400 font-mono">Acc: {vendor.vendor_accountNumber || "N/A"}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Box className="flex flex-col items-start gap-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                            {vendor.vendor_paymentTerms}
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={10} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
+                  ) : vendorsData.length === 0 ? (
+                    <TableRow><TableCell colSpan={10} align="center" className="py-20 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
+                  ) : (
+                    vendorsData.map((vendor) => (
+                      <TableRow key={vendor._id} hover className="transition-colors">
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="font-bold text-gray-800">{vendor.vendor_name}</Typography>
+                          <Box className="flex items-center gap-1 mt-0.5">
+                            <Typography variant="caption" className="text-gray-400 font-medium">GST:</Typography>
+                            <Typography variant="caption" className="text-gray-600">{vendor.vendor_gstNumber || "N/A"}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="text-gray-700">{vendor.vendor_mobileNo}</Typography>
+                          <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
+                            {vendor.vendor_registrationType}
+                          </Typography>
+                          <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "-"}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3 max-w-[200px]">
+                          <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || '-'}</Typography>
+                          <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || '-'}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3 max-w-[200px]">
+                          <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
+                          <Typography variant="caption" className="text-gray-500">{vendor.vendor_state}, {vendor.vendor_country}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="font-medium text-gray-700">{vendor.vendor_bankName}</Typography>
+                          <Typography variant="caption" className="text-gray-400 font-mono">Acc: {vendor.vendor_accountNumber || "N/A"}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Box className="flex flex-col items-start gap-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                              {vendor.vendor_paymentTerms}
+                            </span>
+                            <Typography variant="caption" className="text-gray-500 font-medium">{vendor.vendor_preferredPaymentMode}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <span className="font-medium text-gray-700">₹{vendor.vendor_creditLimit?.toLocaleString()}</span>
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <span className={`font-bold ${vendor.vendor_outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            ₹{vendor.vendor_outstandingBalance?.toLocaleString()}
                           </span>
-                          <Typography variant="caption" className="text-gray-500 font-medium">{vendor.vendor_preferredPaymentMode}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell className="py-3 text-center">
-                        <span className="font-medium text-gray-700">₹{vendor.vendor_creditLimit?.toLocaleString()}</span>
-                      </TableCell>
-                      <TableCell className="py-3 text-center">
-                        <span className={`font-bold ${vendor.vendor_outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          ₹{vendor.vendor_outstandingBalance?.toLocaleString()}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-3 text-gray-500 text-sm">
-                        {dayjs(vendor.createdAt).format("DD MMM, YYYY")}
-                      </TableCell>
-                      <TableCell className="py-3" align="right">
-                        <Box className="flex gap-1 justify-end">
-                          <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
-                            <FiEdit size={15} />
-                          </IconButton>
-                          <IconButton onClick={() => handleDelete(vendor?._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
-                            <FiTrash2 size={15} />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        </TableCell>
+                        <TableCell className="py-3 text-gray-500 text-sm">
+                          {dayjs(vendor.createdAt).format("DD MMM, YYYY")}
+                        </TableCell>
+                        <TableCell className="py-3" align="right">
+                          <Box className="flex gap-1 justify-end">
+                            <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
+                              <FiEdit size={15} />
+                            </IconButton>
+                            <IconButton onClick={() => vendor?._id && handleDelete(vendor._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
+                              <FiTrash2 size={15} />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
             <TablePagination
               component="div"
               count={vendorsResponse?.total || 0}
@@ -394,10 +392,10 @@ function VendorList() {
                 setPage(0);
               }}
               rowsPerPageOptions={[25, 50, 100]}
-              className="text-sm text-gray-600"
+              className="border-t bg-gray-50 shrink-0"
             />
-          </Box>
-        </Paper>
+          </Paper>
+        </Box>
 
         {/* Dialogs */}
         <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>

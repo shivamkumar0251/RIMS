@@ -196,11 +196,11 @@ export default function RestaurantSetup() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col h-[calc(100vh-20px)]">
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {!isAddMode ? (
-          <>
-            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden">
-              <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
+          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+              <Box className="flex flex-wrap justify-between items-center px-4 pt-1 border-b border-gray-100 bg-white shrink-0">
                 <Tabs
                   value={value}
                   onChange={handleChange}
@@ -228,250 +228,233 @@ export default function RestaurantSetup() {
                   variant="contained"
                   startIcon={<FiPlus />}
                   onClick={() => navigate("?action=add")}
-                  className="!bg-blue-600 hover:!bg-blue-700 normal-case"
+                  className="bg-blue-600 hover:bg-blue-700 normal-case my-2"
                 >
                   Add {currentCategory}
                 </Button>
               </Box>
 
-              {/* <div className="p-4 flex justify-between items-center bg-gray-50/50">
-                <TextField
-                  size="small"
-                  placeholder={`Search ${currentCategory}...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FiSearch className="text-gray-400" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  className="w-full sm:w-80 bg-white"
-                />
-              </div> */}
-
-              <CustomTabPanel value={value} index={0}>
-                <TableContainer className="flex-1 overflow-auto">
-                  <Table stickyHeader>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Equipment Name</TableCell>
-                        <TableCell className="font-bold">Category</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {equipmentProducts.length === 0 ? (
+              <Box className="flex-1 flex flex-col overflow-hidden">
+                <CustomTabPanel value={value} index={0}>
+                  <TableContainer className="flex-1 overflow-auto">
+                    <Table stickyHeader>
+                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
                         <TableRow>
-                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
-                            No equipment found. Click "Add Equipment" to get started.
+                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
+                          <TableCell className="font-bold bg-inherit">Equipment Name</TableCell>
+                          <TableCell className="font-bold bg-inherit">Category</TableCell>
+                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
+                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
+                          <TableCell className="font-bold bg-inherit">Description</TableCell>
+                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
+                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
+                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
+                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
+                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
+                          <TableCell className="font-bold bg-inherit" align="right">
+                            Actions
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        paginatedEquipment.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                            <TableCell className="font-medium text-blue-600">
-                              {item.productName}
-                            </TableCell>
-                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                  <FiEdit size={18} />
-                                </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
-                                </IconButton>
-                              </div>
+                      </TableHead>
+                      <TableBody>
+                        {equipmentProducts.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
+                              No equipment found. Click "Add Equipment" to get started.
                             </TableCell>
                           </TableRow>
-                        )))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CustomTabPanel>
+                        ) : (
+                          paginatedEquipment.map((item: ProductInterface, idx: number) => (
+                            <TableRow key={item._id} hover>
+                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                              <TableCell className="font-medium text-blue-600">
+                                {item.productName}
+                              </TableCell>
+                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                              <TableCell>
+                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                  {item.productDescription || 'N/A'}
+                                </span>
+                              </TableCell>
+                              <TableCell>{item.quantity || 0}</TableCell>
+                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                              <TableCell>{item.gstPct}%</TableCell>
+                              <TableCell>₹{item.taxableValue || 0}</TableCell>
+                              <TableCell>
+                                {item.warrantyStart && item.warrantyEnd
+                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell align="right">
+                                <div className="flex justify-end gap-2">
+                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                    <FiEdit size={18} />
+                                  </IconButton>
+                                  <IconButton size="small" className="text-red-600">
+                                    <FiTrash2 size={18} />
+                                  </IconButton>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CustomTabPanel>
 
-              <CustomTabPanel value={value} index={1}>
-                <TableContainer className="flex-1 overflow-auto">
-                  <Table stickyHeader>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Item Name</TableCell>
-                        <TableCell className="font-bold">Category</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {crockeryProducts.length === 0 ? (
+                <CustomTabPanel value={value} index={1}>
+                  <TableContainer className="flex-1 overflow-auto">
+                    <Table stickyHeader>
+                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
                         <TableRow>
-                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
-                            No crockery found. Click "Add Crockery" to get started.
+                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
+                          <TableCell className="font-bold bg-inherit">Item Name</TableCell>
+                          <TableCell className="font-bold bg-inherit">Category</TableCell>
+                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
+                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
+                          <TableCell className="font-bold bg-inherit">Description</TableCell>
+                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
+                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
+                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
+                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
+                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
+                          <TableCell className="font-bold bg-inherit" align="right">
+                            Actions
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        paginatedCrockery.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                            <TableCell className="font-medium text-orange-600">
-                              {item.productName}
-                            </TableCell>
-                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                  <FiEdit size={18} />
-                                </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
-                                </IconButton>
-                              </div>
+                      </TableHead>
+                      <TableBody>
+                        {crockeryProducts.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
+                              No crockery found. Click "Add Crockery" to get started.
                             </TableCell>
                           </TableRow>
-                        )))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CustomTabPanel>
+                        ) : (
+                          paginatedCrockery.map((item: ProductInterface, idx: number) => (
+                            <TableRow key={item._id} hover>
+                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                              <TableCell className="font-medium text-orange-600">
+                                {item.productName}
+                              </TableCell>
+                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                              <TableCell>
+                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                  {item.productDescription || 'N/A'}
+                                </span>
+                              </TableCell>
+                              <TableCell>{item.quantity || 0}</TableCell>
+                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                              <TableCell>{item.gstPct}%</TableCell>
+                              <TableCell>₹{item.taxableValue || 0}</TableCell>
+                              <TableCell>
+                                {item.warrantyStart && item.warrantyEnd
+                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell align="right">
+                                <div className="flex justify-end gap-2">
+                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                    <FiEdit size={18} />
+                                  </IconButton>
+                                  <IconButton size="small" className="text-red-600">
+                                    <FiTrash2 size={18} />
+                                  </IconButton>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CustomTabPanel>
 
-              <CustomTabPanel value={value} index={2}>
-                <TableContainer className="flex-1 overflow-auto">
-                  <Table stickyHeader>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Furniture Name</TableCell>
-                        <TableCell className="font-bold">Category</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {furnitureProducts.length === 0 ? (
+                <CustomTabPanel value={value} index={2}>
+                  <TableContainer className="flex-1 overflow-auto">
+                    <Table stickyHeader>
+                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
                         <TableRow>
-                          <TableCell colSpan={11} align="center" className="py-8 text-gray-500">
-                            No furniture found. Click "Add Furniture" to get started.
+                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
+                          <TableCell className="font-bold bg-inherit">Furniture Name</TableCell>
+                          <TableCell className="font-bold bg-inherit">Category</TableCell>
+                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
+                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
+                          <TableCell className="font-bold bg-inherit">Description</TableCell>
+                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
+                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
+                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
+                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
+                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
+                          <TableCell className="font-bold bg-inherit" align="right">
+                            Actions
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        paginatedFurniture.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                            <TableCell className="font-medium text-purple-600">
-                              {item.productName}
-                            </TableCell>
-                            <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                  <FiEdit size={18} />
-                                </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
-                                </IconButton>
-                              </div>
+                      </TableHead>
+                      <TableBody>
+                        {furnitureProducts.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
+                              No furniture found. Click "Add Furniture" to get started.
                             </TableCell>
                           </TableRow>
-                        )))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CustomTabPanel>
-              
-              <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
-                <TablePagination
-                  component="div"
-                  count={currentCount}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  rowsPerPageOptions={[10, 25, 50, 100]}
-                />
+                        ) : (
+                          paginatedFurniture.map((item: ProductInterface, idx: number) => (
+                            <TableRow key={item._id} hover>
+                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                              <TableCell className="font-medium text-purple-600">
+                                {item.productName}
+                              </TableCell>
+                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
+                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
+                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
+                              <TableCell>
+                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
+                                  {item.productDescription || 'N/A'}
+                                </span>
+                              </TableCell>
+                              <TableCell>{item.quantity || 0}</TableCell>
+                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
+                              <TableCell>{item.gstPct}%</TableCell>
+                              <TableCell>₹{item.taxableValue || 0}</TableCell>
+                              <TableCell>
+                                {item.warrantyStart && item.warrantyEnd
+                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell align="right">
+                                <div className="flex justify-end gap-2">
+                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
+                                    <FiEdit size={18} />
+                                  </IconButton>
+                                  <IconButton size="small" className="text-red-600">
+                                    <FiTrash2 size={18} />
+                                  </IconButton>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CustomTabPanel>
               </Box>
-            </Paper>
 
-          </>
+              <TablePagination
+                component="div"
+                count={currentCount}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+                className="border-t bg-gray-50 shrink-0"
+              />
+            </Paper>
+          </Box>
         ) : (
           <ProductDrawerForm
             open={true}
@@ -495,7 +478,7 @@ export default function RestaurantSetup() {
         <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
         <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
         <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
-      </div>
-    </AdminLayout >
+      </Box>
+    </AdminLayout>
   );
 }

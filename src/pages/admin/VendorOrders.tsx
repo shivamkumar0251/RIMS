@@ -96,10 +96,9 @@ const VendorsOrder: React.FC = () => {
 
   return (
     <AdminLayout>
-      <Box className="bg-[#f8f9fa] h-[calc(100vh-10px)] flex flex-col">
-
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filters Section */}
-        <Box className="bg-white p-4 border border-gray-100 shadow-sm flex flex-wrap items-center gap-4">
+        <Box className="bg-white p-4 border-b border-gray-200 shadow-sm flex flex-wrap items-center gap-4 shrink-0">
           <TextField
             type="date"
             size="small"
@@ -156,100 +155,94 @@ const VendorsOrder: React.FC = () => {
         </Box>
 
         {/* Table Section */}
-        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-200 bg-white mx-4 mb-4">
-          <TableContainer className="flex-1 overflow-auto">
-            <Table stickyHeader>
-              <TableHead className="bg-gray-50">
-                <TableRow>
-                  <TableCell className="font-bold text-gray-700 py-4 bg-gray-50">Order ID</TableCell>
-                  <TableCell className="font-bold text-gray-700 bg-gray-50">Vendor Name</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700 bg-gray-50">Total Items</TableCell>
-                  <TableCell className="font-bold text-gray-700 bg-gray-50">Order Date</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700 bg-gray-50">Status</TableCell>
-                  <TableCell align="center" className="font-bold text-gray-700 pr-10 bg-gray-50">Actions</TableCell>
-                </TableRow>
-              </TableHead>
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-4">Order ID</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700">Vendor Name</TableCell>
+                    <TableCell align="center" className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700">Total Items</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700">Order Date</TableCell>
+                    <TableCell align="center" className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700">Status</TableCell>
+                    <TableCell align="center" className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 pr-10">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
 
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" className="py-10">
-                      <Typography className="text-gray-500">Loading orders...</Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && vendorOrders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" className="py-20">
-                      <Typography className="text-gray-400">No vendor orders found.</Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  !loading && vendorOrders.map(order => (
-                    <TableRow
-                      key={order._id}
-                      hover
-                      className="transition-colors hover:bg-gray-50"
-                    >
-                      <TableCell className="font-semibold text-gray-900">
-                        #{order.orderNumber}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {order.products?.[0]?.productId?.vendorsId?.vendor_name || (
-                          <span className="text-gray-400 italic">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell align="center" className="text-gray-700">
-                        {order.totelOrderQty}
-                      </TableCell>
-                      <TableCell className="text-gray-600">
-                        {dayjs(order.orderDate).format("DD MMM, YYYY")}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={order.orderStatus || "Draft"}
-                          color={getStatusColor(order.orderStatus || "Draft") as any}
-                          size="small"
-                          className="font-semibold px-2"
-                        />
-                      </TableCell>
-                      <TableCell align="center" className="pr-4">
-                        <Box className="flex items-center justify-center gap-2">
-                          <Button
-                            size="small"
-                            startIcon={<FiEye size={16} />}
-                            onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
-                            className="normal-case text-gray-600 hover:bg-gray-100 font-medium whitespace-nowrap"
-                          >
-                            View
-                          </Button>
-                          {/* <Button
-                            size="small"
-                            startIcon={<FiXCircle size={16} />}
-                            onClick={() => handleDeleteOrder(order._id)}
-                            className="normal-case text-red-500 hover:bg-red-50 font-medium whitespace-nowrap"
-                          >
-                            Cancel
-                          </Button> */}
-                        </Box>
+                <TableBody>
+                  {loading && (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" className="py-10">
+                        <Typography className="text-gray-500">Loading orders...</Typography>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            component="div"
-            count={allVendorOrdersData?.total || 0}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            className="border-t border-gray-100"
-          />
-        </Paper>
+                  )}
+                  {!loading && vendorOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" className="py-20">
+                        <Typography className="text-gray-400">No vendor orders found.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    !loading && vendorOrders.map(order => (
+                      <TableRow
+                        key={order._id}
+                        hover
+                        className="transition-colors hover:bg-gray-50"
+                      >
+                        <TableCell className="font-semibold text-gray-900">
+                          #{order.orderNumber}
+                        </TableCell>
+                        <TableCell className="text-gray-700">
+                          {order.products?.[0]?.productId?.vendorsId?.vendor_name || (
+                            <span className="text-gray-400 italic">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell align="center" className="text-gray-700">
+                          {order.totelOrderQty}
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {dayjs(order.orderDate).format("DD MMM, YYYY")}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={order.orderStatus || "Draft"}
+                            color={getStatusColor(order.orderStatus || "Draft") as any}
+                            size="small"
+                            className="font-semibold px-2"
+                          />
+                        </TableCell>
+                        <TableCell align="center" className="pr-4">
+                          <Box className="flex items-center justify-center gap-2">
+                            <Button
+                              size="small"
+                              startIcon={<FiEye size={16} />}
+                              onClick={() => navigate(`/admin/vendors-orders/${order._id}`)}
+                              className="normal-case text-gray-600 hover:bg-gray-100 font-medium whitespace-nowrap"
+                            >
+                              View
+                            </Button>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[25, 50, 100]}
+              component="div"
+              count={allVendorOrdersData?.total || 0}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              className="border-t bg-gray-50 shrink-0"
+            />
+          </Paper>
+        </Box>
       </Box>
 
       {/* Cancel Order Confirmation Modal */}

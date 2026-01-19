@@ -581,9 +581,9 @@ const Purchase: React.FC = () => {
   // 3. MAIN LIST VIEW (Image 1)
   return (
     <AdminLayout>
-      <Box className="bg-slate-50 min-h-screen">
+      <Box className="bg-slate-50 flex-1 flex flex-col overflow-hidden">
         {/* Compact Header - Mobile Responsive */}
-        <Box className={`px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3`}>
+        <Box className={`px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0`}>
           <Box className="flex items-center gap-2 sm:gap-4">
             <Typography variant={isMobile ? "h6" : "h5"} className="font-black text-slate-800 tracking-tight">Purchase Orders</Typography>
           </Box>
@@ -679,9 +679,9 @@ const Purchase: React.FC = () => {
         </Box>
 
         {/* Main Table */}
-        <Box className="p-2 sm:p-0">
-          <Paper className="shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
-            <TableContainer sx={{ maxHeight: 'calc(100vh - 220px)' }}>
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Paper className="flex-1 flex flex-col shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
               <Table stickyHeader sx={{ minWidth: 700 }}>
                 <TableHead>
                   <TableRow>
@@ -776,7 +776,7 @@ const Purchase: React.FC = () => {
               rowsPerPage={limit}
               onRowsPerPageChange={(e: React.ChangeEvent<HTMLInputElement>) => { setLimit(parseInt(e.target.value, 10)); setPage(0); }}
               rowsPerPageOptions={[25, 50, 100]}
-              className="border-t"
+              className="border-t bg-gray-50/50"
             />
           </Paper>
         </Box>

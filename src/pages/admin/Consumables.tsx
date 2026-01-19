@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Card,
   CardContent,
   Divider,
@@ -301,9 +300,9 @@ const Consumables: React.FC = () => {
   // ---------------- Render ----------------
   return (
     <AdminLayout>
-      <div>
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filter Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
           {/* Filters Area */}
           <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <TextField
@@ -395,296 +394,299 @@ const Consumables: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Summary Cards */}
-        <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Records</Typography>
-              <Typography variant="h5" className="font-bold text-blue-600">{reportSummary.recordCount}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Consumed</Typography>
-              <Typography variant="h5" className="font-bold text-purple-600">{reportSummary.totalConsumed}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Usage</Typography>
-              <Typography variant="h5" className="font-bold text-green-600">{reportSummary.totalUsage}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Wastage</Typography>
-              <Typography variant="h5" className="font-bold text-red-600">{reportSummary.totalWastage}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
+        {/* Content Section */}
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          {/* Summary Cards */}
+          <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 shrink-0">
+            <Card className="shadow-sm">
+              <CardContent className="p-4">
+                <Typography variant="caption" className="text-gray-500">Total Records</Typography>
+                <Typography variant="h5" className="font-bold text-blue-600">{reportSummary.recordCount}</Typography>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm">
+              <CardContent className="p-4">
+                <Typography variant="caption" className="text-gray-500">Total Consumed</Typography>
+                <Typography variant="h5" className="font-bold text-purple-600">{reportSummary.totalConsumed}</Typography>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm">
+              <CardContent className="p-4">
+                <Typography variant="caption" className="text-gray-500">Total Usage</Typography>
+                <Typography variant="h5" className="font-bold text-green-600">{reportSummary.totalUsage}</Typography>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm">
+              <CardContent className="p-4">
+                <Typography variant="caption" className="text-gray-500">Total Wastage</Typography>
+                <Typography variant="h5" className="font-bold text-red-600">{reportSummary.totalWastage}</Typography>
+              </CardContent>
+            </Card>
+          </Box>
 
-        {/* Read-Only Table */}
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table>
-              <TableHead className="bg-gray-50">
-                <TableRow>
-                  <TableCell className="font-bold">Date</TableCell>
-                  <TableCell className="font-bold">Product</TableCell>
-                  <TableCell className="font-bold">Category</TableCell>
-                  <TableCell className="font-bold text-center">Consumed Qty</TableCell>
-                  <TableCell className="font-bold">Unit</TableCell>
-                  <TableCell className="font-bold">Purpose</TableCell>
-                  <TableCell className="font-bold">User</TableCell>
-                  <TableCell className="font-bold">Remarks</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
+          {/* Read-Only Table Section */}
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader>
+                <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
                   <TableRow>
-                    <TableCell colSpan={8} align="center" className="py-10">
-                      <CircularProgress size={30} />
-                      <Typography className="mt-2 text-gray-500 text-sm">
-                        Loading consumption logs...
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
-                      No consumption records found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((row) => {
-                    const usageQty = row.transfersToUsage || 0;
-                    const wastageQty = row.transfersToWastage || 0;
-                    const consumedQty = usageQty + wastageQty;
-                    const isWastage = wastageQty > 0 && usageQty === 0;
-                    const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
-
-                    return (
-                      <TableRow key={row._id} hover>
-                        <TableCell className="text-gray-600">
-                          {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">
-                            {row.productId?.productName}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            className="text-gray-500"
-                          >
-                            {row.productId?.packSize}
-                          </Typography>
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {row.productId?.categoryId?.categoryName || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">
-                          {consumedQty || 0}
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          {row.productId?.unit || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={purpose}
-                            size="small"
-                            color={isWastage ? "error" : "success"}
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          Admin
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-sm max-w-xs truncate">
-                          -
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={allConsumableStocksData?.pagination.total || 0}
-            page={page}
-            onPageChange={(
-              _: React.MouseEvent<HTMLButtonElement> | null,
-              p: number
-            ) => setPage(p)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(
-              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-            ) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            className="border-t bg-gray-50"
-          />
-        </Paper>
-
-        {/* Info Box */}
-        <Box className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <Typography variant="body2" className="text-blue-800">
-            <strong>Note:</strong> This is a read-only consumption log. Records are automatically created when items are consumed from the Kitchen Consumption screen.
-          </Typography>
-        </Box>
-
-        {/* Report Modal */}
-        <Dialog
-          open={reportOpen}
-          onClose={() => setReportOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle className="bg-gray-50 border-b">
-            <Box className="flex items-center justify-between">
-              <Typography variant="h6" className="font-bold">Consumption Report</Typography>
-              <Typography variant="caption" className="text-gray-500">
-                Generated on {dayjs().format("DD/MM/YYYY HH:mm")}
-              </Typography>
-            </Box>
-          </DialogTitle>
-
-          <DialogContent className="mt-4">
-            {/* Filters Applied */}
-            <Box className="mb-4 p-3 bg-gray-50 rounded">
-              <Typography variant="subtitle2" className="font-bold mb-2">Filters Applied:</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Date Range:</strong> {fromDate || "All"} to {toDate || "All"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Search:</strong> {search || "None"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Purpose:</strong> {purposeFilter || "All"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>User:</strong> {userFilter || "All"}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-
-            <Divider className="my-4" />
-
-            {/* Summary Statistics */}
-            <Typography variant="subtitle2" className="font-bold mb-3">Summary Statistics:</Typography>
-            <Grid container spacing={2} className="mb-4">
-              <Grid item xs={6} md={3}>
-                <Card className="bg-blue-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Records</Typography>
-                    <Typography variant="h6" className="font-bold text-blue-600">
-                      {reportSummary.recordCount}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-purple-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Total Consumed</Typography>
-                    <Typography variant="h6" className="font-bold text-purple-600">
-                      {reportSummary.totalConsumed}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-green-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Usage</Typography>
-                    <Typography variant="h6" className="font-bold text-green-600">
-                      {reportSummary.totalUsage}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-red-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Wastage</Typography>
-                    <Typography variant="h6" className="font-bold text-red-600">
-                      {reportSummary.totalWastage}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            <Divider className="my-4" />
-
-            {/* Product Breakdown */}
-            <Typography variant="subtitle2" className="font-bold mb-3">Product Breakdown:</Typography>
-            <TableContainer component={Paper} variant="outlined" className="max-h-64">
-              <Table size="small">
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">Product</TableCell>
-                    <TableCell className="font-bold text-right">Consumed</TableCell>
-                    <TableCell className="font-bold text-right">Usage</TableCell>
-                    <TableCell className="font-bold text-right">Wastage</TableCell>
+                    <TableCell className="font-bold bg-inherit">Date</TableCell>
+                    <TableCell className="font-bold bg-inherit">Product</TableCell>
+                    <TableCell className="font-bold bg-inherit">Category</TableCell>
+                    <TableCell className="font-bold text-center bg-inherit">Consumed Qty</TableCell>
+                    <TableCell className="font-bold bg-inherit">Unit</TableCell>
+                    <TableCell className="font-bold bg-inherit">Purpose</TableCell>
+                    <TableCell className="font-bold bg-inherit">User</TableCell>
+                    <TableCell className="font-bold bg-inherit">Remarks</TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
-                  {reportSummary.productBreakdown.map((product, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell className="text-right font-bold">{product.consumed}</TableCell>
-                      <TableCell className="text-right text-green-600">{product.usage}</TableCell>
-                      <TableCell className="text-right text-red-600">{product.wastage}</TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" className="py-10">
+                        <CircularProgress size={30} />
+                        <Typography className="mt-2 text-gray-500 text-sm">
+                          Loading consumption logs...
+                        </Typography>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
+                        No consumption records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredData.map((row) => {
+                      const usageQty = row.transfersToUsage || 0;
+                      const wastageQty = row.transfersToWastage || 0;
+                      const consumedQty = usageQty + wastageQty;
+                      const isWastage = wastageQty > 0 && usageQty === 0;
+                      const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
+
+                      return (
+                        <TableRow key={row._id} hover>
+                          <TableCell className="text-gray-600">
+                            {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" className="font-medium">
+                              {row.productId?.productName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              className="text-gray-500"
+                            >
+                              {row.productId?.packSize}
+                            </Typography>
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {row.productId?.categoryId?.categoryName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">
+                            {consumedQty || 0}
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            {row.productId?.unit || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={purpose}
+                              size="small"
+                              color={isWastage ? "error" : "success"}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            Admin
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-sm max-w-xs truncate">
+                            -
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
-          </DialogContent>
 
-          <DialogActions className="bg-gray-50 border-t p-4">
-            <Button
-              onClick={() => setReportOpen(false)}
-              variant="outlined"
-              className="normal-case"
-            >
-              Close
-            </Button>
-            <Button
-              onClick={handleExportCSV}
-              startIcon={<FiDownload />}
-              variant="outlined"
-              color="success"
-              className="normal-case"
-            >
-              Export CSV
-            </Button>
-            <Button
-              onClick={handleExportPDF}
-              startIcon={<FiDownload />}
-              variant="contained"
-              color="primary"
-              className="normal-case"
-            >
-              Export PDF
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </div>
+            <TablePagination
+              component="div"
+              count={allConsumableStocksData?.pagination.total || 0}
+              page={page}
+              onPageChange={(
+                _: React.MouseEvent<HTMLButtonElement> | null,
+                p: number
+              ) => setPage(p)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(
+                e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+              ) => {
+                setLimit(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              className="border-t bg-gray-50"
+            />
+          </Paper>
+
+          {/* Info Box */}
+          <Box className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg shrink-0">
+            <Typography variant="body2" className="text-blue-800 text-xs sm:text-sm">
+              <strong>Note:</strong> This is a read-only consumption log. Records are automatically created when items are consumed from the Kitchen Consumption screen.
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Report Modal */}
+      <Dialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle className="bg-gray-50 border-b">
+          <Box className="flex items-center justify-between">
+            <Typography variant="h6" className="font-bold">Consumption Report</Typography>
+            <Typography variant="caption" className="text-gray-500">
+              Generated on {dayjs().format("DD/MM/YYYY HH:mm")}
+            </Typography>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent className="mt-4">
+          {/* Filters Applied */}
+          <Box className="mb-4 p-3 bg-gray-50 rounded">
+            <Typography variant="subtitle2" className="font-bold mb-2">Filters Applied:</Typography>
+            <Box className="grid grid-cols-2 gap-4">
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Date Range:</strong> {fromDate || "All"} to {toDate || "All"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Search:</strong> {search || "None"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Purpose:</strong> {purposeFilter || "All"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>User:</strong> {userFilter || "All"}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <Divider className="my-4" />
+
+          {/* Summary Statistics */}
+          <Typography variant="subtitle2" className="font-bold mb-3">Summary Statistics:</Typography>
+          <Box className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Box>
+              <Card className="bg-blue-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Records</Typography>
+                  <Typography variant="h6" className="font-bold text-blue-600">
+                    {reportSummary.recordCount}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-purple-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Total Consumed</Typography>
+                  <Typography variant="h6" className="font-bold text-purple-600">
+                    {reportSummary.totalConsumed}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-green-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Usage</Typography>
+                  <Typography variant="h6" className="font-bold text-green-600">
+                    {reportSummary.totalUsage}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-red-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Wastage</Typography>
+                  <Typography variant="h6" className="font-bold text-red-600">
+                    {reportSummary.totalWastage}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          <Divider className="my-4" />
+
+          {/* Product Breakdown */}
+          <Typography variant="subtitle2" className="font-bold mb-3">Product Breakdown:</Typography>
+          <TableContainer component={Paper} variant="outlined" className="max-h-64">
+            <Table size="small">
+              <TableHead className="bg-gray-50">
+                <TableRow>
+                  <TableCell className="font-bold">Product</TableCell>
+                  <TableCell className="font-bold text-right">Consumed</TableCell>
+                  <TableCell className="font-bold text-right">Usage</TableCell>
+                  <TableCell className="font-bold text-right">Wastage</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {reportSummary.productBreakdown.map((product, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell className="text-right font-bold">{product.consumed}</TableCell>
+                    <TableCell className="text-right text-green-600">{product.usage}</TableCell>
+                    <TableCell className="text-right text-red-600">{product.wastage}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+
+        <DialogActions className="bg-gray-50 border-t p-4">
+          <Button
+            onClick={() => setReportOpen(false)}
+            variant="outlined"
+            className="normal-case"
+          >
+            Close
+          </Button>
+          <Button
+            onClick={handleExportCSV}
+            startIcon={<FiDownload />}
+            variant="outlined"
+            color="success"
+            className="normal-case"
+          >
+            Export CSV
+          </Button>
+          <Button
+            onClick={handleExportPDF}
+            startIcon={<FiDownload />}
+            variant="contained"
+            color="primary"
+            className="normal-case"
+          >
+            Export PDF
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AdminLayout>
   );
 };
