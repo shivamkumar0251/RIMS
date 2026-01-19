@@ -23,12 +23,14 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFilter, FiCheck, FiX } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { toast } from "react-hot-toast";
 
 import {
   getStoreStocks,
-  selectStoreStockState
+  selectStoreStockState,
+  updateStoreStock
 } from "../../redux/slices/storeStockSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -61,6 +63,11 @@ const StoreStockComponent: React.FC = () => {
 
   const [catSearch, setCatSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
+
+  // ---------------- Inline Edit State ----------------
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // ---------------- Load Dropdowns ----------------
   useEffect(() => {
@@ -109,6 +116,45 @@ const StoreStockComponent: React.FC = () => {
     brands.filter(b => (b.brandName || "").toLowerCase().includes(brandSearch.toLowerCase())),
     [brands, brandSearch]
   );
+
+  const handleStartEdit = (id: string, currentVal: string) => {
+    setEditingId(id);
+    setEditDate(currentVal || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDate("");
+  };
+
+  const handleSaveExpiry = async (id: string) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await dispatch(updateStoreStock({
+        storeStockId: id,
+        storeStockData: { expiryDate: editDate }
+      })).unwrap();
+
+      // Force refetch to ensure UI is in sync with DB
+      dispatch(getStoreStocks({
+        page: page + 1,
+        limit,
+        search,
+        categoryId,
+        companyId,
+        fromDate,
+        toDate
+      }));
+
+      toast.success("Expiry date updated successfully");
+      setEditingId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update expiry date");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // ---------------- UI ----------------
   return (
@@ -273,6 +319,7 @@ const StoreStockComponent: React.FC = () => {
                     <TableCell className="font-bold bg-inherit">Unit</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Available Qty</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Status</TableCell>
+                    <TableCell className="font-bold bg-inherit">Expiry Date</TableCell>
                     <TableCell className="font-bold bg-inherit">Last Inward Date</TableCell>
                   </TableRow>
                 </TableHead>
@@ -280,34 +327,89 @@ const StoreStockComponent: React.FC = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" className="py-10">
+                      <TableCell colSpan={8} align="center" className="py-10">
                         <CircularProgress size={30} />
                         <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : storeStocks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
+                      <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
                         No products found.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    storeStocks.map((row) => (
-                      <TableRow key={row._id} hover>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
-                          <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
-                        </TableCell>
-                        <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
-                        <TableCell className="text-center">
-                          {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
-                      </TableRow>
-                    ))
+                    storeStocks.map((row) => {
+                      const combinedExpiry = row.expiryDate || row.productId?.expiryDate;
+                      const expiry = combinedExpiry ? dayjs(combinedExpiry) : null;
+                      const isExpired = expiry && expiry.isBefore(dayjs(), 'day');
+                      const isExpiringSoon = expiry && !isExpired && expiry.isBefore(dayjs().add(90, 'day'), 'day');
+
+                      return (
+                        <TableRow key={row._id} hover>
+                          <TableCell>
+                            <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
+                            <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
+                          </TableCell>
+                          <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                          <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
+                          <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
+                          <TableCell className="text-center">
+                            {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <Box className="flex items-center gap-2 group/cell min-h-[40px]">
+                              {editingId === row._id ? (
+                                <Box className="flex items-center gap-1">
+                                  <TextField
+                                    type="date"
+                                    size="small"
+                                    variant="outlined"
+                                    value={editDate}
+                                    onChange={(e) => setEditDate(e.target.value)}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '12px' }, width: 130 }}
+                                  />
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleSaveExpiry(row._id)}
+                                    disabled={isUpdating}
+                                    className="text-green-600 hover:bg-green-50"
+                                  >
+                                    <FiCheck size={16} />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    onClick={handleCancelEdit}
+                                    className="text-red-500 hover:bg-red-50"
+                                  >
+                                    <FiX size={16} />
+                                  </IconButton>
+                                </Box>
+                              ) : (
+                                <Box
+                                  onClick={() => handleStartEdit(row._id, combinedExpiry || "")}
+                                  className="flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-1 px-2 rounded-md min-h-[40px] flex flex-col justify-center"
+                                >
+                                  {combinedExpiry ? (
+                                    <>
+                                      <Typography variant="body2" className={`font-bold ${isExpired || isExpiringSoon ? 'text-rose-600' : 'text-gray-700'}`}>
+                                        {dayjs(combinedExpiry).format("DD/MM/YYYY")}
+                                      </Typography>
+                                      {isExpired && <Typography variant="caption" className="text-rose-500 font-black animate-pulse uppercase text-[9px]">EXPIRED</Typography>}
+                                      {isExpiringSoon && <Typography variant="caption" className="text-rose-500 font-black uppercase text-[9px]">Expiring Soon</Typography>}
+                                    </>
+                                  ) : (
+                                    <Typography className="text-gray-400">None</Typography>
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

@@ -27,7 +27,7 @@ import { AdminLayout } from "../../layouts/AdminLayout";
 
 import {
   getKitchenStocks,
-  selectKitchenStockState
+  selectKitchenStockState,
 } from "../../redux/slices/kitchenStockSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -58,6 +58,7 @@ const KitchenStockPage: React.FC = () => {
 
   const [catSearch, setCatSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
+
 
   // ---------------- Load Dropdowns ----------------
   useEffect(() => {

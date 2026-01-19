@@ -90,20 +90,21 @@ const Purchase: React.FC = () => {
   const [checkedOrderIds, setCheckedOrderIds] = useState<string[]>([]);
 
   // State for receipt data (Receive Mode)
-  const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string }>>({});
+  const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string; expiryDate: string }>>({});
 
   // Initialize receipt data when in receive mode
   useEffect(() => {
     if (isReceiveMode && allProductsToReceive.length > 0) {
-      const initialData: Record<string, { receivedQty: number; damagedQty: number; remarks: string }> = {};
+      const initialData: Record<string, { receivedQty: number; damagedQty: number; remarks: string; expiryDate: string }> = {};
       allProductsToReceive.forEach((p: any) => {
         const pid = p.productId?._id;
         const qtyToRcv = p.sendToPurchaseQty || p.orderQty || 0;
-        if (pid && qtyToRcv > 0) {
+        if (pid) {
           initialData[pid] = {
             receivedQty: qtyToRcv,
             damagedQty: 0,
-            remarks: ""
+            remarks: "",
+            expiryDate: ""
           };
         }
       });
@@ -183,13 +184,15 @@ const Purchase: React.FC = () => {
         if (target === 'Store') {
           const storePayload = validItems.map(item => ({
             productId: item.productId._id,
-            qty: item.receivedQty
+            qty: item.receivedQty,
+            expiryDate: item.expiryDate
           }));
           await dispatch(addStoreStock(storePayload)).unwrap();
         } else {
           const kitchenPayload = validItems.map(item => ({
             productId: item.productId._id,
-            qty: item.receivedQty
+            qty: item.receivedQty,
+            expiryDate: item.expiryDate
           }));
           await dispatch(addKitchenStock(kitchenPayload)).unwrap();
         }
@@ -296,6 +299,9 @@ const Purchase: React.FC = () => {
                       <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">RECEIVED</TableCell>
                       <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">DAMAGED</TableCell>
                       <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">ACCEPTED</TableCell>
+                      {location.state?.target !== 'Kitchen' && (
+                        <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50">EXPIRY DATE</TableCell>
+                      )}
                       <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50">REMARKS</TableCell>
                     </TableRow>
                   </TableHead>
@@ -357,6 +363,19 @@ const Purchase: React.FC = () => {
                               {acceptedQty}
                             </Box>
                           </TableCell>
+                          {location.state?.target !== 'Kitchen' && (
+                            <TableCell>
+                              <TextField
+                                type="date"
+                                size="small"
+                                variant="outlined"
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' }, minWidth: 130 }}
+                                value={data.expiryDate || ""}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'expiryDate', e.target.value)}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <TextField
                               size="small"
