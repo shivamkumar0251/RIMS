@@ -18,11 +18,14 @@ import {
   MenuItem,
   ButtonGroup,
   Divider,
+  Checkbox,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { FiPlus, FiEye, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX } from "react-icons/fi";
+import { FiPlus, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
@@ -45,9 +48,32 @@ const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Check if we are in "Receive Mode" (coming from Vendor Order Details)
-  const vendorOrder = location.state?.vendorOrder;
+  // Support both single vendorOrder (backward compat) and multiple vendorOrders
+  const selectedVendorOrders: any[] = location.state?.vendorOrders || 
+    (location.state?.vendorOrder ? [location.state.vendorOrder] : []);
+  const isReceiveMode = selectedVendorOrders.length > 0;
+  
+  // Flatten all products from all selected orders
+  const allProductsToReceive = useMemo(() => {
+    const products: any[] = [];
+    selectedVendorOrders.forEach((order: any) => {
+      order.products?.forEach((p: any) => {
+        const qtyToRcv = p.sendToPurchaseQty || p.orderQty || 0;
+        if (p.productId && qtyToRcv > 0) {
+          products.push({
+            ...p,
+            _orderId: order._id,
+            _orderNumber: order.orderNumber
+          });
+        }
+      });
+    });
+    return products;
+  }, [selectedVendorOrders]);
 
   // ---------------- Shared State ----------------
   const { vendorOrders, loading: ordersLoading, allVendorOrdersData } = useAppSelector(selectVendorOrderState);
@@ -61,18 +87,20 @@ const Purchase: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState<null | HTMLElement>(null);
+  const [checkedOrderIds, setCheckedOrderIds] = useState<string[]>([]);
 
   // State for receipt data (Receive Mode)
   const [receiptData, setReceiptData] = useState<Record<string, { receivedQty: number; damagedQty: number; remarks: string }>>({});
 
-  // Initialize receipt data when vendorOrder is present
+  // Initialize receipt data when in receive mode
   useEffect(() => {
-    if (vendorOrder) {
+    if (isReceiveMode && allProductsToReceive.length > 0) {
       const initialData: Record<string, { receivedQty: number; damagedQty: number; remarks: string }> = {};
-      vendorOrder.products.forEach((p: any) => {
+      allProductsToReceive.forEach((p: any) => {
+        const pid = p.productId?._id;
         const qtyToRcv = p.sendToPurchaseQty || p.orderQty || 0;
-        if (p.productId && qtyToRcv > 0) {
-          initialData[p.productId._id] = {
+        if (pid && qtyToRcv > 0) {
+          initialData[pid] = {
             receivedQty: qtyToRcv,
             damagedQty: 0,
             remarks: ""
@@ -81,14 +109,14 @@ const Purchase: React.FC = () => {
       });
       setReceiptData(initialData);
     }
-  }, [vendorOrder]);
+  }, [isReceiveMode, allProductsToReceive]);
 
   // Initial Load
   useEffect(() => {
-    if (!vendorOrder) {
+    if (!isReceiveMode) {
       dispatch(getVendorOrders({ page: page + 1, limit, orderStatus: "Delivered" }));
     }
-  }, [dispatch, vendorOrder, page, limit]);
+  }, [dispatch, isReceiveMode, page, limit]);
 
   // Handlers
   const handleReceiptChange = (pid: string, field: string, value: any) => {
@@ -99,13 +127,13 @@ const Purchase: React.FC = () => {
   };
 
   const handleConfirmReceipt = async () => {
-    if (!vendorOrder) return;
+    if (!isReceiveMode || allProductsToReceive.length === 0) return;
     setIsProcessing(true);
 
     const errors: string[] = [];
     const validItems: any[] = [];
 
-    vendorOrder.products.forEach((p: any) => {
+    allProductsToReceive.forEach((p: any) => {
       const pid = p.productId?._id;
       const data = receiptData[pid];
       if (!data) return;
@@ -133,16 +161,21 @@ const Purchase: React.FC = () => {
     try {
       const target = location.state?.target || 'Kitchen';
 
-      // 1. Update Vendor Order Status
-      await dispatch(updateVendorOrder({
-        vendorOrderId: vendorOrder._id,
-        orderStatus: 'Delivered',
-        products: validItems.map(item => ({
-          productId: item.productId._id,
-          sendToPurchaseQty: item.receivedQty,
-          remarks: item.remarks
-        }))
-      })).unwrap();
+      // 1. Update all Vendor Orders Status
+      for (const order of selectedVendorOrders) {
+        const orderProducts = validItems.filter(item => item._orderId === order._id);
+        if (orderProducts.length > 0) {
+          await dispatch(updateVendorOrder({
+            vendorOrderId: order._id,
+            orderStatus: 'Received',
+            products: orderProducts.map(item => ({
+              productId: item.productId._id,
+              sendToPurchaseQty: item.receivedQty,
+              remarks: item.remarks
+            }))
+          })).unwrap();
+        }
+      }
 
       // 2. Add to respective stock collection
       if (target === 'Store') {
@@ -160,7 +193,7 @@ const Purchase: React.FC = () => {
       }
 
       toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
-      setTimeout(() => navigate('/admin/vendorsOrder'), 500);
+      setTimeout(() => navigate('/admin/purchase'), 500);
     } catch (error: any) {
       console.error("Error processing receipt:", error);
       toast.error(error.message || "Failed to process receipt");
@@ -204,16 +237,18 @@ const Purchase: React.FC = () => {
   //                                    RENDER VIEWS
   // ==================================================================================
 
-  // 1. RECEIVE VIEW
-  if (vendorOrder) {
+  // 1. RECEIVE VIEW (Multiple Orders Support)
+  if (isReceiveMode) {
+    const orderNumbers = selectedVendorOrders.map((o: any) => o.orderNumber).join(', ');
     return (
       <AdminLayout>
-        <Box className="flex items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
+        <Box className="flex flex-wrap items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
-          <Typography variant="h6" className="font-bold text-gray-800">
-            Move to {location.state?.target === 'Store' ? 'Main Store' : 'Kitchen Store'} - #{vendorOrder.orderNumber}
+          <Typography variant="h6" className="font-bold text-gray-800 flex-1">
+            Move to {location.state?.target === 'Store' ? 'Main Store' : 'Kitchen Store'} 
+            {selectedVendorOrders.length === 1 ? ` - #${orderNumbers}` : ` (${selectedVendorOrders.length} Orders)`}
           </Typography>
-          <Box className="ml-auto">
+          <Box>
             <Button variant="contained" onClick={handleConfirmReceipt} disabled={isProcessing} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold">
               {isProcessing ? "Processing..." : `MOVE TO ${location.state?.target === 'Store' ? 'STORE' : 'KITCHEN STORE'}`}
             </Button>
@@ -222,10 +257,12 @@ const Purchase: React.FC = () => {
         <Box className="p-6 bg-slate-50 min-h-[calc(100vh-64px)]">
           <Box className="max-w-6xl mx-auto">
             <Paper className="shadow-xl rounded-2xl overflow-hidden border border-slate-200 bg-white">
-              <Box className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <Box className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <Box>
                   <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receiving Items For</Typography>
-                  <Typography variant="subtitle1" className="font-black text-slate-800">#{vendorOrder.orderNumber}</Typography>
+                  <Typography variant="subtitle1" className="font-black text-slate-800">
+                    {selectedVendorOrders.length === 1 ? `#${orderNumbers}` : `${selectedVendorOrders.length} Orders: ${orderNumbers}`}
+                  </Typography>
                 </Box>
                 <Box className="text-right">
                   <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Location</Typography>
@@ -235,26 +272,34 @@ const Purchase: React.FC = () => {
                 </Box>
               </Box>
 
-              <TableContainer>
-                <Table>
+              <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <Table stickyHeader sx={{ minWidth: 700 }}>
                   <TableHead className="bg-slate-50/50">
                     <TableRow>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4">ITEM DESCRIPTION</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">ORDERED</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">UNIT</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">RECEIVED</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">DAMAGED</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4" align="center">ACCEPTED</TableCell>
-                      <TableCell className="text-[10px] font-black text-slate-500 py-4">REMARKS</TableCell>
+                      {selectedVendorOrders.length > 1 && (
+                        <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50">ORDER#</TableCell>
+                      )}
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50">ITEM DESCRIPTION</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">ORDERED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">UNIT</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">RECEIVED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">DAMAGED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50" align="center">ACCEPTED</TableCell>
+                      <TableCell className="text-[10px] font-black text-slate-500 py-4 bg-slate-50">REMARKS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {vendorOrder.products.filter((p: any) => (p.sendToPurchaseQty || p.orderQty || 0) > 0).map((row: any) => {
+                    {allProductsToReceive.map((row: any, idx: number) => {
                       const pid = row.productId?._id;
                       const data = receiptData[pid] || { receivedQty: 0, damagedQty: 0 };
                       const acceptedQty = Math.max(0, data.receivedQty - data.damagedQty);
                       return (
-                        <TableRow key={row._id} hover className="group transition-colors hover:bg-slate-50/50">
+                        <TableRow key={`${row._orderId}-${row._id}-${idx}`} hover className="group transition-colors hover:bg-slate-50/50">
+                          {selectedVendorOrders.length > 1 && (
+                            <TableCell className="py-4">
+                              <Typography className="text-xs font-bold text-indigo-600">#{row._orderNumber}</Typography>
+                            </TableCell>
+                          )}
                           <TableCell className="py-4">
                             <Box>
                               <Typography className="text-sm font-bold text-slate-800">{row.productId?.productName}</Typography>
@@ -307,7 +352,7 @@ const Purchase: React.FC = () => {
                               fullWidth
                               variant="outlined"
                               placeholder="Any comments..."
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' } }}
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' }, minWidth: 120 }}
                               value={data.remarks || ""}
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'remarks', e.target.value)}
                             />
@@ -526,30 +571,123 @@ const Purchase: React.FC = () => {
   return (
     <AdminLayout>
       <Box className="bg-slate-50 min-h-screen">
-        {/* Compact Header */}
-        <Box className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
-          <Box className="flex items-center gap-4">
-            <Typography variant="h5" className="font-black text-slate-800 tracking-tight ml-2">Purchase Orders</Typography>
+        {/* Compact Header - Mobile Responsive */}
+        <Box className={`px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3`}>
+          <Box className="flex items-center gap-2 sm:gap-4">
+            <Typography variant={isMobile ? "h6" : "h5"} className="font-black text-slate-800 tracking-tight">Purchase Orders</Typography>
           </Box>
-          <Box className="flex items-center gap-3">
+          
+          <Box className={`flex items-center gap-2 sm:gap-3 ${isMobile ? 'w-full justify-end' : ''}`}>
             <Button
               variant="contained"
-              startIcon={<FiPlus />}
+              startIcon={!isMobile ? <FiPlus /> : undefined}
               onClick={() => { setEditingOrder(null); setIsFormOpen(true); }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all normal-case"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all normal-case text-xs sm:text-sm"
+              size={isMobile ? "small" : "medium"}
             >
-              Direct Purchase
+              {isMobile ? <FiPlus /> : 'Direct Purchase'}
             </Button>
+
+            <Button
+              variant="contained"
+              endIcon={<FiChevronDown />}
+              onClick={(e) => setMoveAnchorEl(e.currentTarget)}
+              className={`${checkedOrderIds.length > 0 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 sm:px-4 py-2 rounded-lg font-bold shadow-md normal-case text-xs sm:text-sm`}
+              size={isMobile ? "small" : "medium"}
+            >
+              {isMobile ? 'MOVE' : 'MOVE STOCK'}
+              {checkedOrderIds.length > 0 && (
+                <Box 
+                  component="span" 
+                  className="ml-2 px-1.5 py-0.5 text-[10px] font-black bg-white text-emerald-600 rounded-full min-w-[18px] text-center"
+                >
+                  {checkedOrderIds.length}
+                </Box>
+              )}
+            </Button>
+            
+            <Menu
+              anchorEl={moveAnchorEl}
+              open={Boolean(moveAnchorEl)}
+              onClose={() => setMoveAnchorEl(null)}
+              PaperProps={{
+                elevation: 3,
+                sx: {
+                  mt: 1,
+                  minWidth: 180,
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                }
+              }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem
+                onClick={() => {
+                  setMoveAnchorEl(null);
+                  if (checkedOrderIds.length === 0) {
+                    toast.error('Please select at least one order');
+                    return;
+                  }
+                  // Get all selected orders for move
+                  const ordersToMove = vendorOrders.filter(o => checkedOrderIds.includes(o._id));
+                  if (ordersToMove.length > 0) {
+                    navigate('/admin/purchase', { 
+                      state: { vendorOrders: ordersToMove, target: 'Store' } 
+                    });
+                  }
+                }}
+                className="text-xs font-bold text-slate-700 py-2.5"
+              >
+                <Box className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                MOVE TO MAIN STORE
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setMoveAnchorEl(null);
+                  if (checkedOrderIds.length === 0) {
+                    toast.error('Please select at least one order');
+                    return;
+                  }
+                  // Get all selected orders for move
+                  const ordersToMove = vendorOrders.filter(o => checkedOrderIds.includes(o._id));
+                  if (ordersToMove.length > 0) {
+                    navigate('/admin/purchase', { 
+                      state: { vendorOrders: ordersToMove, target: 'Kitchen' } 
+                    });
+                  }
+                }}
+                className="text-xs font-bold text-slate-700 py-2.5"
+              >
+                <Box className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
+                MOVE TO KITCHEN
+              </MenuItem>
+            </Menu>
+       
           </Box>
         </Box>
 
         {/* Main Table */}
-        <Box>
+        <Box className="p-2 sm:p-0">
           <Paper className="shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
-            <TableContainer>
-              <Table stickyHeader>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 220px)' }}>
+              <Table stickyHeader sx={{ minWidth: 700 }}>
                 <TableHead>
                   <TableRow>
+                    <TableCell padding="checkbox" className="bg-slate-50/80 backdrop-blur-sm">
+                      <Checkbox
+                        indeterminate={checkedOrderIds.length > 0 && checkedOrderIds.length < vendorOrders.length}
+                        checked={vendorOrders.length > 0 && checkedOrderIds.length === vendorOrders.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCheckedOrderIds(vendorOrders.map(o => o._id));
+                          } else {
+                            setCheckedOrderIds([]);
+                          }
+                        }}
+                        sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
+                      />
+                    </TableCell>
                     <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">DATE</TableCell>
                     <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">PURCHASE ORDER#</TableCell>
                     <TableCell className="font-bold text-slate-700 bg-slate-50/80 backdrop-blur-sm py-4">VENDOR NAME</TableCell>
@@ -560,19 +698,40 @@ const Purchase: React.FC = () => {
                 </TableHead>
                 <TableBody>
                   {ordersLoading ? (
-                    <TableRow><TableCell colSpan={6} align="center" className="py-20"><CircularProgress size={40} className="text-indigo-600" /><Typography className="mt-4 text-slate-500 font-medium">Loading orders...</Typography></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center" className="py-20"><CircularProgress size={40} className="text-indigo-600" /><Typography className="mt-4 text-slate-500 font-medium">Loading orders...</Typography></TableCell></TableRow>
                   ) : vendorOrders.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} align="center" className="py-20 text-slate-400">No purchase orders found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center" className="py-20 text-slate-400">No purchase orders found</TableCell></TableRow>
                   ) : (
-                    vendorOrders.map((row) => (
-                      <TableRow key={row._id} hover onClick={() => setSelectedOrderId(row._id)} className="cursor-pointer group">
-                        <TableCell className="py-4 text-slate-600 font-medium">{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
-                        <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4">{row.orderNumber}</TableCell>
-                        <TableCell className="py-4 font-bold text-slate-800">{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
-                        <TableCell className="py-4">
+                    vendorOrders.map((row) => {
+                      const isRowChecked = checkedOrderIds.includes(row._id);
+                      return (
+                      <TableRow 
+                        key={row._id} 
+                        hover 
+                        selected={isRowChecked}
+                        className="cursor-pointer group"
+                        sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
+                      >
+                        <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isRowChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCheckedOrderIds([...checkedOrderIds, row._id]);
+                              } else {
+                                setCheckedOrderIds(checkedOrderIds.filter(id => id !== row._id));
+                              }
+                            }}
+                            sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                        <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
+                        <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                        <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
                           <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus}</span>
                         </TableCell>
-                        <TableCell align="right" className="py-4 font-black text-slate-900">₹{row.totalAmount?.toLocaleString()}</TableCell>
+                        <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
                         <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
                           <Box className="flex items-center justify-center">
                             <ButtonGroup size="small">
@@ -592,7 +751,8 @@ const Purchase: React.FC = () => {
                           </Box>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
