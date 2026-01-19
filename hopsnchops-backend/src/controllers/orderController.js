@@ -15,50 +15,64 @@ exports.getProducts = async (req, res) => {
     const { search, brand, category, vendor, productType, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
     const query = { franchiseId };
 
+    const PRODUCT_TYPE = ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"];
     if (productType) {
-      query.productType = productType;
+      const types = String(productType).split(',').map(t => t.trim()).filter(Boolean);
+      const validTypes = types.filter(t => PRODUCT_TYPE.includes(t));
+      if (validTypes.length > 0) {
+        query.productType = { $in: validTypes };
+      }
     }
 
-    // Filter by brand
+    // Filter by brand (company)
     if (brand) {
-      if (isObjectId(brand)) {
-        query.companyId = brand;
-      } else {
-        const comp = await CompanyBrands.findOne({ brandName: brand, franchiseId });
-        if (comp) {
-          query.companyId = comp._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const brandParts = String(brand).split(',').map(v => v.trim()).filter(Boolean);
+      const brandIds = [];
+      const brandNames = [];
+      brandParts.forEach(p => {
+        if (isObjectId(p)) brandIds.push(new mongoose.Types.ObjectId(p));
+        else brandNames.push(p);
+      });
+      if (brandNames.length > 0) {
+        const found = await CompanyBrands.find({ brandName: { $in: brandNames }, franchiseId }).select('_id');
+        found.forEach(f => brandIds.push(f._id));
       }
+      if (brandIds.length > 0) query.companyId = { $in: brandIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Filter by category
     if (category) {
-      if (isObjectId(category)) {
-        query.categoryId = category;
-      } else {
-        const cat = await Categorys.findOne({ categoryName: category, franchiseId });
-        if (cat) {
-          query.categoryId = cat._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const catParts = String(category).split(',').map(v => v.trim()).filter(Boolean);
+      const catIds = [];
+      const catNames = [];
+      catParts.forEach(p => {
+        if (isObjectId(p)) catIds.push(new mongoose.Types.ObjectId(p));
+        else catNames.push(p);
+      });
+      if (catNames.length > 0) {
+        const found = await Categorys.find({ categoryName: { $in: catNames }, franchiseId }).select('_id');
+        found.forEach(f => catIds.push(f._id));
       }
+      if (catIds.length > 0) query.categoryId = { $in: catIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Filter by vendor
     if (vendor) {
-      if (isObjectId(vendor)) {
-        query.vendorsId = vendor;
-      } else {
-        const v = await Vendors.findOne({ vendor_name: vendor, franchiseId });
-        if (v) {
-          query.vendorsId = v._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const venParts = String(vendor).split(',').map(v => v.trim()).filter(Boolean);
+      const venIds = [];
+      const venNames = [];
+      venParts.forEach(p => {
+        if (isObjectId(p)) venIds.push(new mongoose.Types.ObjectId(p));
+        else venNames.push(p);
+      });
+      if (venNames.length > 0) {
+        const found = await Vendors.find({ vendor_name: { $in: venNames }, franchiseId }).select('_id');
+        found.forEach(f => venIds.push(f._id));
       }
+      if (venIds.length > 0) query.vendorsId = { $in: venIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Search by product name
@@ -195,47 +209,55 @@ exports.createBulkOrders = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
-    const { search, brand, category, vendor, orderStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
+    const { search, brand, category, vendor, productType, orderStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
 
     const query = { franchiseId };
 
     // Build product filter for brand/category/vendor
     let productFilter = { franchiseId };
-    if (brand) {
-      if (isObjectId(brand)) {
-        productFilter.companyId = brand;
-      } else {
-        const comp = await CompanyBrands.findOne({ brandName: brand, franchiseId });
-        if (comp) {
-          productFilter.companyId = comp._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+    const PRODUCT_TYPE = ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"];
+    if (productType) {
+      const types = String(productType).split(',').map(t => t.trim()).filter(Boolean);
+      const validTypes = types.filter(t => PRODUCT_TYPE.includes(t));
+      if (validTypes.length > 0) {
+        productFilter.productType = { $in: validTypes };
       }
+    }
+    if (brand) {
+      const parts = String(brand).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await CompanyBrands.find({ brandName: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
+      }
+      if (ids.length > 0) productFilter.companyId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
     if (category) {
-      if (isObjectId(category)) {
-        productFilter.categoryId = category;
-      } else {
-        const cat = await Categorys.findOne({ categoryName: category, franchiseId });
-        if (cat) {
-          productFilter.categoryId = cat._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+      const parts = String(category).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await Categorys.find({ categoryName: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
       }
+      if (ids.length > 0) productFilter.categoryId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
     if (vendor) {
-      if (isObjectId(vendor)) {
-        productFilter.vendorsId = vendor;
-      } else {
-        const v = await Vendors.findOne({ vendor_name: vendor, franchiseId });
-        if (v) {
-          productFilter.vendorsId = v._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+      const parts = String(vendor).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await Vendors.find({ vendor_name: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
       }
+      if (ids.length > 0) productFilter.vendorsId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // If any product filter exists, find matching product IDs

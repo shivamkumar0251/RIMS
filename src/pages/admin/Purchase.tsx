@@ -159,7 +159,7 @@ const Purchase: React.FC = () => {
     }
 
     try {
-      const target = location.state?.target || 'Kitchen';
+      const target = location.state?.target;
 
       // 1. Update all Vendor Orders Status
       for (const order of selectedVendorOrders) {
@@ -167,7 +167,8 @@ const Purchase: React.FC = () => {
         if (orderProducts.length > 0) {
           await dispatch(updateVendorOrder({
             vendorOrderId: order._id,
-            orderStatus: 'Received',
+            // If target exists, it's being moved to stock (Received). Otherwise, it's just confirmed (Sent)
+            orderStatus: target ? 'Received' : 'Sent',
             products: orderProducts.map(item => ({
               productId: item.productId._id,
               sendToPurchaseQty: item.receivedQty,
@@ -177,22 +178,26 @@ const Purchase: React.FC = () => {
         }
       }
 
-      // 2. Add to respective stock collection
-      if (target === 'Store') {
-        const storePayload = validItems.map(item => ({
-          productId: item.productId._id,
-          qty: item.receivedQty
-        }));
-        await dispatch(addStoreStock(storePayload)).unwrap();
+      // 2. Add to respective stock collection (ONLY if target is provided)
+      if (target) {
+        if (target === 'Store') {
+          const storePayload = validItems.map(item => ({
+            productId: item.productId._id,
+            qty: item.receivedQty
+          }));
+          await dispatch(addStoreStock(storePayload)).unwrap();
+        } else {
+          const kitchenPayload = validItems.map(item => ({
+            productId: item.productId._id,
+            qty: item.receivedQty
+          }));
+          await dispatch(addKitchenStock(kitchenPayload)).unwrap();
+        }
+        toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
       } else {
-        const kitchenPayload = validItems.map(item => ({
-          productId: item.productId._id,
-          qty: item.receivedQty
-        }));
-        await dispatch(addKitchenStock(kitchenPayload)).unwrap();
+        toast.success("Purchase Order confirmed and sent successfully!");
       }
 
-      toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
       setTimeout(() => navigate('/admin/purchase'), 500);
     } catch (error: any) {
       console.error("Error processing receipt:", error);
@@ -229,7 +234,8 @@ const Purchase: React.FC = () => {
   const getStatusColor = (status: string) => {
     const s = (status || "").toLowerCase();
     if (s === 'draft') return 'text-gray-500 bg-gray-50 border-gray-100';
-    if (s === 'delivered') return 'text-indigo-500 bg-indigo-50 border-indigo-100';
+    if (s === 'sent') return 'text-blue-500 bg-blue-50 border-blue-100';
+    if (s === 'delivered') return 'text-emerald-500 bg-emerald-50 border-emerald-100';
     return 'text-gray-400 bg-gray-50 border-gray-100';
   };
 
@@ -245,12 +251,15 @@ const Purchase: React.FC = () => {
         <Box className="flex flex-wrap items-center gap-3 p-4 bg-white shadow-sm border-b border-gray-100">
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
           <Typography variant="h6" className="font-bold text-gray-800 flex-1">
-            Move to {location.state?.target === 'Store' ? 'Main Store' : 'Kitchen Store'} 
+            {location.state?.target 
+              ? `Move to ${location.state.target === 'Store' ? 'Main Store' : 'Kitchen Store'}` 
+              : 'Confirm Purchase Order'
+            }
             {selectedVendorOrders.length === 1 ? ` - #${orderNumbers}` : ` (${selectedVendorOrders.length} Orders)`}
           </Typography>
           <Box>
             <Button variant="contained" onClick={handleConfirmReceipt} disabled={isProcessing} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold">
-              {isProcessing ? "Processing..." : `MOVE TO ${location.state?.target === 'Store' ? 'STORE' : 'KITCHEN STORE'}`}
+              {isProcessing ? "Processing..." : location.state?.target ? `MOVE TO ${location.state.target === 'Store' ? 'STORE' : 'KITCHEN STORE'}` : 'CONFIRM & SEND ORDER'}
             </Button>
           </Box>
         </Box>
@@ -265,9 +274,11 @@ const Purchase: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box className="text-right">
-                  <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Location</Typography>
+                  <Typography className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {location.state?.target ? 'Target Location' : 'Document Type'}
+                  </Typography>
                   <Typography className="font-black text-indigo-600 uppercase italic">
-                    {location.state?.target === 'Store' ? 'Main Store Inventory' : 'Kitchen Store Stock'}
+                    {location.state?.target ? (location.state.target === 'Store' ? 'Main Store Inventory' : 'Kitchen Store Stock') : 'Purchase Order Verification'}
                   </Typography>
                 </Box>
               </Box>
