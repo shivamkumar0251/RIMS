@@ -90,4 +90,8 @@ export const API_ENDPOINTS = {
   DELETE_PRODUCT_REQUIREMENT: (id: string) => `${API_BASE_URL}/product-requirements/${id}`,
   // ===== Dashboard =====
   GET_DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
+  // ===== Reports =====
+  GET_PURCHASE_REPORT: `${API_BASE_URL}/reports/purchase`,
+  GET_STOCK_REPORT: `${API_BASE_URL}/reports/stock`,
+  GET_CONSUMPTION_REPORT: `${API_BASE_URL}/reports/consumption`,
 };

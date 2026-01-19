@@ -11,6 +11,7 @@ import {
   FaShoppingCart,
   FaSignOutAlt,
   FaTh,
+  FaChartBar,
 } from "react-icons/fa";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
@@ -143,6 +144,17 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         { name: "Vendor List", to: "/admin/vendorList" },
       ],
     },
+    {
+      icon: <FaChartBar size={18} />,
+      name: "Reports",
+      to: "/admin/reports",
+      children: [
+        { name: "Purchase Report", to: "/admin/reports/purchase" },
+        { name: "Stock Report", to: "/admin/reports/stock" },
+        { name: "Consumption Report", to: "/admin/reports/consumption" },
+        { name: "Consumables Report", to: "/admin/reports/consumables" },
+      ],
+    },
   ];
 
   const handleLogout = () => {
@@ -260,7 +272,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                                     }`}
                                 >
                                   <span>{subName}</span>
-                                  {!["Order Management", "Master Lists"].includes(item.name) && (
+                                  {!["Order Management", "Master Lists", "Reports"].includes(item.name) && (
                                     <FiPlus
                                       className={`transition-all duration-200 hover:text-blue-200 cursor-pointer ${isSubActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                       size={16}
