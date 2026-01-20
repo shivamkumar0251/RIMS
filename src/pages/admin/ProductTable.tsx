@@ -487,13 +487,14 @@ export default function ProductTable() {
             </Box>
           </Box>
 
-          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Box className="flex-1 flex flex-col overflow-hidden">
             <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
               <TableContainer className="flex-1 overflow-auto">
                 <Table stickyHeader size="medium">
                   <TableHead>
                     <TableRow>
-                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Product Name</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10" sx={{ minWidth: 160 }}>Product Name</TableCell>
+                      <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10" sx={{ minWidth: 150 }}>Description</TableCell>
                       <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">Type</TableCell>
                       <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 bg-inherit backdrop-blur-md z-10">
                         <Box className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => setCatAnchor(e.currentTarget)}>
@@ -571,14 +572,23 @@ export default function ProductTable() {
 
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={13} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
                     ) : (products || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={13} align="center" className="py-20 text-gray-500 text-sm">No products found.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} align="center" className="py-20 text-gray-500 text-sm">No products found.</TableCell></TableRow>
                     ) : (
                       (products || []).map((p: ProductInterface) => (
                         <TableRow key={p._id} hover className="transition-colors">
                           <TableCell className="py-3">
                             <Typography variant="body2" className="font-medium text-slate-800">{p.productName || "Unnamed Product"}</Typography>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Tooltip title={p.productDescription || "No description"} arrow placement="top">
+                              <Typography variant="body2" className="text-gray-500 text-sm">
+                                {p.productDescription
+                                  ? p.productDescription.split(' ').slice(0, 5).join(' ') + (p.productDescription.split(' ').length > 5 ? '...' : '')
+                                  : "-"}
+                              </Typography>
+                            </Tooltip>
                           </TableCell>
                           <TableCell className="py-3">
                             <Box className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${p.productType === 'Packaging Item' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
