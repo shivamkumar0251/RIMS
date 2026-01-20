@@ -198,7 +198,7 @@ export default function RestaurantSetup() {
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {!isAddMode ? (
-          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
             <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
               <Box className="flex flex-wrap justify-between items-center px-4 pt-1 border-b border-gray-100 bg-white shrink-0">
                 <Tabs

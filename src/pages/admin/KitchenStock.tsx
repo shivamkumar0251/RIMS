@@ -22,12 +22,16 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSearch, FiRefreshCw, FiFilter } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFilter, FiCheck, FiX } from "react-icons/fi";
+import dayjs from "dayjs";
+import toast from "react-hot-toast";
+import { ExpiryBadge } from "../../components/common/ExpiryBadge";
 import { AdminLayout } from "../../layouts/AdminLayout";
 
 import {
   getKitchenStocks,
   selectKitchenStockState,
+  updateKitchenStock,
 } from "../../redux/slices/kitchenStockSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -58,6 +62,11 @@ const KitchenStockPage: React.FC = () => {
 
   const [catSearch, setCatSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
+  
+  // ---------------- Inline Edit Expiry ----------------
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
 
   // ---------------- Load Dropdowns ----------------
@@ -91,6 +100,33 @@ const KitchenStockPage: React.FC = () => {
     setCategoryId("");
     setCompanyId("");
     setPage(0);
+  };
+
+  const handleStartEdit = (id: string, currentVal: string) => {
+    setEditingId(id);
+    setEditDate(currentVal ? dayjs(currentVal).format("YYYY-MM-DD") : "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditDate("");
+  };
+
+  const handleSaveExpiry = async (id: string) => {
+    if (!editDate) return;
+    setIsUpdating(true);
+    try {
+      await dispatch(updateKitchenStock({ 
+        kitchenStockId: id, 
+        kitchenStockData: { expiryDate: editDate } 
+      })).unwrap();
+      toast.success("Expiry date updated");
+      setEditingId(null);
+    } catch (err) {
+      toast.error("Failed to update expiry date");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // ---------------- Filter Search Logic ----------------
@@ -142,7 +178,7 @@ const KitchenStockPage: React.FC = () => {
         </Box>
 
         {/* Clean Table Section */}
-        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
             <TableContainer className="flex-1 overflow-auto">
               <Table stickyHeader>
@@ -252,39 +288,82 @@ const KitchenStockPage: React.FC = () => {
                     <TableCell className="font-bold bg-inherit">Unit</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Available Qty</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Status</TableCell>
+                    <TableCell className="font-bold bg-inherit">Expiry Date</TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" className="py-10">
+                      <TableCell colSpan={7} align="center" className="py-10">
                         <CircularProgress size={30} />
                         <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : kitchenStocks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" className="py-10 text-gray-500 text-sm">
+                      <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
                         No products found.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    kitchenStocks.map((row) => (
-                      <TableRow key={row._id} hover>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
-                          <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
-                        </TableCell>
-                        <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
-                        <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
-                        <TableCell className="text-center">
-                          {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    kitchenStocks.map((row) => {
+                      const combinedExpiry = row.expiryDate || row.productId?.expiryDate;
+
+                      return (
+                        <TableRow key={row._id} hover>
+                          <TableCell>
+                            <Typography variant="body2" className="font-medium">{row.productId?.productName}</Typography>
+                            <Typography variant="caption" className="text-gray-500">{row.productId?.packSize}</Typography>
+                          </TableCell>
+                          <TableCell className="capitalize text-gray-600">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                          <TableCell className="text-gray-600 italic">{row.productId?.companyId?.brandName || "N/A"}</TableCell>
+                          <TableCell className="text-gray-600">{row.productId?.unit || "N/A"}</TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">{row.closingStock}</TableCell>
+                          <TableCell className="text-center">
+                            {getStockStatus(row.closingStock, row.productId?.stockAlert || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <Box className="flex items-center gap-2 group/cell min-h-[40px]">
+                              {editingId === row._id ? (
+                                <Box className="flex items-center gap-1">
+                                  <TextField
+                                    type="date"
+                                    size="small"
+                                    variant="outlined"
+                                    value={editDate}
+                                    onChange={(e) => setEditDate(e.target.value)}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '12px' }, width: 130 }}
+                                  />
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleSaveExpiry(row._id)}
+                                    disabled={isUpdating}
+                                    className="text-green-600 hover:bg-green-50"
+                                  >
+                                    <FiCheck size={16} />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    onClick={handleCancelEdit}
+                                    className="text-red-500 hover:bg-red-50"
+                                  >
+                                    <FiX size={16} />
+                                  </IconButton>
+                                </Box>
+                              ) : (
+                                <Box
+                                  onClick={() => handleStartEdit(row._id, combinedExpiry || "")}
+                                  className="flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-1 px-2 rounded-md min-h-[40px] flex flex-col justify-center"
+                                >
+                                  <ExpiryBadge expiryDate={combinedExpiry} />
+                                </Box>
+                              )}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

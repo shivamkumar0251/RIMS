@@ -45,6 +45,7 @@ export interface GetVendorData {
   vendor_gstType: string,
   vendor_registrationType: string,
   vendor_gstNumber: string,
+  vendor_pan?: string,
   vendor_openingBalance: number,
   createdAt?: string
 }

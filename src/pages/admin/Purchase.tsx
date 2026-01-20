@@ -22,12 +22,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { toast } from "react-hot-toast";
 import { FiPlus, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { ExpiryBadge } from "../../components/common/ExpiryBadge";
 
 
 
@@ -365,15 +366,22 @@ const Purchase: React.FC = () => {
                           </TableCell>
                           {location.state?.target !== 'Kitchen' && (
                             <TableCell>
-                              <TextField
-                                type="date"
-                                size="small"
-                                variant="outlined"
-                                InputLabelProps={{ shrink: true }}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' }, minWidth: 130 }}
-                                value={data.expiryDate || ""}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'expiryDate', e.target.value)}
-                              />
+                              <Box className="flex flex-col gap-1">
+                                <TextField
+                                  type="date"
+                                  size="small"
+                                  variant="outlined"
+                                  InputLabelProps={{ shrink: true }}
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '12px' }, minWidth: 130 }}
+                                  value={data.expiryDate || ""}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReceiptChange(pid, 'expiryDate', e.target.value)}
+                                />
+                                {data.expiryDate && (
+                                  <Box className="scale-90 origin-left">
+                                    <ExpiryBadge expiryDate={data.expiryDate} />
+                                  </Box>
+                                )}
+                              </Box>
                             </TableCell>
                           )}
                           <TableCell>
@@ -698,7 +706,7 @@ const Purchase: React.FC = () => {
         </Box>
 
         {/* Main Table */}
-        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-4">
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           <Paper className="flex-1 flex flex-col shadow-2xl shadow-slate-200/50 rounded-2xl overflow-hidden border border-slate-200 bg-white">
             <TableContainer className="flex-1 overflow-auto">
               <Table stickyHeader sx={{ minWidth: 700 }}>
