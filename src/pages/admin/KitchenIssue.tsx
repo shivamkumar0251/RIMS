@@ -3,7 +3,6 @@ import {
   Button,
   CircularProgress,
   InputAdornment,
-  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -28,27 +27,14 @@ import {
 } from "../../redux/slices/storeStockSlice";
 import type { StoreStockPostData } from "../../redux/slices/storeStockSlice";
 
-type IssuedToType = "Main Kitchen" | "Tandoor Section" | "Curry Section" | "Pantry" | "Bar" | "Bakery" | "Cold Kitchen" | "";
-
 interface IssueItem {
   productId: string;
   productName: string;
   availableQty: number;
   issueQty: number;
   unit: string;
-  issuedTo: IssuedToType;
   remarks: string;
 }
-
-const ISSUED_TO_OPTIONS: IssuedToType[] = [
-  "Main Kitchen",
-  "Tandoor Section",
-  "Curry Section",
-  "Pantry",
-  "Bar",
-  "Bakery",
-  "Cold Kitchen"
-];
 
 const KitchenIssue: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -88,7 +74,6 @@ const KitchenIssue: React.FC = () => {
           availableQty: stock.closingStock,
           issueQty: 0,
           unit: stock.productId?.unit || "",
-          issuedTo: "",
           remarks: "",
         };
       } else if (pid && issueItems[pid]) {
@@ -114,16 +99,6 @@ const KitchenIssue: React.FC = () => {
     }));
   };
 
-  const handleIssuedToChange = (productId: string, value: IssuedToType) => {
-    setIssueItems((prev) => ({
-      ...prev,
-      [productId]: {
-        ...prev[productId],
-        issuedTo: value,
-      },
-    }));
-  };
-
   const handleRemarksChange = (productId: string, value: string) => {
     setIssueItems((prev) => ({
       ...prev,
@@ -136,11 +111,11 @@ const KitchenIssue: React.FC = () => {
 
   const handleIssue = async () => {
     const itemsToIssue = Object.values(issueItems).filter(
-      (item) => item.issueQty > 0 && item.issuedTo.trim() !== ""
+      (item) => item.issueQty > 0
     );
 
     if (itemsToIssue.length === 0) {
-      alert("Please select items with issue quantity and issued to information");
+      alert("Please select items with issue quantity");
       return;
     }
 
@@ -171,7 +146,6 @@ const KitchenIssue: React.FC = () => {
           productId: item.productId,
           productName: item.productName,
           qty: item.issueQty,
-          issuedTo: item.issuedTo,
           remarks: item.remarks,
         })),
         timestamp: new Date().toISOString(),
@@ -198,7 +172,7 @@ const KitchenIssue: React.FC = () => {
   };
 
   const itemsToIssueCount = Object.values(issueItems).filter(
-    (item) => item.issueQty > 0 && item.issuedTo.trim() !== ""
+    (item) => item.issueQty > 0
   ).length;
 
   return (
@@ -258,7 +232,6 @@ const KitchenIssue: React.FC = () => {
                     <TableCell className="font-bold text-center bg-inherit">Available Qty</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Issue Qty</TableCell>
                     <TableCell className="font-bold bg-inherit">Unit</TableCell>
-                    <TableCell className="font-bold bg-inherit">Issued To</TableCell>
                     <TableCell className="font-bold bg-inherit">Remarks</TableCell>
                   </TableRow>
                 </TableHead>
@@ -266,14 +239,14 @@ const KitchenIssue: React.FC = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" className="py-10">
+                      <TableCell colSpan={6} align="center" className="py-10">
                         <CircularProgress size={30} />
                         <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : storeStocks.filter(s => s.productId?.productType !== "Packaging Item").length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
+                      <TableCell colSpan={6} align="center" className="py-10 text-gray-500 text-sm">
                         No issueable products found (Packaging items are restricted).
                       </TableCell>
                     </TableRow>
@@ -332,27 +305,6 @@ const KitchenIssue: React.FC = () => {
                               />
                             </TableCell>
                             <TableCell className="text-gray-600">{item.unit}</TableCell>
-                            <TableCell>
-                              <TextField
-                                select
-                                size="small"
-                                fullWidth
-                                value={item.issuedTo}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                  handleIssuedToChange(pid || "", e.target.value as IssuedToType);
-                                }}
-                                sx={{ minWidth: 150 }}
-                              >
-                                <MenuItem value="">
-                                  <em>Select Section</em>
-                                </MenuItem>
-                                {ISSUED_TO_OPTIONS.map((option) => (
-                                  <MenuItem key={option} value={option}>
-                                    {option}
-                                  </MenuItem>
-                                ))}
-                              </TextField>
-                            </TableCell>
                             <TableCell>
                               <TextField
                                 size="small"

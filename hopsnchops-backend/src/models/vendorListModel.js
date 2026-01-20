@@ -27,6 +27,7 @@ const VendorListSchema = new mongoose.Schema({
   vendor_gstType: { type: String, enum: ["Cgst Sgst", "Igst", "Non Gst", "Exempt"], default: "Non Gst", },
   vendor_registrationType: { type: String, enum: ["Composition", "Registered", "UnRegistered"], default: "Registered", },
   vendor_gstNumber: { type: String },
+  vendor_pan: { type: String },
   vendor_openingBalance: { type: Number, default: 0 },
 
 }, { timestamps: true });
