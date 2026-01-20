@@ -65,6 +65,23 @@ exports.getVendors = async (req, res) => {
     }
 };
 
+// GET: single vendor by id
+exports.getVendorById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const franchiseId = req.user?.franchiseId;
+        if (!id) return res.status(400).json({ success: false, message: 'id param required' });
+
+        const vendor = await VendorsList.findOne({ _id: id, franchiseId });
+        if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+
+        return res.status(200).json({ success: true, data: vendor });
+    } catch (err) {
+        console.error('getVendorById error:', err);
+        return res.status(500).json({ success: false, message: 'Server Error', error: err.message });
+    }
+};
+
 // POST: create single vendor
 exports.createVendor = async (req, res) => {
     try {

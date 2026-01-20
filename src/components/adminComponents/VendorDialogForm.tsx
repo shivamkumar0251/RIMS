@@ -106,54 +106,59 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
           <Box className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
             <SectionTitle title="Basic Details" />
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="GSTIN"
                   value={formData.vendor_gstNumber}
                   onChange={(e) => handleChange("vendor_gstNumber", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="Company Name *"
+                  label="Company Name"
                   required
                   value={formData.vendor_name}
                   onChange={(e) => handleChange("vendor_name", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Contact Person"
                   value={formData.vendor_contactPerson_name}
                   onChange={(e) => handleChange("vendor_contactPerson_name", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Contact No"
                   value={formData.vendor_mobileNo}
                   onChange={(e) => handleChange("vendor_mobileNo", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Email"
-                  placeholder="Use comma(,) for multiple emails"
+                  placeholder="e.g. contact@company.com"
                   value={formData.vendor_email}
                   onChange={(e) => handleChange("vendor_email", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -161,19 +166,21 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
                   label="Registration Type"
                   value={formData.vendor_registrationType}
                   onChange={(e) => handleChange("vendor_registrationType", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 >
-                  <MenuItem value="Registered">Registered</MenuItem>
-                  <MenuItem value="Unregistered">Unregistered</MenuItem>
-                  <MenuItem value="Composition">Composition</MenuItem>
+                  <MenuItem value="Registered" sx={{ fontSize: '13px' }}>Registered</MenuItem>
+                  <MenuItem value="Unregistered" sx={{ fontSize: '13px' }}>Unregistered</MenuItem>
+                  <MenuItem value="Composition" sx={{ fontSize: '13px' }}>Composition</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="PAN"
                   value={formData.vendor_pan}
                   onChange={(e) => handleChange("vendor_pan", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
             </Grid>
@@ -183,79 +190,86 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
           <Box className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
             <SectionTitle title="Billing Address" />
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Address Line 1"
                   value={formData.vendor_address}
                   onChange={(e) => handleChange("vendor_address", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Address Line 2"
                   value={formData.vendor_address_line2}
                   onChange={(e) => handleChange("vendor_address_line2", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   select
-                  label="Country *"
+                  label="Country"
                   required
                   value={formData.vendor_country}
                   onChange={(e) => handleChange("vendor_country", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 >
-                  <MenuItem value="India">India</MenuItem>
+                  <MenuItem value="India" sx={{ fontSize: '13px' }}>India</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   select
-                  label="State *"
+                  label="State"
                   required
                   value={formData.vendor_state}
                   onChange={(e) => handleChange("vendor_state", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 >
-                  <MenuItem value="Himachal Pradesh">Himachal Pradesh</MenuItem>
-                  <MenuItem value="Punjab">Punjab</MenuItem>
-                  <MenuItem value="Haryana">Haryana</MenuItem>
-                  <MenuItem value="Delhi">Delhi</MenuItem>
+                  <MenuItem value="Himachal Pradesh" sx={{ fontSize: '13px' }}>Himachal Pradesh</MenuItem>
+                  <MenuItem value="Punjab" sx={{ fontSize: '13px' }}>Punjab</MenuItem>
+                  <MenuItem value="Haryana" sx={{ fontSize: '13px' }}>Haryana</MenuItem>
+                  <MenuItem value="Delhi" sx={{ fontSize: '13px' }}>Delhi</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Landmark"
                   value={formData.vendor_landmark}
                   onChange={(e) => handleChange("vendor_landmark", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="City *"
+                  label="City"
                   required
                   value={formData.vendor_city}
                   onChange={(e) => handleChange("vendor_city", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Pincode"
                   value={formData.vendor_pinCode}
                   onChange={(e) => handleChange("vendor_pinCode", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
             </Grid>
@@ -265,40 +279,44 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
           <Box className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
             <SectionTitle title="Vendor Bank Details" />
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Bank Name"
                   value={formData.vendor_bankName}
                   onChange={(e) => handleChange("vendor_bankName", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="IFSC Code"
                   value={formData.vendor_ifscCode}
                   onChange={(e) => handleChange("vendor_ifscCode", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Account Number"
                   value={formData.vendor_accountNumber}
                   onChange={(e) => handleChange("vendor_accountNumber", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
                   label="Branch Name"
                   value={formData.vendor_branchName}
                   onChange={(e) => handleChange("vendor_branchName", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", height: '40px' }, "& .MuiInputLabel-root": { fontSize: '13px' } }}
                 />
               </Grid>
             </Grid>

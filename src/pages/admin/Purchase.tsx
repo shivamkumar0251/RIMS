@@ -37,6 +37,7 @@ import {
   getVendorOrders,
   selectVendorOrderState,
   updateVendorOrder,
+  editVendorOrder,
   addVendorOrder
 } from "../../redux/slices/vendorOrderSlice";
 
@@ -216,9 +217,9 @@ const Purchase: React.FC = () => {
   const handleSaveOrder = async (data: any) => {
     try {
       if (editingOrder) {
-        await dispatch(updateVendorOrder({
-          vendorOrderId: editingOrder._id,
-          ...data
+        await dispatch(editVendorOrder({
+          orderId: editingOrder._id,
+          data: data
         })).unwrap();
         toast.success("Purchase order updated successfully");
       } else {

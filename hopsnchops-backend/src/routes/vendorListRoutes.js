@@ -10,6 +10,9 @@ router.get('/list-names', authenticate, vendorList.getVendorNames);
 // Get vendors with search/pagination/filters
 router.get('/', authenticate, vendorList.getVendors);
 
+// Get single vendor by id
+router.get('/:id', authenticate, vendorList.getVendorById);
+
 // Create single vendor (admin)
 router.post('/', authenticate, authorizeRoles('admin'), vendorList.createVendor);
 
