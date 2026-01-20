@@ -153,7 +153,8 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
 
     const fetchVendorData = async (vendorId: string) => {
         try {
-            const data = await dispatch(getVendorById(vendorId)).unwrap();
+            const response = await dispatch(getVendorById(vendorId)).unwrap();
+            const data = (response as any).data || response; // Handle potential response wrapper
             setVendorDetails(data);
             if (data.vendor_state) {
                 setPlaceOfSupply(data.vendor_state);
@@ -277,16 +278,16 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                         setPlaceOfSupply("Himachal Pradesh"); // Initial default or clear
                                                                     }
                                                                 }}
-                                                                renderInput={(params) => <TextField {...params} variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white' } }} />}
+                                                                renderInput={(params) => <TextField {...params} variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: '10px', height: '40px' }, '& .MuiInputLabel-root': { fontSize: '13px' }, '& .MuiInputBase-input': { fontSize: '13px' } }} />}
                                                             />
                                                             {/* <IconButton className="bg-slate-50 border border-slate-200" size="small"><FiSearch size={14} /></IconButton> */}
                                                         </Box>
                                                     )
                                                 },
-                                                { label: "Address", field: <TextField fullWidth multiline rows={2} size="small" value={vendorDetails?.vendor_address || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                                { label: "Contact Person", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_contactPerson_name || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                                { label: "Phone No", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_mobileNo || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                                { label: "Email", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_email || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
+                                                { label: "Address", field: <TextField fullWidth multiline rows={2} size="small" value={vendorDetails?.vendor_address || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px' } }} /> },
+                                                { label: "Contact Person", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_contactPerson_name || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }} /> },
+                                                { label: "Phone No", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_mobileNo || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }} /> },
+                                                { label: "Email", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_email || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }} /> },
                                                 { 
                                                     label: "GSTIN / PAN", 
                                                     field: (
@@ -294,7 +295,7 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                             fullWidth 
                                                             size="small" 
                                                             value={[vendorDetails?.vendor_gstNumber, vendorDetails?.vendor_pan].filter(Boolean).join(" / ") || ""} 
-                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} 
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }} 
                                                         />
                                                     ) 
                                                 },
@@ -306,7 +307,7 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                             size="small" 
                                                             placeholder="A/c No, IFSC"
                                                             value={[vendorDetails?.vendor_accountNumber, vendorDetails?.vendor_ifscCode].filter(Boolean).join(", ") || ""} 
-                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} 
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }} 
                                                         />
                                                     ) 
                                                 },
@@ -317,21 +318,21 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                 </Box>
                                             ))}
                                             <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                                                <Typography className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:w-28 shrink-0">Rev. Charge</Typography>
-                                                <Select fullWidth size="small" value={revCharge} onChange={(e) => setRevCharge(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                    <MenuItem value="No">No</MenuItem><MenuItem value="Yes">Yes</MenuItem>
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Rev. Charge</Typography>
+                                                <Select fullWidth size="small" value={revCharge} onChange={(e) => setRevCharge(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="No" sx={{ fontSize: '13px' }}>No</MenuItem><MenuItem value="Yes" sx={{ fontSize: '13px' }}>Yes</MenuItem>
                                                 </Select>
                                             </Box>
                                             {/* <Box className="flex justify-end"><Button className="text-[#00c2a8] text-[10px] normal-case font-bold">+ Add New Shipping</Button></Box> */}
                                             <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                                                <Typography className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:w-28 shrink-0">Ship To</Typography>
-                                                <Select fullWidth size="small" value={shipTo} onChange={(e) => setShipTo(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                    <MenuItem value="Same as Billing Address">Same as Billing Address</MenuItem>
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Ship To</Typography>
+                                                <Select fullWidth size="small" value={shipTo} onChange={(e) => setShipTo(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="Same as Billing Address" sx={{ fontSize: '13px' }}>Same as Billing Address</MenuItem>
                                                 </Select>
                                             </Box>
                                             <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                                                <Typography className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:w-28 shrink-0">Place of Supply*</Typography>
-                                                <TextField fullWidth size="small" value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Place of Supply*</Typography>
+                                                <TextField fullWidth size="small" value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
                                         </Box>
                                     </Paper>
@@ -342,43 +343,43 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                     <Paper className="p-5 rounded-xl border border-slate-200 h-full relative">
                                         <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider mb-5">Purchase Invoice Detail</Typography>
                                         <Box className="grid grid-cols-12 gap-x-6 gap-y-4">
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24">Invoice Type</Typography>
-                                                <Select fullWidth size="small" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                    <MenuItem value="Regular">Regular</MenuItem>
-                                                    <MenuItem value="Bill to Supply">Bill to Supply</MenuItem>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Invoice Type</Typography>
+                                                <Select fullWidth size="small" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="Regular" sx={{ fontSize: '13px' }}>Regular</MenuItem>
+                                                    <MenuItem value="Bill to Supply" sx={{ fontSize: '13px' }}>Bill to Supply</MenuItem>
                                                 </Select>
                                             </Box>
                                             <Box className="col-span-12" />
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24">Invoice No.*</Typography>
-                                                <TextField fullWidth size="small" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Invoice No.*</Typography>
+                                                <TextField fullWidth size="small" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">Date*</Typography>
-                                                <TextField type="date" fullWidth size="small" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">Date*</Typography>
+                                                <TextField type="date" fullWidth size="small" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24">Challan No.</Typography>
-                                                <TextField fullWidth size="small" placeholder="Challan No." value={challanNo} onChange={(e) => setChallanNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Challan No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="Challan No." value={challanNo} onChange={(e) => setChallanNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">Challan Date</Typography>
-                                                <TextField type="date" fullWidth size="small" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">Challan Date</Typography>
+                                                <TextField type="date" fullWidth size="small" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24">L.R. No.</Typography>
-                                                <TextField fullWidth size="small" placeholder="L.R. No." value={lrNo} onChange={(e) => setLrNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">L.R. No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="L.R. No." value={lrNo} onChange={(e) => setLrNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">E-Way No.</Typography>
-                                                <TextField fullWidth size="small" placeholder="E-Way No." value={ewayNo} onChange={(e) => setEwayNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">E-Way No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="E-Way No." value={ewayNo} onChange={(e) => setEwayNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
                                             </Box>
-                                            <Box className="col-span-12 flex items-center gap-3 mt-4">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-16">Delivery</Typography>
-                                                <Select fullWidth size="small" displayEmpty value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                    <MenuItem value="" disabled>Select Delivery Mode</MenuItem>
-                                                    <MenuItem value="Self">Self</MenuItem><MenuItem value="Courier">Courier</MenuItem>
+                                            <Box className="col-span-12 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-4">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-16">Delivery</Typography>
+                                                <Select fullWidth size="small" displayEmpty value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="" disabled sx={{ fontSize: '13px' }}>Select Delivery Mode</MenuItem>
+                                                    <MenuItem value="Self" sx={{ fontSize: '13px' }}>Self</MenuItem><MenuItem value="Courier" sx={{ fontSize: '13px' }}>Courier</MenuItem>
                                                 </Select>
                                             </Box>
                                         </Box>
@@ -449,15 +450,22 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                         <TextField
                                                                             {...params}
                                                                             placeholder="Type or click to select an item."
-                                                                            variant="standard"
+                                                                            variant="outlined"
+                                                                            size="small"
                                                                             InputProps={{
                                                                                 ...params.InputProps,
-                                                                                disableUnderline: true,
                                                                                 sx: {
-                                                                                    fontSize: '11px',
+                                                                                    fontSize: '12px',
                                                                                     fontWeight: 600,
+                                                                                    borderRadius: '8px',
+                                                                                    bgcolor: 'white',
+                                                                                    height: '36px',
                                                                                     '& .MuiAutocomplete-endAdornment': { display: 'none' }
                                                                                 }
+                                                                            }}
+                                                                            sx={{ 
+                                                                                '& .MuiOutlinedInput-root': { height: '36px', paddingRight: '0px !important' },
+                                                                                '& .MuiOutlinedInput-input': { padding: '4px 8px !important' } 
                                                                             }}
                                                                         />
                                                                     }
@@ -466,30 +474,29 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 {/* Integrated Description Field */}
                                                                 <TextField
                                                                     fullWidth
-                                                                    variant="standard"
-                                                                    placeholder="Add a description for this item..."
+                                                                    variant="outlined"
+                                                                    size="small"
+                                                                    placeholder="Add a description..."
                                                                     value={row.note}
                                                                     onChange={e => handleItemChange(idx, "note", e.target.value)}
                                                                     InputProps={{
-                                                                        disableUnderline: true,
                                                                         sx: {
-                                                                            fontSize: '10px',
+                                                                            fontSize: '11px',
                                                                             color: '#64748b',
                                                                             bgcolor: '#f8fafc',
-                                                                            px: 1,
-                                                                            py: 0.5,
-                                                                            borderRadius: '4px',
-                                                                            border: '1px dashed #e2e8f0',
-                                                                            '&:hover': { border: '1px dashed #cbd5e1' }
+                                                                            borderRadius: '8px',
+                                                                            height: '32px'
                                                                         }
                                                                     }}
+                                                                    sx={{ '& .MuiOutlinedInput-input': { padding: '4px 8px' } }}
                                                                 />
                                                             </Box>
                                                         </TableCell>
                                                         <TableCell className="border-r py-1" align="center">
                                                             <TextField
                                                                 type="number"
-                                                                variant="standard"
+                                                                variant="outlined"
+                                                                size="small"
                                                                 value={row.qty}
                                                                 onChange={e => {
                                                                     const newQty = Number(e.target.value);
@@ -498,13 +505,16 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                     }
                                                                 }}
                                                                 InputProps={{
-                                                                    disableUnderline: true,
                                                                     sx: {
-                                                                        fontSize: '11px',
+                                                                        fontSize: '12px',
                                                                         textAlign: 'center',
-                                                                        '& input': { textAlign: 'center' }
+                                                                        borderRadius: '8px',
+                                                                        bgcolor: 'white',
+                                                                        height: '36px',
+                                                                        '& input': { textAlign: 'center', padding: '0 8px', height: '36px', boxSizing: 'border-box' }
                                                                     }
                                                                 }}
+                                                                sx={{ '& .MuiOutlinedInput-root': { height: '36px' } }}
                                                             />
                                                         </TableCell>
                                                         <TableCell className="border-r py-1" align="center">
@@ -514,25 +524,16 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 value={row.uom}
                                                                 onChange={e => handleItemChange(idx, "uom", e.target.value)}
                                                                 InputProps={{
-                                                                    disableUnderline: true,
                                                                     sx: {
-                                                                        fontSize: '11px',
+                                                                        fontSize: '12px',
                                                                         fontWeight: 600,
                                                                         color: '#64748b',
-                                                                        '& .MuiSelect-select': {
-                                                                            paddingRight: '24px !important',
-                                                                            textAlign: 'left',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'flex-start',
-                                                                            paddingLeft: '8px'
-                                                                        },
-                                                                        '& .MuiSelect-icon': {
-                                                                            right: 2,
-                                                                            fontSize: '18px'
-                                                                        }
+                                                                        borderRadius: '8px',
+                                                                        bgcolor: 'white',
+                                                                        height: '36px'
                                                                     }
                                                                 }}
+                                                                sx={{ '& .MuiOutlinedInput-root': { height: '36px' } }}
                                                                 SelectProps={{
                                                                     MenuProps: {
                                                                         PaperProps: {
@@ -581,7 +582,26 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 <MenuItem value="ton">ton</MenuItem>
                                                             </TextField>
                                                         </TableCell>
-                                                        <TableCell className="border-r py-1" align="right"><TextField type="number" variant="standard" value={row.price} onChange={e => handleItemChange(idx, "price", Number(e.target.value))} InputProps={{ disableUnderline: true, sx: { fontSize: '11px', textAlign: 'right', '& input': { textAlign: 'right' } } }} /></TableCell>
+                                                        <TableCell className="border-r py-1" align="right">
+                                                            <TextField 
+                                                                type="number" 
+                                                                variant="outlined" 
+                                                                size="small"
+                                                                value={row.price} 
+                                                                onChange={e => handleItemChange(idx, "price", Number(e.target.value))} 
+                                                                InputProps={{ 
+                                                                    sx: { 
+                                                                        fontSize: '12px', 
+                                                                        textAlign: 'right', 
+                                                                        borderRadius: '8px', 
+                                                                        bgcolor: 'white',
+                                                                        height: '36px',
+                                                                        '& input': { textAlign: 'right', padding: '0 8px', height: '36px', boxSizing: 'border-box' } 
+                                                                    } 
+                                                                }} 
+                                                                sx={{ '& .MuiOutlinedInput-root': { height: '36px' } }}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell className="border-r py-1 text-center font-bold text-slate-300" sx={{ fontSize: '11px' }}>0</TableCell>
                                                         <TableCell className="border-r py-1" align="center">
                                                             <TextField
@@ -590,23 +610,13 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 value={row.tax}
                                                                 onChange={e => handleItemChange(idx, "tax", Number(e.target.value))}
                                                                 InputProps={{
-                                                                    disableUnderline: true,
                                                                     sx: {
-                                                                        fontSize: '11px',
+                                                                        fontSize: '12px',
                                                                         fontWeight: 600,
                                                                         color: '#64748b',
-                                                                        '& .MuiSelect-select': {
-                                                                            paddingRight: '24px !important',
-                                                                            textAlign: 'left',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'flex-start',
-                                                                            paddingLeft: '8px'
-                                                                        },
-                                                                        '& .MuiSelect-icon': {
-                                                                            right: 2,
-                                                                            fontSize: '18px'
-                                                                        }
+                                                                        borderRadius: '8px',
+                                                                        bgcolor: 'white',
+                                                                        height: '36px'
                                                                     }
                                                                 }}
                                                                 SelectProps={{
