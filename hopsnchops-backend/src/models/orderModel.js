@@ -40,8 +40,13 @@ const OrderRequiredSchema = new mongoose.Schema(
     totalClosingAmount: { type: Number, default: 0 },
     orderStatus: {
       type: String,
-      enum: ["Draft", "Delivered", "MoveToKitchen", "MoveToStore"],
+      enum: ["Draft", "Sent", "SentToPurchase", "Delivered", "Received", "MoveToKitchen", "MoveToStore"],
       default: "Draft",
+    },
+    purchaseType: {
+      type: String,
+      enum: ["Direct", "Order"],
+      default: "Direct",
     },
     vendorsId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -93,4 +98,3 @@ OrderRequiredSchema.pre("save", async function (next) {
 -------------------------------------------------------- */
 const OrderRequired = mongoose.model("OrderRequired", OrderRequiredSchema);
 module.exports = OrderRequired;
-

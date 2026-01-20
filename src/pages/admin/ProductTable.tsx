@@ -279,8 +279,8 @@ export default function ProductTable() {
         toast.success("Product added successfully");
       }
 
-      // If we are in add mode, go back to list
-      if (isAddMode) {
+      // After successfully saving (add or edit), go back to list
+      if (isAddMode || isEditMode) {
         navigate("/admin/products");
       }
       refreshProducts();
@@ -456,15 +456,6 @@ export default function ProductTable() {
                   className="w-full sm:w-40"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
                 />
-                <Button
-                  size="small"
-                  variant="text"
-                  startIcon={<FiRefreshCw />}
-                  onClick={handleResetFilters}
-                  className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-[40px] shrink-0"
-                >
-                  Reset
-                </Button>
               </Box>
             </Box>
 

@@ -105,7 +105,7 @@ export const updateVendorOrder = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as VendorOrder;
+        return (response.data as { data: VendorOrder }).data;
       }
 
       return thunkAPI.rejectWithValue({
@@ -136,7 +136,7 @@ export const addVendorOrder = createAsyncThunk<
       });
 
       if (response.status === 201 || response.status === 200) {
-        return response.data as VendorOrder;
+        return (response.data as { data: VendorOrder }).data;
       }
 
       return thunkAPI.rejectWithValue({

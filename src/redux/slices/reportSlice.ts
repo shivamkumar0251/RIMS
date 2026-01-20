@@ -51,12 +51,41 @@ export interface ConsumptionReportItem {
     createdAt: string;
 }
 
+export interface SalesReportItem {
+    _id: string;
+    productId: {
+        _id: string;
+        productName: string;
+        unit: string;
+        categoryId?: { categoryName: string };
+        perUnitRate: number;
+    };
+    salesQty: number;
+    rate: number;
+    totalSales: string;
+    createdAt: string;
+}
+
+export interface PurchaseOriginReportItem {
+    productId: string;
+    productName: string;
+    unit: string;
+    categoryName: string;
+    directQty: number;
+    orderQty: number;
+    totalQty: number;
+    storeQty: number;
+    kitchenQty: number;
+}
+
 interface ReportState {
     loading: boolean;
     error: string | null;
     purchaseReport: PurchaseReportItem[];
     stockReport: StockReportItem[];
     consumptionReport: ConsumptionReportItem[];
+    salesReport: SalesReportItem[];
+    purchaseOriginReport: PurchaseOriginReportItem[];
     total: number;
 }
 
@@ -66,6 +95,8 @@ const initialState: ReportState = {
     purchaseReport: [],
     stockReport: [],
     consumptionReport: [],
+    salesReport: [],
+    purchaseOriginReport: [],
     total: 0,
 };
 
@@ -169,6 +200,70 @@ export const getConsumptionReportThunk = createAsyncThunk<
     }
 );
 
+export const getSalesReportThunk = createAsyncThunk<
+    { data: SalesReportItem[]; total: number },
+    { fromDate?: string; toDate?: string; productId?: string; categoryId?: string },
+    { rejectValue: { message: string } }
+>(
+    'report/getSalesReport',
+    async (params, thunkAPI) => {
+        try {
+            const { fromDate = '', toDate = '', productId = 'all', categoryId = 'all' } = params;
+            let url = `${API_ENDPOINTS.GET_SALES_REPORT}?fromDate=${fromDate}&toDate=${toDate}`;
+
+            if (productId !== 'all') url += `&productId=${productId}`;
+            if (categoryId !== 'all') url += `&categoryId=${categoryId}`;
+
+            const response = await apiCaller({ url, method: 'GET' });
+
+            if (response.status === 200) {
+                return response.data as { data: SalesReportItem[]; total: number };
+            }
+
+            return thunkAPI.rejectWithValue({
+                message: (response.data as { message?: string })?.message || 'Failed to fetch sales report',
+            });
+        } catch (error) {
+            const err = error as AxiosError<{ message: string }>;
+            return thunkAPI.rejectWithValue({
+                message: err.response?.data?.message || 'Error fetching sales report',
+            });
+        }
+    }
+);
+
+export const getPurchaseOriginReportThunk = createAsyncThunk<
+    { data: PurchaseOriginReportItem[]; total: number },
+    { fromDate?: string; toDate?: string; productId?: string; categoryId?: string },
+    { rejectValue: { message: string } }
+>(
+    'report/getPurchaseOriginReport',
+    async (params, thunkAPI) => {
+        try {
+            const { fromDate = '', toDate = '', productId = 'all', categoryId = 'all' } = params;
+            let url = `${API_ENDPOINTS.GET_PURCHASE_ORIGIN_REPORT}?fromDate=${fromDate}&toDate=${toDate}`;
+
+            if (productId !== 'all') url += `&productId=${productId}`;
+            if (categoryId !== 'all') url += `&categoryId=${categoryId}`;
+
+            const response = await apiCaller({ url, method: 'GET' });
+
+            if (response.status === 200) {
+                return response.data as { data: PurchaseOriginReportItem[]; total: number };
+            }
+
+            return thunkAPI.rejectWithValue({
+                message: (response.data as { message?: string })?.message || 'Failed to fetch purchase origin report',
+            });
+        } catch (error) {
+            const err = error as AxiosError<{ message: string }>;
+            return thunkAPI.rejectWithValue({
+                message: err.response?.data?.message || 'Error fetching purchase origin report',
+            });
+        }
+    }
+);
+
 // ---------------- Slice ----------------
 
 const reportSlice = createSlice({
@@ -179,6 +274,8 @@ const reportSlice = createSlice({
             state.purchaseReport = [];
             state.stockReport = [];
             state.consumptionReport = [];
+            state.salesReport = [];
+            state.purchaseOriginReport = [];
         }
     },
     extraReducers: (builder) => {
@@ -222,6 +319,32 @@ const reportSlice = createSlice({
             .addCase(getConsumptionReportThunk.rejected, (state, action) => {
                 state.loading = false;
                 state.error = (action.payload as { message: string })?.message || 'Error';
+            })
+            // Sales Report
+            .addCase(getSalesReportThunk.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(getSalesReportThunk.fulfilled, (state, action) => {
+                state.loading = false;
+                state.salesReport = action.payload.data;
+            })
+            .addCase(getSalesReportThunk.rejected, (state, action) => {
+                state.loading = false;
+                state.error = (action.payload as { message: string })?.message || 'Error';
+            })
+            // Purchase Origin Report
+            .addCase(getPurchaseOriginReportThunk.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(getPurchaseOriginReportThunk.fulfilled, (state, action) => {
+                state.loading = false;
+                state.purchaseOriginReport = action.payload.data;
+            })
+            .addCase(getPurchaseOriginReportThunk.rejected, (state, action) => {
+                state.loading = false;
+                state.error = (action.payload as { message: string })?.message || 'Error';
             });
     },
 });
@@ -232,6 +355,8 @@ export const selectReportState = (state: RootState) => state.reports;
 export const selectPurchaseReport = (state: RootState) => state.reports.purchaseReport;
 export const selectStockReport = (state: RootState) => state.reports.stockReport;
 export const selectConsumptionReport = (state: RootState) => state.reports.consumptionReport;
+export const selectSalesReport = (state: RootState) => state.reports.salesReport;
+export const selectPurchaseOriginReport = (state: RootState) => state.reports.purchaseOriginReport;
 export const selectReportLoading = (state: RootState) => state.reports.loading;
 
 // ---------------- Exports ----------------

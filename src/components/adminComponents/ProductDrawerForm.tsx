@@ -625,7 +625,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
           )}
 
           {/* 4. Product Image Section */}
-          <div>
+          {/* <div>
             <Typography variant="caption" className="font-bold text-gray-400 uppercase tracking-widest block mb-2 px-1">
               PRODUCT IMAGE
             </Typography>
@@ -639,15 +639,15 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 <Typography variant="caption" className="text-gray-400">Support for SVG, PNG, JPG (Max 5MB)</Typography>
               </div>
             </Box>
-          </div>
+          </div> */}
         </Box>
       </Box>
 
       {/* Sticky Footer */}
       <Box className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 sticky bottom-0 z-20">
-        <Button 
-          variant="text" 
-          onClick={onClose} 
+        <Button
+          variant="text"
+          onClick={onClose}
           className="px-6 text-gray-500 hover:bg-gray-50 font-bold normal-case"
         >
           Cancel

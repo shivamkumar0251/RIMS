@@ -214,3 +214,181 @@ exports.getConsumptionReport = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 };
+
+/**
+ * SALES REPORT
+ * Tracks total usage as sales, providing revenue estimates
+ */
+exports.getSalesReport = async (req, res) => {
+  try {
+    const franchiseId = req.user.franchiseId;
+    const { fromDate, toDate, productId, categoryId } = req.query;
+
+    let query = { franchiseId, transfersToUsage: { $gt: 0 } };
+
+    // Date range
+    if (fromDate || toDate) {
+      query.createdAt = {};
+      if (fromDate) query.createdAt.$gte = normalizeDate(fromDate);
+      if (toDate) {
+        const t = normalizeDate(toDate);
+        t.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = t;
+      }
+    }
+
+    // Product-based filters
+    let productFilter = { franchiseId };
+    if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+      productFilter._id = new mongoose.Types.ObjectId(productId);
+    }
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+      productFilter.categoryId = new mongoose.Types.ObjectId(categoryId);
+    }
+
+    if (Object.keys(productFilter).length > 1) {
+      const matchingProducts = await Products.find(productFilter).select("_id").lean();
+      const pids = matchingProducts.map(p => p._id);
+      if (pids.length === 0) {
+        return res.status(200).json({ success: true, data: [], total: 0 });
+      }
+      query.productId = { $in: pids };
+    }
+
+    const salesData = await ConsumableStocks.find(query)
+      .populate({
+        path: "productId",
+        select: "productName unit categoryId perUnitRate",
+        populate: { path: "categoryId", select: "categoryName" }
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Map to include sales values
+    const processedData = salesData.map(item => {
+      const qty = item.transfersToUsage || 0;
+      const rate = item.productId?.perUnitRate || 0;
+      return {
+        ...item,
+        salesQty: qty,
+        rate: rate,
+        totalSales: (qty * rate).toFixed(2),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: processedData,
+      total: processedData.length
+    });
+  } catch (error) {
+    console.error("Sales Report Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+/**
+ * PURCHASE SOURCE REPORT
+ * Differentiates between items purchased directly and via vendor orders
+ */
+exports.getPurchaseSourceReport = async (req, res) => {
+  try {
+    const franchiseId = req.user.franchiseId;
+    const { fromDate, toDate, productId, categoryId } = req.query;
+
+    let query = { franchiseId };
+
+    // Date range filter
+    if (fromDate || toDate) {
+      query.createdAt = {};
+      if (fromDate) query.createdAt.$gte = normalizeDate(fromDate);
+      if (toDate) {
+        const t = normalizeDate(toDate);
+        t.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = t;
+      }
+    }
+
+    // Product and Category filters
+    let productFilter = { franchiseId };
+    if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+      productFilter._id = new mongoose.Types.ObjectId(productId);
+    }
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+      productFilter.categoryId = new mongoose.Types.ObjectId(categoryId);
+    }
+
+    let pids = [];
+    if (Object.keys(productFilter).length > 1) {
+      const matchingProducts = await Products.find(productFilter).select("_id").lean();
+      pids = matchingProducts.map(p => p._id);
+      if (pids.length === 0) {
+        return res.status(200).json({ success: true, data: [], total: 0 });
+      }
+      query.productId = { $in: pids };
+    }
+
+    const purchaseData = await Purchase.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: "$productId",
+          directQty: {
+            $sum: {
+              $cond: [
+                { $or: [
+                  { $eq: ["$purchaseType", "Direct"] },
+                  { $eq: [{ $ifNull: ["$purchaseType", null] }, null] }
+                ]},
+                "$rcvdPurchaseQty",
+                0
+              ]
+            }
+          },
+          orderQty: {
+            $sum: {
+              $cond: [{ $eq: ["$purchaseType", "Order"] }, "$rcvdPurchaseQty", 0]
+            }
+          },
+          totalQty: { $sum: "$rcvdPurchaseQty" }
+        }
+      }
+    ]);
+
+    const reportData = await Promise.all(purchaseData.map(async (item) => {
+      const product = await Products.findById(item._id)
+        .populate("categoryId", "categoryName")
+        .select("productName unit categoryId")
+        .lean();
+
+      if (!product) return null;
+
+      // Fetch latest stock levels
+      const storeStock = await StoreStocks.findOne({ franchiseId, productId: item._id }).sort({ updatedAt: -1 }).lean();
+      const kitchenStock = await KitchenStocks.findOne({ franchiseId, productId: item._id }).sort({ updatedAt: -1 }).lean();
+
+      return {
+        productId: item._id,
+        productName: product.productName,
+        unit: product.unit,
+        categoryName: product.categoryId?.categoryName || "N/A",
+        directQty: item.directQty,
+        orderQty: item.orderQty,
+        totalQty: item.totalQty,
+        storeQty: storeStock ? storeStock.closingStock : 0,
+        kitchenQty: kitchenStock ? kitchenStock.closingStock : 0,
+      };
+    }));
+
+    const finalData = reportData.filter(Boolean).sort((a, b) => a.productName.localeCompare(b.productName));
+
+    return res.status(200).json({
+      success: true,
+      data: finalData,
+      total: finalData.length
+    });
+  } catch (error) {
+    console.error("Purchase Source Report Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};

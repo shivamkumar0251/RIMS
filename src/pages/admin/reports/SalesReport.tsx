@@ -15,17 +15,16 @@ import {
     Typography,
     CircularProgress,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { FiDownload, FiSearch, FiRefreshCw, FiPlay } from "react-icons/fi";
 import { AdminLayout } from "../../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../../redux/store/storeHooks";
-import { getVendors, selectVendors } from "../../../redux/slices/vendorSlice";
+import { getCategories, selectCategories } from "../../../redux/slices/categorySlice";
 import { getProducts, selectProducts } from "../../../redux/slices/productSlice";
-import { getPurchaseReportThunk, selectPurchaseReport, selectReportLoading } from "../../../redux/slices/reportSlice";
+import { getSalesReportThunk, selectSalesReport, selectReportLoading } from "../../../redux/slices/reportSlice";
 import AdvancedDateRangePicker from "../../../components/common/AdvancedDateRangePicker";
 import { exportToExcel, exportToPDF } from "../../../utils/reportExport";
 import { selectUsersList } from "../../../redux/slices/authSlice";
-import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
@@ -33,23 +32,23 @@ import quarterOfYear from "dayjs/plugin/quarterOfYear";
 dayjs.extend(isBetween);
 dayjs.extend(quarterOfYear);
 
-const PurchaseReport: React.FC = () => {
+const SalesReport: React.FC = () => {
     const dispatch = useAppDispatch();
-    const vendors = useAppSelector(selectVendors);
+    const categories = useAppSelector(selectCategories);
     const products = useAppSelector(selectProducts);
-    const purchaseData = useAppSelector(selectPurchaseReport);
+    const salesData = useAppSelector(selectSalesReport);
     const loading = useAppSelector(selectReportLoading);
 
     const { user } = useAppSelector(selectUsersList);
     const [fromDate, setFromDate] = useState(dayjs().startOf('month').format("YYYY-MM-DD"));
     const [toDate, setToDate] = useState(dayjs().format("YYYY-MM-DD"));
-    const [vendorId, setVendorId] = useState("all");
+    const [categoryId, setCategoryId] = useState("all");
     const [productId, setProductId] = useState("all");
     const [dateLabel, setDateLabel] = useState("This Month");
     const [isReportRun, setIsReportRun] = useState(false);
 
     useEffect(() => {
-        dispatch(getVendors({ limit: 1000 }));
+        dispatch(getCategories({ limit: 1000 }));
         dispatch(getProducts({ limit: 1000 }));
     }, [dispatch]);
 
@@ -60,7 +59,7 @@ const PurchaseReport: React.FC = () => {
     };
 
     const handleReset = () => {
-        setVendorId("all");
+        setCategoryId("all");
         setProductId("all");
         setDateLabel("This Month");
         setFromDate(dayjs().startOf('month').format("YYYY-MM-DD"));
@@ -68,80 +67,88 @@ const PurchaseReport: React.FC = () => {
         setIsReportRun(false);
     };
 
-    const handleRunReport = async () => {
-        try {
-            await dispatch(getPurchaseReportThunk({
-                fromDate,
-                toDate,
-                vendorId,
-                productId,
-                limit: 1000
-            })).unwrap();
-            setIsReportRun(true);
-            toast.success("Report generated successfully");
-        } catch (error: any) {
-            toast.error(error?.message || "Failed to generate report");
-        }
+    const handleRunReport = () => {
+        dispatch(getSalesReportThunk({
+            fromDate,
+            toDate,
+            productId,
+            categoryId
+        }));
+        setIsReportRun(true);
     };
 
-    const handleExportExcel = () => {
-        if (purchaseData.length === 0) return;
+    const totals = useMemo(() => {
+        return salesData.reduce((acc, curr) => {
+            acc.qty += curr.salesQty || 0;
+            acc.amount += parseFloat(curr.totalSales) || 0;
+            return acc;
+        }, { qty: 0, amount: 0 });
+    }, [salesData]);
 
-        const selectedVendor = vendors.find(v => v._id === vendorId)?.vendor_name || "All Vendors";
+    const handleExportExcel = () => {
+        if (salesData.length === 0) return;
+
+        const selectedCategory = categories.find(c => c._id === categoryId)?.categoryName || "All Categories";
         const selectedProduct = products.find(p => p._id === productId)?.productName || "All Items";
 
         const metadata = {
-            title: "Purchase Report",
+            title: "Sales Report (By Item Usage)",
             generatedBy: user?.name || user?.email || "Admin",
             dateRange: `${dayjs(fromDate).format("DD MMM YYYY")} to ${dayjs(toDate).format("DD MMM YYYY")}`,
             filters: [
-                { label: "Vendor", value: selectedVendor },
+                { label: "Category", value: selectedCategory },
                 { label: "Product", value: selectedProduct }
             ],
-            fileName: "Purchase_Report"
+            fileName: "Sales_Report"
         };
 
-        const headers = ["Date", "Vendor", "Item Name", "Qty Received", "Qty Sent to Store", "Unit Price", "Total Amount"];
-        const data = purchaseData.map(row => [
+        const headers = ["Date", "Item Name", "Category", "Quantity", "Unit", "Rate", "Total Sales"];
+        const data = salesData.map(row => [
             dayjs(row.createdAt).format("DD MMM YYYY"),
-            row.productId?.vendorsId?.vendor_name || "N/A",
             row.productId?.productName || "N/A",
-            `${row.rcvdPurchaseQty} ${row.productId?.unit || ""}`,
-            `${row.sendToStoreQty} ${row.productId?.unit || ""}`,
-            `₹${row.productId?.perUnitRate?.toFixed(2) || "0.00"}`,
-            `₹${(row.rcvdPurchaseQty * (row.productId?.perUnitRate || 0)).toFixed(2)}`
+            row.productId?.categoryId?.categoryName || "N/A",
+            row.salesQty,
+            row.productId?.unit || "",
+            row.rate,
+            row.totalSales
         ]);
+
+        // Add Totals Row
+        data.push(["", "TOTAL", "", totals.qty.toString(), "", "", totals.amount.toFixed(2)]);
 
         exportToExcel(metadata, headers, data);
     };
 
     const handleExportPDF = () => {
-        if (purchaseData.length === 0) return;
+        if (salesData.length === 0) return;
 
-        const selectedVendor = vendors.find(v => v._id === vendorId)?.vendor_name || "All Vendors";
+        const selectedCategory = categories.find(c => c._id === categoryId)?.categoryName || "All Categories";
         const selectedProduct = products.find(p => p._id === productId)?.productName || "All Items";
 
         const metadata = {
-            title: "Purchase Report",
+            title: "Sales Report (By Item Usage)",
             generatedBy: user?.name || user?.email || "Admin",
             dateRange: `${dayjs(fromDate).format("DD MMM YYYY")} to ${dayjs(toDate).format("DD MMM YYYY")}`,
             filters: [
-                { label: "Vendor", value: selectedVendor },
+                { label: "Category", value: selectedCategory },
                 { label: "Product", value: selectedProduct }
             ],
-            fileName: "Purchase_Report"
+            fileName: "Sales_Report"
         };
 
-        const headers = ["Date", "Vendor", "Item Name", "Qty Rcvd", "Qty Store", "Price", "Total"];
-        const data = purchaseData.map(row => [
+        const headers = ["Date", "Item Name", "Category", "Qty", "Unit", "Rate", "Total"];
+        const data = salesData.map(row => [
             dayjs(row.createdAt).format("DD MMM YYYY"),
-            row.productId?.vendorsId?.vendor_name || "N/A",
             row.productId?.productName || "N/A",
-            row.rcvdPurchaseQty,
-            row.sendToStoreQty,
-            `INR ${row.productId?.perUnitRate?.toFixed(2) || "0.00"}`,
-            `INR ${(row.rcvdPurchaseQty * (row.productId?.perUnitRate || 0)).toFixed(2)}`
+            row.productId?.categoryId?.categoryName || "N/A",
+            row.salesQty,
+            row.productId?.unit || "",
+            row.rate.toFixed(2),
+            parseFloat(row.totalSales).toFixed(2)
         ]);
+
+        // Add Totals Row at the end of PDF
+        data.push(["", "TOTAL", "", totals.qty.toString(), "", "", totals.amount.toFixed(2)]);
 
         exportToPDF(metadata, headers, data);
     };
@@ -152,15 +159,15 @@ const PurchaseReport: React.FC = () => {
                 {/* Header Section */}
                 <Box className="flex flex-wrap items-center justify-between gap-4 p-6 border-b border-gray-100 bg-white shadow-sm shrink-0">
                     <Box>
-                        <Typography variant="h5" className="font-bold text-slate-800 tracking-tight">Purchase Report</Typography>
-                        <Typography variant="body2" className="text-slate-500 mt-1">Generated report for the selected criteria and date range.</Typography>
+                        <Typography variant="h5" className="font-bold text-slate-800 tracking-tight">Sales Report</Typography>
+                        <Typography variant="body2" className="text-slate-500 mt-1">Item-wise sales analysis based on kitchen usage and configured unit rates.</Typography>
                     </Box>
                     <Box className="flex gap-3">
                         <Button
                             variant="outlined"
                             startIcon={<FiDownload />}
                             onClick={handleExportExcel}
-                            disabled={purchaseData.length === 0}
+                            disabled={salesData.length === 0}
                             className="border-slate-200 text-slate-700 normal-case font-medium hover:bg-slate-50 px-4"
                         >
                             Export Excel
@@ -169,7 +176,7 @@ const PurchaseReport: React.FC = () => {
                             variant="contained"
                             startIcon={<FiDownload />}
                             onClick={handleExportPDF}
-                            disabled={purchaseData.length === 0}
+                            disabled={salesData.length === 0}
                             className="bg-indigo-600 hover:bg-indigo-700 normal-case shadow-none font-medium px-4"
                         >
                             Export PDF
@@ -188,15 +195,15 @@ const PurchaseReport: React.FC = () => {
                         />
 
                         <FormControl size="small" className="w-full sm:w-56">
-                            <InputLabel>Filter by Vendor</InputLabel>
+                            <InputLabel>Filter by Category</InputLabel>
                             <Select
-                                value={vendorId}
-                                label="Filter by Vendor"
-                                onChange={(e) => setVendorId(e.target.value as string)}
+                                value={categoryId}
+                                label="Filter by Category"
+                                onChange={(e) => setCategoryId(e.target.value as string)}
                             >
-                                <MenuItem value="all">All Vendors</MenuItem>
-                                {vendors.map((v) => (
-                                    <MenuItem key={v._id} value={v._id}>{v.vendor_name}</MenuItem>
+                                <MenuItem value="all">All Categories</MenuItem>
+                                {categories.map((c) => (
+                                    <MenuItem key={c._id} value={c._id}>{c.categoryName}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -246,28 +253,38 @@ const PurchaseReport: React.FC = () => {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell className="font-bold bg-slate-50 text-slate-700 py-4">Date</TableCell>
-                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4">Vendor</TableCell>
                                         <TableCell className="font-bold bg-slate-50 text-slate-700 py-4">Item Name</TableCell>
-                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-center">Qty Received</TableCell>
-                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-center">Qty Sent to Store</TableCell>
-                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-right">Unit Price</TableCell>
-                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-right">Total Amount</TableCell>
+                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4">Category</TableCell>
+                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-center">Sales Qty</TableCell>
+                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4">Unit</TableCell>
+                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-right">Rate</TableCell>
+                                        <TableCell className="font-bold bg-slate-50 text-slate-700 py-4 text-right">Total Sales</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {isReportRun ? (
-                                        purchaseData.length > 0 ? (
-                                            purchaseData.map((row) => (
-                                                <TableRow key={row._id} hover>
-                                                    <TableCell className="py-4">{dayjs(row.createdAt).format("DD MMM YYYY")}</TableCell>
-                                                    <TableCell className="py-4">{row.productId?.vendorsId?.vendor_name || "N/A"}</TableCell>
-                                                    <TableCell className="py-4 font-medium text-slate-700">{row.productId?.productName}</TableCell>
-                                                    <TableCell className="py-4 text-center font-semibold text-indigo-600">{row.rcvdPurchaseQty} {row.productId?.unit}</TableCell>
-                                                    <TableCell className="py-4 text-center text-slate-600">{row.sendToStoreQty} {row.productId?.unit}</TableCell>
-                                                    <TableCell className="py-4 text-right">₹{row.productId?.perUnitRate?.toFixed(2)}</TableCell>
-                                                    <TableCell className="py-4 text-right font-bold text-slate-800">₹{(row.rcvdPurchaseQty * (row.productId?.perUnitRate || 0)).toFixed(2)}</TableCell>
+                                        salesData.length > 0 ? (
+                                            <>
+                                                {salesData.map((row) => (
+                                                    <TableRow key={row._id} hover>
+                                                        <TableCell className="py-4 text-slate-600">{dayjs(row.createdAt).format("DD MMM YYYY")}</TableCell>
+                                                        <TableCell className="py-4 font-medium text-slate-800">{row.productId?.productName}</TableCell>
+                                                        <TableCell className="py-4 text-slate-500">{row.productId?.categoryId?.categoryName || "N/A"}</TableCell>
+                                                        <TableCell className="py-4 text-center font-bold text-emerald-600">{row.salesQty}</TableCell>
+                                                        <TableCell className="py-4 text-slate-500">{row.productId?.unit}</TableCell>
+                                                        <TableCell className="py-4 text-right font-medium text-slate-600">₹{row.rate.toFixed(2)}</TableCell>
+                                                        <TableCell className="py-4 text-right font-bold text-slate-800">₹{parseFloat(row.totalSales).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {/* Totals Row */}
+                                                <TableRow className="bg-slate-50">
+                                                    <TableCell colSpan={3} className="py-5 font-bold text-slate-800 text-lg uppercase tracking-tight">Grand Total</TableCell>
+                                                    <TableCell className="py-5 text-center font-black text-indigo-600 text-lg">{totals.qty}</TableCell>
+                                                    <TableCell className="py-5"></TableCell>
+                                                    <TableCell className="py-5"></TableCell>
+                                                    <TableCell className="py-5 text-right font-black text-slate-900 text-xl border-l-4 border-indigo-600">₹{totals.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
                                                 </TableRow>
-                                            ))
+                                            </>
                                         ) : (
                                             <TableRow>
                                                 <TableCell colSpan={7} align="center" className="py-24">
@@ -275,7 +292,7 @@ const PurchaseReport: React.FC = () => {
                                                         <Box className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
                                                             <FiSearch size={32} />
                                                         </Box>
-                                                        <Typography className="text-slate-400 font-medium">No purchase records found for the selected criteria.</Typography>
+                                                        <Typography className="text-slate-400 font-medium">No sales records found for the selected criteria.</Typography>
                                                     </Box>
                                                 </TableCell>
                                             </TableRow>
@@ -287,8 +304,8 @@ const PurchaseReport: React.FC = () => {
                                                     <Box className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
                                                         <FiSearch size={32} />
                                                     </Box>
-                                                    <Typography className="text-slate-400 font-medium">Click "Run Report" to generate purchase data.</Typography>
-                                                    <Typography variant="caption" className="text-slate-300 uppercase tracking-widest">Reports Engine Ready</Typography>
+                                                    <Typography className="text-slate-400 font-medium">Click "Run Report" to view sales analysis.</Typography>
+                                                    <Typography variant="caption" className="text-slate-300 uppercase tracking-widest ">Sales Data Analysis Ready</Typography>
                                                 </Box>
                                             </TableCell>
                                         </TableRow>
@@ -303,4 +320,4 @@ const PurchaseReport: React.FC = () => {
     );
 };
 
-export default PurchaseReport;
+export default SalesReport;

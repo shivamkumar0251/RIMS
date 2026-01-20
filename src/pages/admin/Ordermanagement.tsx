@@ -301,7 +301,8 @@ export default function OrderManagementPage(): JSX.Element {
       products: selectedProducts.map(p => ({
         productId: p._id,
         orderQty: qtyMap[p._id]
-      }))
+      })),
+      purchaseType: "Order"
     };
 
     // 3. Save Order to Backend (Always save when "Creating" an order record)

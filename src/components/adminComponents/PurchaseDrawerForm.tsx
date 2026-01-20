@@ -220,7 +220,8 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                 rate: it.price
             })),
             totalAmount: totals.total,
-            status: "Draft"
+            status: "Draft",
+            purchaseType: initialData?.purchaseType || "Direct"
         };
         await onSave(payload);
     };
@@ -247,9 +248,9 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                     <Paper className="p-5 rounded-xl border border-slate-200">
                                         <Box className="flex justify-between items-center mb-4">
                                             <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider">Vendor Information</Typography>
-                                            <Button 
-                                                size="small" 
-                                                variant="contained" 
+                                            <Button
+                                                size="small"
+                                                variant="contained"
                                                 onClick={() => setIsVendorDialogOpen(true)}
                                                 className="bg-[#00c2a8] text-[10px] py-0.5 px-3 normal-case rounded-md"
                                             >
@@ -261,17 +262,17 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                 {
                                                     label: "M/S.*", field: (
                                                         <Box className="flex-1 flex gap-1">
-                                                            <Autocomplete 
-                                                                fullWidth 
-                                                                size="small" 
-                                                                options={vendors} 
-                                                                getOptionLabel={(o) => o?.vendor_name || ""} 
+                                                            <Autocomplete
+                                                                fullWidth
+                                                                size="small"
+                                                                options={vendors}
+                                                                getOptionLabel={(o) => o?.vendor_name || ""}
                                                                 isOptionEqualToValue={(option, value) => option?._id === value?._id}
                                                                 value={selectedVendor}
-                                                                onChange={(_, v) => { 
-                                                                    setSelectedVendor(v); 
+                                                                onChange={(_, v) => {
+                                                                    setSelectedVendor(v);
                                                                     if (v) {
-                                                                        fetchVendorData(v._id); 
+                                                                        fetchVendorData(v._id);
                                                                     } else {
                                                                         setVendorDetails(null);
                                                                         setPlaceOfSupply("Himachal Pradesh"); // Initial default or clear
@@ -287,28 +288,28 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                 { label: "Contact Person", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_contactPerson_name || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
                                                 { label: "Phone No", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_mobileNo || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
                                                 { label: "Email", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_email || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                                { 
-                                                    label: "GSTIN / PAN", 
+                                                {
+                                                    label: "GSTIN / PAN",
                                                     field: (
-                                                        <TextField 
-                                                            fullWidth 
-                                                            size="small" 
-                                                            value={[vendorDetails?.vendor_gstNumber, vendorDetails?.vendor_pan].filter(Boolean).join(" / ") || ""} 
-                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} 
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            value={[vendorDetails?.vendor_gstNumber, vendorDetails?.vendor_pan].filter(Boolean).join(" / ") || ""}
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }}
                                                         />
-                                                    ) 
+                                                    )
                                                 },
-                                                { 
-                                                    label: "Bank Details", 
+                                                {
+                                                    label: "Bank Details",
                                                     field: (
-                                                        <TextField 
-                                                            fullWidth 
-                                                            size="small" 
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
                                                             placeholder="A/c No, IFSC"
-                                                            value={[vendorDetails?.vendor_accountNumber, vendorDetails?.vendor_ifscCode].filter(Boolean).join(", ") || ""} 
-                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} 
+                                                            value={[vendorDetails?.vendor_accountNumber, vendorDetails?.vendor_ifscCode].filter(Boolean).join(", ") || ""}
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }}
                                                         />
-                                                    ) 
+                                                    )
                                                 },
                                             ].map((item, i) => (
                                                 <Box key={i} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">

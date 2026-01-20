@@ -41,6 +41,8 @@ import PurchaseReport from "./pages/admin/reports/PurchaseReport";
 import StockReport from "./pages/admin/reports/StockReport";
 import ConsumptionReport from "./pages/admin/reports/ConsumptionReport";
 import ConsumablesReport from "./pages/admin/reports/ConsumablesReport";
+import SalesReport from "./pages/admin/reports/SalesReport";
+import PurchaseOriginReport from "./pages/admin/reports/PurchaseOriginReport";
 import RestaurantSetup from "./pages/admin/RestaurantSetup";
 import ForgetPassword from "./pages/auth/ForgetPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -82,6 +84,8 @@ function App() {
             <Route path="/admin/reports/stock" element={<StockReport />} />
             <Route path="/admin/reports/consumption" element={<ConsumptionReport />} />
             <Route path="/admin/reports/consumables" element={<ConsumablesReport />} />
+            <Route path="/admin/reports/sales" element={<SalesReport />} />
+            <Route path="/admin/reports/purchase-origin" element={<PurchaseOriginReport />} />
             {/* <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} /> */}
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

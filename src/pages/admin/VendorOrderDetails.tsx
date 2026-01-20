@@ -1,4 +1,5 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { toast } from "react-hot-toast";
 import {
   Box,
   Button,
@@ -9,6 +10,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Menu,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -24,7 +27,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
   getVendorOrders,
-  selectVendorOrderState
+  selectVendorOrderState,
+  updateVendorOrder
 } from "../../redux/slices/vendorOrderSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -40,6 +44,21 @@ function VendorOrderDetails() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [openConfirm, setOpenConfirm] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const openMenu = Boolean(anchorEl);
+
+  const handleClickMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleReceive = (target: "Store" | "Kitchen") => {
+    setAnchorEl(null);
+    navigate("/admin/purchase", { state: { vendorOrder: order, target } });
+  };
 
   // ---------------- Fetch ----------------
   useEffect(() => {
@@ -48,10 +67,22 @@ function VendorOrderDetails() {
     }
   }, [order, dispatch]);
 
-  const handleConfirmSend = () => {
-    setOpenConfirm(false);
-    navigate("/admin/purchase", { state: { vendorOrder: order } });
+  const handleConfirmSend = async () => {
+    if (!order) return;
+    try {
+      setOpenConfirm(false);
+      await dispatch(updateVendorOrder({
+        vendorOrderId: order._id,
+        orderStatus: 'Sent'
+      })).unwrap();
+      toast.success("Order sent to vendor successfully");
+      navigate("/admin/purchase");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to send order");
+    }
   };
+
+
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -130,8 +161,12 @@ function VendorOrderDetails() {
                 </Typography>
                 <Box className="mt-1">
                   <Chip
-                    label={order?.orderStatus || "Draft"}
-                    color={(order?.orderStatus?.toLowerCase() === 'delivered' ? 'success' : 'warning') as any}
+                    label={order?.orderStatus === 'Sent' ? "Sent to Purchase" : (order?.orderStatus || "Draft")}
+                    color={
+                      (order?.orderStatus?.toLowerCase() === 'delivered' ? 'success' :
+                        order?.orderStatus?.toLowerCase() === 'sent' ? 'info' :
+                          'warning') as any
+                    }
                     size="small"
                     className="font-bold text-xs"
                   />
@@ -238,11 +273,11 @@ function VendorOrderDetails() {
         }}
       >
         <DialogTitle className="font-bold text-gray-800">
-          Confirm Purchase Order
+          Confirm & Send to Vendor
         </DialogTitle>
         <DialogContent>
           <DialogContentText className="text-gray-600 text-lg">
-            Are you sure you want to send this Purchase Order to <strong>{vendorName}</strong>? <br />
+            Are you sure you want to send this order to <strong>{vendorName}</strong>? Status will be updated to 'Sent'.<br />
           </DialogContentText>
         </DialogContent>
         <DialogActions className="p-4 gap-3">
@@ -258,7 +293,7 @@ function VendorOrderDetails() {
             variant="contained"
             className="normal-case bg-blue-600 hover:bg-blue-700 shadow-none rounded-lg text-white font-semibold px-6"
           >
-            Confirm
+            Confirm & Send
           </Button>
         </DialogActions>
       </Dialog>

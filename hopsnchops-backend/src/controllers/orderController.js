@@ -194,6 +194,7 @@ exports.createBulkOrders = async (req, res) => {
       products: productsArray,
       totalAmount,
       totelOrderQty,
+      purchaseType: req.body.purchaseType || 'Order',
       orderDate: new Date()
     };
 
@@ -680,6 +681,8 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
         // Update existing purchase: set rcvdPurchaseQty and add to currentPurchaseQty
         existingPurchase.rcvdPurchaseQty = prod.sendToPurchaseQty;
         existingPurchase.currentPurchaseQty = (existingPurchase.currentPurchaseQty || 0) + prod.sendToPurchaseQty;
+        existingPurchase.purchaseType = order.purchaseType || 'Order';
+        existingPurchase.orderId = id;
         await existingPurchase.save();
         purchaseUpdates.push(existingPurchase);
       } else {
@@ -689,7 +692,9 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
           productId: prod.productId,
           rcvdPurchaseQty: prod.sendToPurchaseQty,
           sendToStoreQty: 0,
-          currentPurchaseQty: prod.sendToPurchaseQty
+          currentPurchaseQty: prod.sendToPurchaseQty,
+          purchaseType: order.purchaseType || 'Order',
+          orderId: id
         });
         purchaseUpdates.push(newPurchase);
       }

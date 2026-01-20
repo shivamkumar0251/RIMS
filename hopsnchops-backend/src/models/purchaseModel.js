@@ -29,7 +29,16 @@ const purchaseSchema = new mongoose.Schema({
     // computed current qty remaining with purchase (rcvd - sent)
     currentPurchaseQty: { type: Number, default: 0 },
     price: { type: Number, default: 0 },
-    tax: { type: Number, default: 0 }
+    tax: { type: Number, default: 0 },
+    purchaseType: {
+        type: String,
+        enum: ['Direct', 'Order'],
+        default: 'Direct'
+    },
+    orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'OrderHistory'
+    }
 
 }, { timestamps: true });
 

@@ -79,6 +79,7 @@ const VendorsOrder: React.FC = () => {
     switch (status?.toLowerCase()) {
       case 'delivered': return 'success';
       case 'draft': return 'warning';
+      case 'sent': return 'info';
       case 'movetokitchen': return 'primary';
       case 'movetostore': return 'secondary';
       default: return 'default';
@@ -138,6 +139,7 @@ const VendorsOrder: React.FC = () => {
           >
             <MenuItem value="">All Status</MenuItem>
             <MenuItem value="Draft">Draft</MenuItem>
+            <MenuItem value="Sent">Sent</MenuItem>
             <MenuItem value="Delivered">Delivered</MenuItem>
             <MenuItem value="MoveToKitchen">Move To Kitchen</MenuItem>
             <MenuItem value="MoveToStore">Move To Store</MenuItem>
@@ -207,7 +209,7 @@ const VendorsOrder: React.FC = () => {
                         </TableCell>
                         <TableCell align="center">
                           <Chip
-                            label={order.orderStatus || "Draft"}
+                            label={order.orderStatus === 'Sent' ? "Sent to Purchase" : (order.orderStatus || "Draft")}
                             color={getStatusColor(order.orderStatus || "Draft") as any}
                             size="small"
                             className="font-semibold px-2"

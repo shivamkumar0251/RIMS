@@ -2,6 +2,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Box,
   Button,
+  Chip,
   CircularProgress,
   IconButton,
   Paper,
@@ -25,7 +26,7 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { toast } from "react-hot-toast";
-import { FiPlus, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX } from "react-icons/fi";
+import { FiPlus, FiEdit, FiChevronDown, FiMail, FiPrinter, FiDownload, FiX, FiEye } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { ExpiryBadge } from "../../components/common/ExpiryBadge";
@@ -116,7 +117,7 @@ const Purchase: React.FC = () => {
   // Initial Load
   useEffect(() => {
     if (!isReceiveMode) {
-      dispatch(getVendorOrders({ page: page + 1, limit, orderStatus: "Delivered" }));
+      dispatch(getVendorOrders({ page: page + 1, limit }));
     }
   }, [dispatch, isReceiveMode, page, limit]);
 
@@ -199,13 +200,15 @@ const Purchase: React.FC = () => {
         }
         toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
       } else {
-        toast.success("Purchase Order confirmed and sent successfully!");
+        toast.success("Purchase Order confirmed and received successfully!");
       }
 
-      setTimeout(() => navigate('/admin/purchase'), 500);
+      // Navigate back and replace state to clear the receipt form
+      navigate('/admin/purchase', { replace: true });
     } catch (error: any) {
       console.error("Error processing receipt:", error);
       toast.error(error.message || "Failed to process receipt");
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -432,7 +435,17 @@ const Purchase: React.FC = () => {
                   </Box>
                   <Typography className="text-xs text-slate-600 truncate mb-2">{(order.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</Typography>
                   <Box className="flex justify-between items-center">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getStatusColor(order.status)}`}>{order.status}</span>
+                    <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
+                      Status
+                    </Typography>
+                    <Box className="mt-1">
+                      <Chip
+                        label={order.orderStatus}
+                        color={getStatusColor(order.orderStatus) as any}
+                        size="small"
+                        className="font-bold text-xs"
+                      />
+                    </Box>
                     <Typography className="font-bold text-sm text-slate-900">₹{order.totalAmount?.toLocaleString()}</Typography>
                   </Box>
                 </Box>
@@ -447,7 +460,7 @@ const Purchase: React.FC = () => {
               <Box className="flex items-center gap-4 min-w-0 flex-shrink-1">
                 <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><ArrowBackIcon /></IconButton>
                 <Typography variant="h6" className="font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{selectedOrder.orderNumber}</Typography>
-                <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border flex-shrink-0 ${getStatusColor(selectedOrder.status)}`}>{selectedOrder.status}</span>
+                <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border flex-shrink-0 ${getStatusColor(selectedOrder.orderStatus)}`}>{selectedOrder.orderStatus}</span>
               </Box>
               <Box className="flex items-center gap-2 flex-shrink-0">
                 <Button
@@ -740,57 +753,66 @@ const Purchase: React.FC = () => {
                   ) : vendorOrders.length === 0 ? (
                     <TableRow><TableCell colSpan={7} align="center" className="py-20 text-slate-400">No purchase orders found</TableCell></TableRow>
                   ) : (
-                    vendorOrders.map((row) => {
-                      const isRowChecked = checkedOrderIds.includes(row._id);
-                      return (
-                        <TableRow
-                          key={row._id}
-                          hover
-                          selected={isRowChecked}
-                          className="cursor-pointer group"
-                          sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
-                        >
-                          <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={isRowChecked}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setCheckedOrderIds([...checkedOrderIds, row._id]);
-                                } else {
-                                  setCheckedOrderIds(checkedOrderIds.filter(id => id !== row._id));
-                                }
-                              }}
-                              sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
-                            />
-                          </TableCell>
-                          <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
-                          <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
-                          <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
-                          <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus}</span>
-                          </TableCell>
-                          <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
-                          <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
-                            <Box className="flex items-center justify-center">
-                              <ButtonGroup size="small">
+                    vendorOrders
+                      .filter(row => row.orderStatus !== 'Draft')
+                      .map((row) => {
+                        const isRowChecked = checkedOrderIds.includes(row._id);
+                        return (
+                          <TableRow
+                            key={row._id}
+                            hover
+                            selected={isRowChecked}
+                            className="cursor-pointer group"
+                            sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
+                          >
+                            <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isRowChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setCheckedOrderIds([...checkedOrderIds, row._id]);
+                                  } else {
+                                    setCheckedOrderIds(checkedOrderIds.filter(id => id !== row._id));
+                                  }
+                                }}
+                                sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
+                              />
+                            </TableCell>
+                            <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                            <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
+                            <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                            <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus === 'Sent' ? 'Draft' : row.orderStatus}</span>
+                            </TableCell>
+                            <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
+                            <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
+                              <Box className="flex items-center justify-end gap-2 pr-4">
                                 <Button
-                                  className="px-3 py-1 text-[11px] font-bold border-slate-200 bg-white hover:bg-slate-50 text-slate-600 normal-case rounded-l-md"
+                                  startIcon={<FiEye size={16} />}
+                                  className="min-w-0 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200 rounded-lg normal-case transition-colors"
                                   onClick={() => setSelectedOrderId(row._id)}
                                 >
-                                  View / Print
+                                  View
                                 </Button>
                                 <Button
-                                  className="px-1 border border-slate-200 min-w-0 bg-white hover:bg-slate-50 text-slate-600 rounded-r-md"
-                                  onClick={(ev: React.MouseEvent<HTMLElement>) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
+                                  startIcon={<FiEdit size={16} />}
+                                  className="min-w-0 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200 rounded-lg normal-case transition-colors"
+                                  onClick={() => { setEditingOrder(row); setIsFormOpen(true); }}
                                 >
-                                  <FiChevronDown size={14} />
+                                  Edit
                                 </Button>
-                              </ButtonGroup>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
+                                <IconButton
+                                  size="small"
+                                  className="text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200 rounded-lg"
+                                  onClick={(ev) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
+                                >
+                                  <FiChevronDown />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                   )}
                 </TableBody>
               </Table>
@@ -815,17 +837,6 @@ const Purchase: React.FC = () => {
           onClose={() => setActionAnchorEl(null)}
           PaperProps={{ sx: { minWidth: 160, borderRadius: 2, shadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', border: '1px solid #f1f5f9' } }}
         >
-          <MenuItem
-            onClick={() => {
-              const order = vendorOrders.find(o => o._id === actionAnchorEl?.id);
-              setEditingOrder(order);
-              setIsFormOpen(true);
-              setActionAnchorEl(null);
-            }}
-            className="text-xs font-bold text-slate-600 py-2"
-          >
-            <FiEdit className="mr-3" /> Edit Order
-          </MenuItem>
           <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiMail className="mr-3" /> Send Email</MenuItem>
           <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiPrinter className="mr-3" /> Print PO</MenuItem>
           <MenuItem onClick={() => setActionAnchorEl(null)} className="text-xs font-bold text-slate-600 py-2"><FiDownload className="mr-3" /> Download PDF</MenuItem>

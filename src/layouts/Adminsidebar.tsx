@@ -153,6 +153,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         { name: "Stock Report", to: "/admin/reports/stock" },
         { name: "Consumption Report", to: "/admin/reports/consumption" },
         { name: "Consumables Report", to: "/admin/reports/consumables" },
+        { name: "Sales Report", to: "/admin/reports/sales" },
+        { name: "Purchase Origin Report", to: "/admin/reports/purchase-origin" },
       ],
     },
   ];

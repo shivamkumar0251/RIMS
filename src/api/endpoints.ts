@@ -94,4 +94,6 @@ export const API_ENDPOINTS = {
   GET_PURCHASE_REPORT: `${API_BASE_URL}/reports/purchase`,
   GET_STOCK_REPORT: `${API_BASE_URL}/reports/stock`,
   GET_CONSUMPTION_REPORT: `${API_BASE_URL}/reports/consumption`,
+  GET_SALES_REPORT: `${API_BASE_URL}/reports/sales`,
+  GET_PURCHASE_ORIGIN_REPORT: `${API_BASE_URL}/reports/purchase-origin`,
 };
