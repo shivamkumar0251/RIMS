@@ -21,11 +21,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
 import { FiSearch, FiRefreshCw, FiFilter, FiCheck, FiX } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { toast } from "react-hot-toast";
+import { ExpiryBadge } from "../../components/common/ExpiryBadge";
 
 import {
   getStoreStocks,
@@ -320,30 +320,26 @@ const StoreStockComponent: React.FC = () => {
                     <TableCell className="font-bold text-center bg-inherit">Available Qty</TableCell>
                     <TableCell className="font-bold text-center bg-inherit">Status</TableCell>
                     <TableCell className="font-bold bg-inherit">Expiry Date</TableCell>
-                    <TableCell className="font-bold bg-inherit">Last Inward Date</TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" className="py-10">
+                      <TableCell colSpan={7} align="center" className="py-10">
                         <CircularProgress size={30} />
                         <Typography className="mt-2 text-gray-500 text-sm">Loading stocks...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : storeStocks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
+                      <TableCell colSpan={7} align="center" className="py-10 text-gray-500 text-sm">
                         No products found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     storeStocks.map((row) => {
                       const combinedExpiry = row.expiryDate || row.productId?.expiryDate;
-                      const expiry = combinedExpiry ? dayjs(combinedExpiry) : null;
-                      const isExpired = expiry && expiry.isBefore(dayjs(), 'day');
-                      const isExpiringSoon = expiry && !isExpired && expiry.isBefore(dayjs().add(90, 'day'), 'day');
 
                       return (
                         <TableRow key={row._id} hover>
@@ -391,22 +387,11 @@ const StoreStockComponent: React.FC = () => {
                                   onClick={() => handleStartEdit(row._id, combinedExpiry || "")}
                                   className="flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-1 px-2 rounded-md min-h-[40px] flex flex-col justify-center"
                                 >
-                                  {combinedExpiry ? (
-                                    <>
-                                      <Typography variant="body2" className={`font-bold ${isExpired || isExpiringSoon ? 'text-rose-600' : 'text-gray-700'}`}>
-                                        {dayjs(combinedExpiry).format("DD/MM/YYYY")}
-                                      </Typography>
-                                      {isExpired && <Typography variant="caption" className="text-rose-500 font-black animate-pulse uppercase text-[9px]">EXPIRED</Typography>}
-                                      {isExpiringSoon && <Typography variant="caption" className="text-rose-500 font-black uppercase text-[9px]">Expiring Soon</Typography>}
-                                    </>
-                                  ) : (
-                                    <Typography className="text-gray-400">None</Typography>
-                                  )}
+                                  <ExpiryBadge expiryDate={combinedExpiry} />
                                 </Box>
                               )}
                             </Box>
                           </TableCell>
-                          <TableCell className="text-gray-500 text-xs">{dayjs(row.createdAt).format("DD/MM/YYYY")}</TableCell>
                         </TableRow>
                       );
                     })

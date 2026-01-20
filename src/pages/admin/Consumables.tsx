@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSearch, FiRefreshCw, FiFileText, FiDownload } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFileText, FiDownload, FiCheck, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
 import { AdminLayout } from "../../layouts/AdminLayout";
@@ -302,9 +302,9 @@ const Consumables: React.FC = () => {
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filter Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
+        <Box className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
           {/* Filters Area */}
-          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <Box className="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto">
             <TextField
               placeholder="Search product..."
               size="small"
@@ -316,34 +316,48 @@ const Consumables: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <FiSearch className="text-gray-400" />
+                    <FiSearch size={16} className="text-gray-400" />
                   </InputAdornment>
                 ),
               }}
-              className="w-full sm:w-64"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "#fcfcfc" } }}
+              className="w-full sm:w-44"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fcfcfc", height: '40px', fontSize: '13px' } }}
             />
 
-            <Box className="flex items-center gap-2">
+            <Box className="flex items-center gap-1.5">
               <TextField
                 type="date"
                 size="small"
-                label="From"
-                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography variant="caption" className="text-gray-500 font-bold mr-1">From:</Typography>
+                    </InputAdornment>
+                  ),
+                }}
                 value={fromDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-                className="w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                className="w-[160px]"
+                sx={{ 
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '12px', height: '40px' },
+                }}
               />
               <TextField
                 type="date"
                 size="small"
-                label="To"
-                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography variant="caption" className="text-gray-500 font-bold mr-1">To:</Typography>
+                    </InputAdornment>
+                  ),
+                }}
                 value={toDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-                className="w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+                className="w-[160px]"
+                sx={{ 
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '12px', height: '40px' },
+                }}
               />
             </Box>
 
@@ -353,12 +367,12 @@ const Consumables: React.FC = () => {
               label="Purpose"
               value={purposeFilter}
               onChange={(e) => setPurposeFilter(e.target.value)}
-              className="w-40"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              className="w-32"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '13px' } }}
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="Usage">Usage</MenuItem>
-              <MenuItem value="Wastage">Wastage</MenuItem>
+              <MenuItem value="" sx={{ fontSize: '13px' }}>All</MenuItem>
+              <MenuItem value="Usage" sx={{ fontSize: '13px' }}>Usage</MenuItem>
+              <MenuItem value="Wastage" sx={{ fontSize: '13px' }}>Wastage</MenuItem>
             </TextField>
 
             <TextField
@@ -366,28 +380,38 @@ const Consumables: React.FC = () => {
               placeholder="Filter by user..."
               value={userFilter}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserFilter(e.target.value)}
-              className="w-48"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+              className="w-40"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '13px' } }}
             />
 
             <Button
               size="small"
               variant="text"
-              startIcon={<FiRefreshCw />}
+              startIcon={<FiRefreshCw size={16} />}
               onClick={handleResetFilters}
-              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
+              className="text-blue-600 normal-case font-semibold hover:bg-blue-50 px-3"
+              sx={{ borderRadius: '10px', fontSize: '13px' }}
             >
               Reset
             </Button>
           </Box>
 
           {/* Generate Report Button */}
-          <Box className="w-full md:w-auto flex justify-end">
+          <Box className="w-full lg:w-auto flex justify-end">
             <Button
               variant="contained"
-              startIcon={<FiFileText />}
+              startIcon={<FiFileText size={18} />}
               onClick={() => setReportOpen(true)}
-              className="bg-green-600 hover:bg-green-700 normal-case"
+              className="bg-blue-600 hover:bg-blue-700 shadow-md whitespace-nowrap"
+              sx={{ 
+                borderRadius: '10px', 
+                height: '42px', 
+                px: 3,
+                fontSize: '13px',
+                fontWeight: 700,
+                letterSpacing: '0.3px',
+                textTransform: 'none'
+              }}
             >
               Generate Report
             </Button>
@@ -397,29 +421,49 @@ const Consumables: React.FC = () => {
         {/* Content Section */}
         <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           {/* Summary Cards */}
-          <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 shrink-0">
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <Typography variant="caption" className="text-gray-500">Total Records</Typography>
-                <Typography variant="h5" className="font-bold text-blue-600">{reportSummary.recordCount}</Typography>
+          <Box className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 shrink-0">
+            <Card className="shadow-sm border-0 border-l-4 border-blue-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Records</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                    <FiFileText size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.recordCount}</Typography>
+                </Box>
               </CardContent>
             </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <Typography variant="caption" className="text-gray-500">Total Consumed</Typography>
-                <Typography variant="h5" className="font-bold text-purple-600">{reportSummary.totalConsumed}</Typography>
+            <Card className="shadow-sm border-0 border-l-4 border-purple-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Consumed</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-purple-50 text-purple-600">
+                    <FiDownload size={18} className="translate-y-[1px]" />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalConsumed}</Typography>
+                </Box>
               </CardContent>
             </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <Typography variant="caption" className="text-gray-500">Total Usage</Typography>
-                <Typography variant="h5" className="font-bold text-green-600">{reportSummary.totalUsage}</Typography>
+            <Card className="shadow-sm border-0 border-l-4 border-green-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Usage</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-green-50 text-green-600">
+                    <FiCheck size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalUsage}</Typography>
+                </Box>
               </CardContent>
             </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <Typography variant="caption" className="text-gray-500">Total Wastage</Typography>
-                <Typography variant="h5" className="font-bold text-red-600">{reportSummary.totalWastage}</Typography>
+            <Card className="shadow-sm border-0 border-l-4 border-red-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Wastage</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-red-50 text-red-600">
+                    <FiX size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalWastage}</Typography>
+                </Box>
               </CardContent>
             </Card>
           </Box>
@@ -428,16 +472,16 @@ const Consumables: React.FC = () => {
           <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
             <TableContainer className="flex-1 overflow-auto">
               <Table stickyHeader>
-                <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
-                  <TableRow>
-                    <TableCell className="font-bold bg-inherit">Date</TableCell>
-                    <TableCell className="font-bold bg-inherit">Product</TableCell>
-                    <TableCell className="font-bold bg-inherit">Category</TableCell>
-                    <TableCell className="font-bold text-center bg-inherit">Consumed Qty</TableCell>
-                    <TableCell className="font-bold bg-inherit">Unit</TableCell>
-                    <TableCell className="font-bold bg-inherit">Purpose</TableCell>
-                    <TableCell className="font-bold bg-inherit">User</TableCell>
-                    <TableCell className="font-bold bg-inherit">Remarks</TableCell>
+                <TableHead>
+                  <TableRow className="bg-gray-50/50">
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Date</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Product</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Category</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 text-center bg-inherit py-3">Consumed</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Unit</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Purpose</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">User</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Remarks</TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -532,9 +576,12 @@ const Consumables: React.FC = () => {
           </Paper>
 
           {/* Info Box */}
-          <Box className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg shrink-0">
-            <Typography variant="body2" className="text-blue-800 text-xs sm:text-sm">
-              <strong>Note:</strong> This is a read-only consumption log. Records are automatically created when items are consumed from the Kitchen Consumption screen.
+          <Box className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl shrink-0 flex items-center gap-3">
+             <Box className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+               <FiFileText size={16} />
+             </Box>
+            <Typography variant="body2" className="text-blue-800 text-[11px] sm:text-[13px] leading-relaxed">
+              <strong>Note:</strong> This is a <strong>read-only</strong> consumption log. Records are automatically created when items are consumed from the <em>Kitchen Consumption</em> screen.
             </Typography>
           </Box>
         </Box>
