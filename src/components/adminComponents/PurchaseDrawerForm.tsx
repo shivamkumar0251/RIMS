@@ -118,6 +118,16 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                     setItems(initialData.products.map((p: any, idx: number) => {
                         const quantity = p.sendToPurchaseQty || p.orderQty || 1;
                         const rate = p.rate || p.productId?.perUnitRate || 0;
+                        const discount = p.discount || 0;
+                        // Use || to fallback if gstPct is 0 (common in legacy data)
+                        const taxPct = p.gstPct || p.productId?.gstPct || 0;
+                        
+                        // Calculate initial total for the row
+                        const subtotal = (quantity * rate) - discount;
+                        const taxable = Math.max(0, subtotal);
+                        const taxAmount = (taxable * taxPct) / 100;
+                        const total = taxable + taxAmount;
+
                         return {
                             id: `${Date.now()}-${idx}`,
                             productId: p.productId,
@@ -127,11 +137,11 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                             qty: quantity,
                             uom: p.uom || p.productId?.unit || "Unit",
                             price: rate,
-                            discount: 0,
-                            tax: 0,
+                            discount: discount,
+                            tax: taxPct,
                             cess: 0,
-                            total: quantity * rate,
-                            note: ""
+                            total: total,
+                            note: p.remarks || ""
                         };
                     }));
                 }
@@ -228,7 +238,9 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
             products: items.map(it => ({
                 productId: it.productId?._id,
                 orderQty: it.qty,
-                rate: it.price
+                rate: it.price,
+                discount: it.discount || 0,
+                gstPct: it.tax || 0
             })),
             totalAmount: totals.total,
             status: "Draft",
@@ -430,6 +442,7 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                 <TableCell className="text-[10px] font-black py-2 border-r text-center" width={120}>UOM</TableCell>
                                                 <TableCell className="text-[10px] font-black py-2 border-r text-right" width={120}>PRICE (RS)</TableCell>
                                                 <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>DISCOUNT</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>SUB TOTAL</TableCell>
                                                 <TableCell className="text-[10px] font-black py-2 border-r text-center" width={180}>CGST + SGST</TableCell>
                                                 <TableCell className="text-[10px] font-black py-2 text-right" width={120}>TOTAL</TableCell>
                                                 <TableCell width={40}></TableCell>
@@ -481,22 +494,16 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                         <TextField
                                                                             {...params}
                                                                             placeholder="Type or click to select an item."
-                                                                            variant="outlined"
+                                                                            variant="standard"
                                                                             size="small"
                                                                             InputProps={{
                                                                                 ...params.InputProps,
+                                                                                disableUnderline: true,
                                                                                 sx: {
                                                                                     fontSize: '12px',
                                                                                     fontWeight: 600,
-                                                                                    borderRadius: '8px',
-                                                                                    bgcolor: 'white',
-                                                                                    height: '36px',
                                                                                     '& .MuiAutocomplete-endAdornment': { display: 'none' }
                                                                                 }
-                                                                            }}
-                                                                            sx={{
-                                                                                '& .MuiOutlinedInput-root': { height: '36px', paddingRight: '0px !important' },
-                                                                                '& .MuiOutlinedInput-input': { padding: '4px 8px !important' }
                                                                             }}
                                                                         />
                                                                     }
@@ -505,21 +512,18 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 {/* Integrated Description Field */}
                                                                 <TextField
                                                                     fullWidth
-                                                                    variant="outlined"
+                                                                    variant="standard"
                                                                     size="small"
                                                                     placeholder="Add a description..."
                                                                     value={row.note}
                                                                     onChange={e => handleItemChange(idx, "note", e.target.value)}
                                                                     InputProps={{
+                                                                        disableUnderline: true,
                                                                         sx: {
                                                                             fontSize: '11px',
                                                                             color: '#64748b',
-                                                                            bgcolor: '#f8fafc',
-                                                                            borderRadius: '8px',
-                                                                            height: '32px'
                                                                         }
                                                                     }}
-                                                                    sx={{ '& .MuiOutlinedInput-input': { padding: '4px 8px' } }}
                                                                 />
                                                             </Box>
                                                         </TableCell>
@@ -647,6 +651,9 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                                                                 }}
                                                                 sx={{ '& .MuiInputBase-root': { height: '36px' } }}
                                                             />
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1 text-center" sx={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                                                            {((row.qty * row.price) - (row.discount || 0)).toFixed(2)}
                                                         </TableCell>
                                                         <TableCell className="border-r py-1" align="center">
                                                             <TextField

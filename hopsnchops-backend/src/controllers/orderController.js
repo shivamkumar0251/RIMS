@@ -179,11 +179,21 @@ exports.createBulkOrders = async (req, res) => {
 
       productsArray.push({
         productId: orderItem.productId,
-        orderQty: orderQty
+        orderQty: orderQty,
+        rate: orderItem.rate !== undefined ? Number(orderItem.rate) : (product.perUnitRate || 0),
+        discount: Number(orderItem.discount || 0),
+        gstPct: orderItem.gstPct !== undefined ? Number(orderItem.gstPct) : (product.gstPct || 0),
+        amount: 0 // Will be calculated below
       });
 
-      // Calculate total amount: taxableValue * orderQty
-      totalAmount += (product.taxableValue || 0) * orderQty;
+      // Calculate total amount
+      const currentItem = productsArray[productsArray.length - 1];
+      const subtotal = (currentItem.orderQty * currentItem.rate) - currentItem.discount;
+      const taxableVal = Math.max(0, subtotal);
+      const taxAmount = (taxableVal * currentItem.gstPct) / 100;
+      currentItem.amount = taxableVal + taxAmount;
+
+      totalAmount += currentItem.amount;
       totelOrderQty += orderQty;
     }
 
@@ -336,9 +346,39 @@ exports.getOrders = async (req, res) => {
       });
 
     const total = await OrderRequired.countDocuments(query);
+
+    // Enrich orders to ensure rate/discount/gstPct/amount are set (backward compatibility)
+    const enrichedOrders = orders.map(order => {
+      const o = order.toObject();
+      if (o.products && Array.isArray(o.products)) {
+        o.products = o.products.map(p => {
+          if (p.productId) {
+            // Backfill rate/gst/discount for old orders or if 0
+            if (!p.rate) p.rate = p.productId.perUnitRate || 0;
+            if (p.gstPct === undefined) p.gstPct = p.productId.gstPct || 0;
+            if (p.discount === undefined) p.discount = 0;
+
+            // Recalculate amount if 0
+            if (!p.amount || p.amount === 0) {
+              const subtotal = (p.orderQty * p.rate) - p.discount;
+              const taxableVal = Math.max(0, subtotal);
+              const taxAmount = (taxableVal * p.gstPct) / 100;
+              p.amount = taxableVal + taxAmount;
+            }
+          }
+          return p;
+        });
+
+        // Ensure totalAmount matches sum of products if it seems wrong or 0? 
+        // Actually trust stored totalAmount, but maybe recalculate for safety?
+        // Let's stick to just enriching items for now so UI is happy.
+      }
+      return o;
+    });
+
     return res.status(200).json({
       success: true,
-      data: orders,
+      data: enrichedOrders,
       total,
       page: p,
       limit: l
@@ -400,11 +440,21 @@ exports.updateOrderProducts = async (req, res) => {
 
       productsArray.push({
         productId: orderItem.productId,
-        orderQty: orderQty
+        orderQty: orderQty,
+        rate: orderItem.rate !== undefined ? Number(orderItem.rate) : (product.perUnitRate || 0),
+        discount: Number(orderItem.discount || 0),
+        gstPct: orderItem.gstPct !== undefined ? Number(orderItem.gstPct) : (product.gstPct || 0),
+        amount: 0
       });
 
-      // Calculate total amount: taxableValue * orderQty
-      totalAmount += (product.taxableValue || 0) * orderQty;
+      // Calculate total amount
+      const currentItem = productsArray[productsArray.length - 1];
+      const subtotal = (currentItem.orderQty * currentItem.rate) - currentItem.discount;
+      const taxableVal = Math.max(0, subtotal);
+      const taxAmount = (taxableVal * currentItem.gstPct) / 100;
+      currentItem.amount = taxableVal + taxAmount;
+
+      totalAmount += currentItem.amount;
       totelOrderQty += orderQty;
     }
 
@@ -478,11 +528,17 @@ exports.deleteOrderItems = async (req, res) => {
     let totelOrderQty = 0;
 
     for (const orderItem of updatedProducts) {
-      const product = await Products.findById(orderItem.productId);
-      if (product) {
-        totalAmount += (product.taxableValue || 0) * (orderItem.orderQty || 0);
-        totelOrderQty += (orderItem.orderQty || 0);
+      if (orderItem.amount && orderItem.amount > 0) {
+        // Use stored amount if available (new logic)
+        totalAmount += orderItem.amount;
+      } else {
+        // Fallback for old orders: re-fetch product
+        const product = await Products.findById(orderItem.productId);
+        if (product) {
+          totalAmount += (product.taxableValue || 0) * (orderItem.orderQty || 0);
+        }
       }
+      totelOrderQty += (orderItem.orderQty || 0);
     }
 
     const updated = await OrderRequired.findOneAndUpdate(

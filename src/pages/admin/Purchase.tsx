@@ -568,20 +568,27 @@ const Purchase: React.FC = () => {
                         <TableCell align="right" className="font-bold text-slate-700 py-3">Rate</TableCell>
                         <TableCell align="right" className="font-bold text-slate-700 py-3">Amount</TableCell>
                       </TableRow>
-                    </TableHead>
+                      </TableHead>
                     <TableBody>
-                      {selectedOrder.products.map((p, idx) => (
-                        <TableRow key={p._id} hover>
-                          <TableCell className="text-slate-400 py-3">{idx + 1}</TableCell>
-                          <TableCell className="py-3">
-                            <Typography className="font-bold text-slate-800 text-sm">{p.productId?.productName}</Typography>
-                            {/* <Typography className="text-[10px] text-slate-400">{p.productId?.brandName} | {p.productId?.categoryName}</Typography> */}
-                          </TableCell>
-                          <TableCell align="right" className="py-3 font-medium">{p.orderQty} {p.productId?.unit}</TableCell>
-                          <TableCell align="right" className="py-3 text-slate-600">₹{(p.productId as any)?.perUnitRate || 0}</TableCell>
-                          <TableCell align="right" className="font-bold text-slate-800 py-3">₹{(p.orderQty * ((p.productId as any)?.perUnitRate || 0)).toLocaleString()}</TableCell>
-                        </TableRow>
-                      ))}
+                      {selectedOrder.products.map((p, idx) => {
+                        const quantity = p.orderQty || 0;
+                        const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
+                        const discount = (p as any).discount || 0;
+                        // Base Amount (Taxable) per item
+                        const baseAmount = (quantity * rate) - discount;
+
+                        return (
+                          <TableRow key={p._id} hover>
+                            <TableCell className="text-slate-400 py-3">{idx + 1}</TableCell>
+                            <TableCell className="py-3">
+                              <Typography className="font-bold text-slate-800 text-sm">{p.productId?.productName}</Typography>
+                            </TableCell>
+                            <TableCell align="right" className="py-3 font-medium">{quantity} {p.productId?.unit}</TableCell>
+                            <TableCell align="right" className="py-3 text-slate-600">₹{rate}</TableCell>
+                            <TableCell align="right" className="font-bold text-slate-800 py-3">₹{baseAmount.toLocaleString()}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -589,12 +596,51 @@ const Purchase: React.FC = () => {
                 <Box className="flex justify-end pr-4">
                   <Box className="w-64 space-y-3">
                     <Box className="flex justify-between text-slate-500 text-sm">
-                      <span>Sub Total</span>
-                      <span className="font-medium text-slate-700">₹{selectedOrder.totalAmount?.toLocaleString()}</span>
+                        {(() => {
+                            // Calculate totals locally to ensure consistency
+                            let calculatedSubTotal = 0;
+                            let calculatedGST = 0;
+                            
+                            selectedOrder.products.forEach(p => {
+                                const quantity = p.orderQty || 0;
+                                const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
+                                const discount = (p as any).discount || 0;
+                                const gstPct = (p as any).gstPct ?? (p.productId as any)?.gstPct ?? 0;
+                                
+                                const baseVal = Math.max(0, (quantity * rate) - discount);
+                                const tax = (baseVal * gstPct) / 100;
+                                
+                                calculatedSubTotal += baseVal;
+                                calculatedGST += tax;
+                            });
+
+                            return (
+                                <>
+                                  <span>Sub Total</span>
+                                  <span className="font-medium text-slate-700">₹{calculatedSubTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                </>
+                            );
+                        })()}
                     </Box>
                     <Box className="flex justify-between text-slate-500 text-sm">
-                      <span>GST (Included)</span>
-                      <span className="font-medium text-slate-700">₹0</span>
+                      <span>Total GST</span>
+                      <span className="font-medium text-slate-700">
+                      {(() => {
+                            let calculatedGST = 0;
+                            selectedOrder.products.forEach(p => {
+                                const quantity = p.orderQty || 0;
+                                const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
+                                const discount = (p as any).discount || 0;
+                                // Fallback to product GST if order-level GST is 0 or missing
+                                const gstPct = (p as any).gstPct || (p.productId as any)?.gstPct || 0;
+                                
+                                const baseVal = Math.max(0, (quantity * rate) - discount);
+                                const tax = (baseVal * gstPct) / 100;
+                                calculatedGST += tax;
+                            });
+                            return `+ ₹${calculatedGST.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                        })()}
+                      </span>
                     </Box>
                     <Divider />
                     <Box className="flex justify-between items-center text-slate-900">

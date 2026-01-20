@@ -24,6 +24,10 @@ const productsOrderSchema = new mongoose.Schema(
     orderQty: { type: Number, required: true, default: 0 },
     sendToPurchaseQty: { type: Number, default: 0 },
     remarks: { type: String },
+    rate: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    gstPct: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 }
   },
   { _id: true, timestamps: true }
 );
