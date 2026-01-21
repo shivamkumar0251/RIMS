@@ -267,9 +267,15 @@ export default function ProductTable() {
         isActive: dataToSave.isActive ?? true
       };
 
-      if (dataToSave.categoryId?._id) payload.categoryId = dataToSave.categoryId;
-      if (dataToSave.vendorsId?._id) payload.vendorsId = dataToSave.vendorsId;
-      if (dataToSave.companyId?._id) payload.companyId = dataToSave.companyId;
+      if (dataToSave.categoryId) {
+        payload.categoryId = typeof dataToSave.categoryId === 'string' ? { _id: dataToSave.categoryId } : dataToSave.categoryId;
+      }
+      if (dataToSave.vendorsId) {
+        payload.vendorsId = typeof dataToSave.vendorsId === 'string' ? { _id: dataToSave.vendorsId } : dataToSave.vendorsId;
+      }
+      if (dataToSave.companyId) {
+        payload.companyId = typeof dataToSave.companyId === 'string' ? { _id: dataToSave.companyId } : dataToSave.companyId;
+      }
 
       if (editingProduct) {
         await dispatch(updateProduct({ productId: editingProduct._id, productData: payload })).unwrap();
