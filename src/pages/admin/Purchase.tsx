@@ -17,7 +17,6 @@ import {
   Typography,
   Menu,
   MenuItem,
-  ButtonGroup,
   Divider,
   Checkbox,
   useMediaQuery,
@@ -43,7 +42,6 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
-import { addBulkPurchases } from "../../redux/slices/purchaseSlice";
 import { addStoreStock } from "../../redux/slices/storeStockSlice";
 import { addKitchenStock } from "../../redux/slices/kitchenStockSlice";
 
@@ -188,14 +186,16 @@ const Purchase: React.FC = () => {
           const storePayload = validItems.map(item => ({
             productId: item.productId._id,
             qty: item.receivedQty,
-            expiryDate: item.expiryDate
+            expiryDate: item.expiryDate,
+            type: "receipt"
           }));
           await dispatch(addStoreStock(storePayload)).unwrap();
         } else {
           const kitchenPayload = validItems.map(item => ({
             productId: item.productId._id,
             qty: item.receivedQty,
-            expiryDate: item.expiryDate
+            expiryDate: item.expiryDate,
+            type: "receipt"
           }));
           await dispatch(addKitchenStock(kitchenPayload)).unwrap();
         }
@@ -244,6 +244,8 @@ const Purchase: React.FC = () => {
     if (s === 'draft') return 'text-gray-500 bg-gray-50 border-gray-100';
     if (s === 'sent') return 'text-blue-500 bg-blue-50 border-blue-100';
     if (s === 'delivered') return 'text-emerald-500 bg-emerald-50 border-emerald-100';
+    if (s === 'movetostore') return 'text-purple-600 bg-purple-50 border-purple-200';
+    if (s === 'movetokitchen') return 'text-amber-600 bg-amber-50 border-amber-200';
     return 'text-gray-400 bg-gray-50 border-gray-100';
   };
 
@@ -467,6 +469,7 @@ const Purchase: React.FC = () => {
                 <Button
                   variant="outlined"
                   startIcon={<FiEdit />}
+                  disabled={['movetostore', 'movetokitchen'].includes(selectedOrder.orderStatus?.toLowerCase())}
                   className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case"
                   onClick={() => { setEditingOrder(selectedOrder); setIsFormOpen(true); }}
                 >
@@ -474,7 +477,7 @@ const Purchase: React.FC = () => {
                 </Button>
                 <Button variant="outlined" startIcon={<FiPrinter />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Print</Button>
                 <Button variant="outlined" startIcon={<FiMail />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Email</Button>
-                {selectedOrder.status !== 'Received' && (
+                {!['movetostore', 'movetokitchen'].includes(selectedOrder.orderStatus?.toLowerCase()) && (
                   <>
                     <Button
                       variant="contained"
@@ -568,7 +571,7 @@ const Purchase: React.FC = () => {
                         <TableCell align="right" className="font-bold text-slate-700 py-3">Rate</TableCell>
                         <TableCell align="right" className="font-bold text-slate-700 py-3">Amount</TableCell>
                       </TableRow>
-                      </TableHead>
+                    </TableHead>
                     <TableBody>
                       {selectedOrder.products.map((p, idx) => {
                         const quantity = p.orderQty || 0;
@@ -596,49 +599,49 @@ const Purchase: React.FC = () => {
                 <Box className="flex justify-end pr-4">
                   <Box className="w-64 space-y-3">
                     <Box className="flex justify-between text-slate-500 text-sm">
-                        {(() => {
-                            // Calculate totals locally to ensure consistency
-                            let calculatedSubTotal = 0;
-                            let calculatedGST = 0;
-                            
-                            selectedOrder.products.forEach(p => {
-                                const quantity = p.orderQty || 0;
-                                const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
-                                const discount = (p as any).discount || 0;
-                                const gstPct = (p as any).gstPct ?? (p.productId as any)?.gstPct ?? 0;
-                                
-                                const baseVal = Math.max(0, (quantity * rate) - discount);
-                                const tax = (baseVal * gstPct) / 100;
-                                
-                                calculatedSubTotal += baseVal;
-                                calculatedGST += tax;
-                            });
+                      {(() => {
+                        // Calculate totals locally to ensure consistency
+                        let calculatedSubTotal = 0;
+                        let calculatedGST = 0;
 
-                            return (
-                                <>
-                                  <span>Sub Total</span>
-                                  <span className="font-medium text-slate-700">₹{calculatedSubTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                </>
-                            );
-                        })()}
+                        selectedOrder.products.forEach(p => {
+                          const quantity = p.orderQty || 0;
+                          const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
+                          const discount = (p as any).discount || 0;
+                          const gstPct = (p as any).gstPct ?? (p.productId as any)?.gstPct ?? 0;
+
+                          const baseVal = Math.max(0, (quantity * rate) - discount);
+                          const tax = (baseVal * gstPct) / 100;
+
+                          calculatedSubTotal += baseVal;
+                          calculatedGST += tax;
+                        });
+
+                        return (
+                          <>
+                            <span>Sub Total</span>
+                            <span className="font-medium text-slate-700">₹{calculatedSubTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </>
+                        );
+                      })()}
                     </Box>
                     <Box className="flex justify-between text-slate-500 text-sm">
                       <span>Total GST</span>
                       <span className="font-medium text-slate-700">
-                      {(() => {
-                            let calculatedGST = 0;
-                            selectedOrder.products.forEach(p => {
-                                const quantity = p.orderQty || 0;
-                                const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
-                                const discount = (p as any).discount || 0;
-                                // Fallback to product GST if order-level GST is 0 or missing
-                                const gstPct = (p as any).gstPct || (p.productId as any)?.gstPct || 0;
-                                
-                                const baseVal = Math.max(0, (quantity * rate) - discount);
-                                const tax = (baseVal * gstPct) / 100;
-                                calculatedGST += tax;
-                            });
-                            return `+ ₹${calculatedGST.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                        {(() => {
+                          let calculatedGST = 0;
+                          selectedOrder.products.forEach(p => {
+                            const quantity = p.orderQty || 0;
+                            const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
+                            const discount = (p as any).discount || 0;
+                            // Fallback to product GST if order-level GST is 0 or missing
+                            const gstPct = (p as any).gstPct || (p.productId as any)?.gstPct || 0;
+
+                            const baseVal = Math.max(0, (quantity * rate) - discount);
+                            const tax = (baseVal * gstPct) / 100;
+                            calculatedGST += tax;
+                          });
+                          return `+ ₹${calculatedGST.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
                         })()}
                       </span>
                     </Box>
@@ -774,11 +777,15 @@ const Purchase: React.FC = () => {
                   <TableRow>
                     <TableCell padding="checkbox" className="bg-slate-50/80 backdrop-blur-sm">
                       <Checkbox
-                        indeterminate={checkedOrderIds.length > 0 && checkedOrderIds.length < vendorOrders.length}
-                        checked={vendorOrders.length > 0 && checkedOrderIds.length === vendorOrders.length}
+                        indeterminate={checkedOrderIds.length > 0 && checkedOrderIds.length < vendorOrders.filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase())).length}
+                        checked={vendorOrders.length > 0 && checkedOrderIds.length === vendorOrders.filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase())).length}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setCheckedOrderIds(vendorOrders.map(o => o._id));
+                            // Only check orders that are NOT moved
+                            const eligibleIds = vendorOrders
+                              .filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase()))
+                              .map(o => o._id);
+                            setCheckedOrderIds(eligibleIds);
                           } else {
                             setCheckedOrderIds([]);
                           }
@@ -809,12 +816,13 @@ const Purchase: React.FC = () => {
                             key={row._id}
                             hover
                             selected={isRowChecked}
-                            className="cursor-pointer group"
+                            className={`cursor-pointer group ${['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase()) ? 'bg-slate-50/30' : ''}`}
                             sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
                           >
                             <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={isRowChecked}
+                                disabled={['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase())}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setCheckedOrderIds([...checkedOrderIds, row._id]);
@@ -843,13 +851,15 @@ const Purchase: React.FC = () => {
                                 </Button>
                                 <Button
                                   startIcon={<FiEdit size={16} />}
-                                  className="min-w-0 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200 rounded-lg normal-case transition-colors"
+                                  disabled={['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase())}
+                                  className={`min-w-0 px-3 py-1.5 text-xs font-bold rounded-lg normal-case transition-colors ${['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase()) ? 'text-slate-300 border-slate-100' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200'}`}
                                   onClick={() => { setEditingOrder(row); setIsFormOpen(true); }}
                                 >
                                   Edit
                                 </Button>
                                 <IconButton
                                   size="small"
+                                  disabled={['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase())}
                                   className="text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200 rounded-lg"
                                   onClick={(ev) => setActionAnchorEl({ id: row._id, el: ev.currentTarget })}
                                 >

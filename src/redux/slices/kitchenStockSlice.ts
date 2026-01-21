@@ -11,6 +11,7 @@ export interface KitchenStockPost {
   productId: string;
   qty: number;
   expiryDate?: string;
+  type?: string;
 }
 
 export interface KitchenStock {

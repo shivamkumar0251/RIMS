@@ -11,6 +11,7 @@ export interface StoreStockPostData {
   productId: string;
   qty: number;
   expiryDate?: string;
+  type?: string;
 }
 
 export interface StoreStock {
@@ -56,11 +57,11 @@ const initialState: StoreStockState = {
 // ---------------- Thunks ----------------
 export const getStoreStocks = createAsyncThunk<
   GetStoreStocksResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  categoryId?: string, vendorId?: string, companyId?:string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, categoryId?: string, vendorId?: string, companyId?: string, },
   { rejectValue: { message: string } }
 >(
   'storeStock/getStoreStocks',
-   async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '',  vendorId = '',  companyId = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_STORE_STOCK}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
