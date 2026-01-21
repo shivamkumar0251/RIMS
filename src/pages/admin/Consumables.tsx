@@ -14,6 +14,9 @@ import {
   TableRow,
   TextField,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
   Chip,
   Dialog,
   DialogTitle,
@@ -30,6 +33,7 @@ import { toast } from "react-hot-toast";
 
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import AdvancedDateRangePicker from "../../components/common/AdvancedDateRangePicker";
 
 import {
   getConsumableStocks,
@@ -49,9 +53,10 @@ const Consumables: React.FC = () => {
   // ---------------- Filters ----------------
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [dateLabel, setDateLabel] = useState("This Month");
   const [search, setSearch] = useState("");
+
   const [purposeFilter, setPurposeFilter] = useState("");
-  const [userFilter, setUserFilter] = useState("");
 
   // ---------------- Pagination ----------------
   const [page, setPage] = useState(0);
@@ -60,7 +65,9 @@ const Consumables: React.FC = () => {
   // ---------------- Report Modal ----------------
   const [reportOpen, setReportOpen] = useState(false);
 
-  // ---------------- Fetch consumables ----------------
+  // ---------------- Fetch Data ----------------
+
+
   useEffect(() => {
     dispatch(
       getConsumableStocks({
@@ -80,12 +87,17 @@ const Consumables: React.FC = () => {
     toDate,
   ]);
 
-  const handleResetFilters = () => {
-    setSearch("");
+  const handleDateRangeChange = (start: string, end: string, label: string) => {
+    setFromDate(start);
+    setToDate(end);
+    setDateLabel(label);
+  };
+
+  const handleRefresh = () => {
     setPurposeFilter("");
-    setUserFilter("");
     setFromDate("");
     setToDate("");
+    setDateLabel("This Month");
     setPage(0);
   };
 
@@ -101,13 +113,9 @@ const Consumables: React.FC = () => {
       }
 
       // User filter (placeholder - add when user field is available)
-      if (userFilter && !("Admin".toLowerCase().includes(userFilter.toLowerCase()))) {
-        return false;
-      }
-
       return true;
     });
-  }, [consumableStocks, purposeFilter, userFilter]);
+  }, [consumableStocks, purposeFilter]);
 
   // Calculate summary statistics
   const reportSummary = useMemo(() => {
@@ -231,7 +239,6 @@ const Consumables: React.FC = () => {
         doc.text(`Date Range: ${fromDate || "All"} to ${toDate || "All"}`, 14, 44);
         doc.text(`Search: ${search || "None"}`, 14, 50);
         doc.text(`Purpose: ${purposeFilter || "All"}`, 14, 56);
-        doc.text(`User: ${userFilter || "All"}`, 14, 62);
 
         // Summary Statistics
         doc.setFontSize(12);
@@ -304,7 +311,7 @@ const Consumables: React.FC = () => {
         {/* Filter Bar */}
         <Box className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
           {/* Filters Area */}
-          <Box className="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto">
+          <Box className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <TextField
               placeholder="Search product..."
               size="small"
@@ -324,75 +331,39 @@ const Consumables: React.FC = () => {
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fcfcfc", height: '40px', fontSize: '13px' } }}
             />
 
-            <Box className="flex items-center gap-1.5">
-              <TextField
-                type="date"
-                size="small"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Typography variant="caption" className="text-gray-500 font-bold mr-1">From:</Typography>
-                    </InputAdornment>
-                  ),
-                }}
-                value={fromDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-                className="w-[160px]"
-                sx={{ 
-                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '12px', height: '40px' },
-                }}
-              />
-              <TextField
-                type="date"
-                size="small"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Typography variant="caption" className="text-gray-500 font-bold mr-1">To:</Typography>
-                    </InputAdornment>
-                  ),
-                }}
-                value={toDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-                className="w-[160px]"
-                sx={{ 
-                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '12px', height: '40px' },
-                }}
-              />
-            </Box>
-
-            <TextField
-              select
-              size="small"
-              label="Purpose"
-              value={purposeFilter}
-              onChange={(e) => setPurposeFilter(e.target.value)}
-              className="w-32"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '13px' } }}
-            >
-              <MenuItem value="" sx={{ fontSize: '13px' }}>All</MenuItem>
-              <MenuItem value="Usage" sx={{ fontSize: '13px' }}>Usage</MenuItem>
-              <MenuItem value="Wastage" sx={{ fontSize: '13px' }}>Wastage</MenuItem>
-            </TextField>
-
-            <TextField
-              size="small"
-              placeholder="Filter by user..."
-              value={userFilter}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserFilter(e.target.value)}
-              className="w-40"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: '13px' } }}
+            <AdvancedDateRangePicker
+                fromDate={fromDate || dayjs().startOf('month').format("YYYY-MM-DD")}
+                toDate={toDate || dayjs().format("YYYY-MM-DD")}
+                onRangeChange={handleDateRangeChange}
+                initialLabel={dateLabel}
             />
+
+            <FormControl size="small" className="w-32">
+              <InputLabel sx={{ fontSize: '13px', top: '-3px' }}>Purpose</InputLabel>
+              <Select
+                 label="Purpose"
+                 value={purposeFilter}
+                 onChange={(e) => setPurposeFilter(e.target.value)}
+                 sx={{ borderRadius: "10px", fontSize: '13px', height: '40px' }}
+              >
+                 <MenuItem value="" sx={{ fontSize: '13px' }}>All</MenuItem>
+                 <MenuItem value="Usage" sx={{ fontSize: '13px' }}>Usage</MenuItem>
+                 <MenuItem value="Wastage" sx={{ fontSize: '13px' }}>Wastage</MenuItem>
+              </Select>
+            </FormControl>
+
+
 
             <Button
               size="small"
               variant="text"
-              startIcon={<FiRefreshCw size={16} />}
-              onClick={handleResetFilters}
-              className="text-blue-600 normal-case font-semibold hover:bg-blue-50 px-3"
-              sx={{ borderRadius: '10px', fontSize: '13px' }}
+              startIcon={loading ? <CircularProgress size={16} /> : <FiRefreshCw size={16} />}
+              onClick={handleRefresh}
+              disabled={loading}
+              className="text-slate-500 hover:text-indigo-600 normal-case font-semibold px-3"
+              sx={{ borderRadius: '10px', fontSize: '13px', height: '40px', border: '1px solid transparent', '&:hover': { bgcolor: 'transparent', borderColor: 'transparent' } }}
             >
-              Reset
+              {loading ? "Refreshing..." : "Refresh"}
             </Button>
           </Box>
 
@@ -405,7 +376,7 @@ const Consumables: React.FC = () => {
               className="bg-blue-600 hover:bg-blue-700 shadow-md whitespace-nowrap"
               sx={{ 
                 borderRadius: '10px', 
-                height: '42px', 
+                height: '40px', 
                 px: 3,
                 fontSize: '13px',
                 fontWeight: 700,
@@ -623,11 +594,7 @@ const Consumables: React.FC = () => {
                   <strong>Purpose:</strong> {purposeFilter || "All"}
                 </Typography>
               </Box>
-              <Box>
-                <Typography variant="caption" className="text-gray-600">
-                  <strong>User:</strong> {userFilter || "All"}
-                </Typography>
-              </Box>
+
             </Box>
           </Box>
 
