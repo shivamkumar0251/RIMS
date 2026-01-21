@@ -158,7 +158,9 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
     if (!form.unit) newErrors.unit = "Unit is required";
     if (!form.packSize) newErrors.packSize = "Pack Size is required";
-    if (!form.vendorsId) newErrors.vendorsId = "Vendor is required";
+    const ven = form.vendorsId as any;
+    if (!ven || (typeof ven === "object" && !ven._id))
+      newErrors.vendorsId = "Vendor is required";
 
     if (form.isActive === undefined)
       newErrors.isActive = "Active Status is required";
@@ -452,7 +454,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   options={vendors}
                   getOptionLabel={(v) => v.vendor_name || ""}
                   value={vendors.find((v) => v._id === (typeof form.vendorsId === "object" ? form.vendorsId?._id : form.vendorsId)) || null}
-                  onChange={(_, val) => handleInputChange("vendorsId", val ? val._id : "")}
+                  onChange={(_, val) => handleInputChange("vendorsId", val)}
                   renderInput={(params) => (
                     <TextField
                       {...params}
