@@ -13,9 +13,12 @@ import {
   Button,
   TablePagination,
   IconButton,
+  Typography,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 
-import { FiPlus, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiEdit, FiTrash2, FiSearch } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
@@ -29,39 +32,7 @@ import CreateCategoryModal from "../../components/adminComponents/CreateCategory
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
 import VendorModal from "../../layouts/VendorModal";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
 
-function CustomTabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      className="flex-1 flex flex-col overflow-hidden"
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `simple-tab-${index}`,
-    "aria-controls": `simple-tabpanel-${index}`,
-  };
-}
 
 export default function RestaurantSetup() {
   const [value, setValue] = useState(0);
@@ -82,13 +53,27 @@ export default function RestaurantSetup() {
   const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [editData, setEditData] = useState<Partial<ProductInterface>>({});
+  const [searchName, setSearchName] = useState("");
+
+  const refreshProducts = () => {
+    dispatch(getProducts({
+      page: 1,
+      limit: 1000,
+      productType: "Equipment,Crockery,Furniture",
+      search: searchName || undefined
+    }));
+  };
 
   React.useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
-    dispatch(getProducts({ page: 1, limit: 1000, productType: "Equipment,Crockery,Furniture" }));
   }, [dispatch]);
+
+  React.useEffect(() => {
+    refreshProducts();
+  }, [dispatch, searchName]);
+
 
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -120,6 +105,9 @@ export default function RestaurantSetup() {
   const paginatedFurniture = furnitureProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const currentCount = [equipmentProducts.length, crockeryProducts.length, furnitureProducts.length][value];
+  const currentProducts = [paginatedEquipment, paginatedCrockery, paginatedFurniture][value];
+  const currentCategoryLabel = ["Equipment Name", "Crockery Name", "Furniture Name"][value];
+
 
   const currentCategory = categories[value] as string;
 
@@ -198,250 +186,135 @@ export default function RestaurantSetup() {
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {!isAddMode ? (
-          <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
-            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-              <Box className="flex flex-wrap justify-between items-center px-4 pt-1 border-b border-gray-100 bg-white shrink-0">
+          <Box className="flex-1 flex flex-col overflow-hidden">
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white min-h-0">
+              {/* Header Area: Tabs & Search */}
+              <Box className="flex flex-col md:flex-row items-center justify-between px-4 gap-4 border-b border-gray-100 bg-white shrink-0">
                 <Tabs
                   value={value}
                   onChange={handleChange}
-                  aria-label="restaurant setup tabs"
-                  textColor="primary"
-                  indicatorColor="primary"
+                  sx={{
+                    '& .MuiTab-root': {
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      minWidth: 100,
+                      py: 2,
+                      color: 'text.secondary',
+                      '&.Mui-selected': { color: 'primary.main' },
+                    },
+                    '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+                  }}
                 >
-                  <Tab
-                    label="Equipment"
-                    {...a11yProps(0)}
-                    className="normal-case font-semibold"
-                  />
-                  <Tab
-                    label="Crockery"
-                    {...a11yProps(1)}
-                    className="normal-case font-semibold"
-                  />
-                  <Tab
-                    label="Furniture"
-                    {...a11yProps(2)}
-                    className="normal-case font-semibold"
-                  />
+                  <Tab label="Equipment" />
+                  <Tab label="Crockery" />
+                  <Tab label="Furniture" />
                 </Tabs>
-                <Button
-                  variant="contained"
-                  startIcon={<FiPlus />}
-                  onClick={() => navigate("?action=add")}
-                  className="bg-blue-600 hover:bg-blue-700 normal-case my-2"
-                >
-                  Add {currentCategory}
-                </Button>
+
+                <Box className="flex items-center gap-3 w-full md:w-auto pb-2 md:pb-0">
+                  <TextField
+                    placeholder={`Search ${currentCategory.toLowerCase()}...`}
+                    size="small"
+                    value={searchName}
+                    onChange={(e) => { setSearchName(e.target.value); setPage(0); }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FiSearch className="text-gray-400" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    className="flex-1 md:w-64"
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<FiPlus />}
+                    onClick={() => navigate("?action=add")}
+                    size="small"
+                    className="bg-blue-600 hover:bg-blue-700 normal-case shadow-none h-[38px] px-4 shrink-0"
+                  >
+                    Add {currentCategory}
+                  </Button>
+                </Box>
               </Box>
 
-              <Box className="flex-1 flex flex-col overflow-hidden">
-                <CustomTabPanel value={value} index={0}>
-                  <TableContainer className="flex-1 overflow-auto">
-                    <Table stickyHeader>
-                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
-                        <TableRow>
-                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
-                          <TableCell className="font-bold bg-inherit">Equipment Name</TableCell>
-                          <TableCell className="font-bold bg-inherit">Category</TableCell>
-                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
-                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
-                          <TableCell className="font-bold bg-inherit">Description</TableCell>
-                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
-                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
-                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
-                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
-                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
-                          <TableCell className="font-bold bg-inherit" align="right">
-                            Actions
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {equipmentProducts.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
-                              No equipment found. Click "Add Equipment" to get started.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          paginatedEquipment.map((item: ProductInterface, idx: number) => (
-                            <TableRow key={item._id} hover>
-                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                              <TableCell className="font-medium text-blue-600">
-                                {item.productName}
-                              </TableCell>
-                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                              <TableCell>
-                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                  {item.productDescription || 'N/A'}
-                                </span>
-                              </TableCell>
-                              <TableCell>{item.quantity || 0}</TableCell>
-                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                              <TableCell>{item.gstPct}%</TableCell>
-                              <TableCell>₹{item.taxableValue || 0}</TableCell>
-                              <TableCell>
-                                {item.warrantyStart && item.warrantyEnd
-                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                  : 'N/A'}
-                              </TableCell>
-                              <TableCell align="right">
-                                <div className="flex justify-end gap-2">
-                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                    <FiEdit size={18} />
-                                  </IconButton>
-                                  <IconButton size="small" className="text-red-600">
-                                    <FiTrash2 size={18} />
-                                  </IconButton>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CustomTabPanel>
 
-                <CustomTabPanel value={value} index={1}>
-                  <TableContainer className="flex-1 overflow-auto">
-                    <Table stickyHeader>
-                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
+              <Box className="flex-1 flex flex-col overflow-hidden min-h-0">
+                <TableContainer className="flex-1 overflow-auto relative min-h-[200px]">
+                  <Table stickyHeader size="medium">
+                    <TableHead>
+                      <TableRow sx={{ '& th': { borderBottom: '1px solid', borderColor: 'divider' } }}>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]" sx={{ width: 50 }}>S/N</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]" sx={{ minWidth: 160 }}>{currentCategoryLabel}</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Category</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Vendor</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Brand</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px] text-center">GST</TableCell>
+                        <TableCell align="right" className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {currentProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
-                          <TableCell className="font-bold bg-inherit">Item Name</TableCell>
-                          <TableCell className="font-bold bg-inherit">Category</TableCell>
-                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
-                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
-                          <TableCell className="font-bold bg-inherit">Description</TableCell>
-                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
-                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
-                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
-                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
-                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
-                          <TableCell className="font-bold bg-inherit" align="right">
-                            Actions
+                          <TableCell colSpan={7} align="center" className="py-20 text-gray-500 text-sm">
+                            No {currentCategory.toLowerCase()} found. Click "Add {currentCategory}" to get started.
                           </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {crockeryProducts.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
-                              No crockery found. Click "Add Crockery" to get started.
+                      ) : (
+                        currentProducts.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover className="group transition-colors duration-200">
+                            <TableCell className="py-2.5 text-slate-500 text-[12px] font-medium">
+                              {page * rowsPerPage + idx + 1}
+                            </TableCell>
+                            <TableCell className="py-2.5">
+                              <Box className="flex flex-col gap-0.5">
+                                <Typography className="font-semibold text-slate-800 text-[13px] leading-tight">
+                                  {item.productName}
+                                </Typography>
+                                <Typography className="text-slate-400 text-[11px] leading-tight truncate max-w-[180px]">
+                                  {item.productDescription || "-"}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px] font-medium capitalize">
+                                {item.categoryId?.categoryName || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px]">
+                                {item.vendorsId?.vendor_name || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px] font-medium italic">
+                                {item.companyId?.brandName || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="text-center py-2.5">
+                              <Box className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[11px] font-bold inline-block">
+                                {item.gstPct}%
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" className="py-2.5">
+                              <Box className="flex gap-0.5 justify-end">
+                                <IconButton onClick={() => handleEditProduct(item)} size="small" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                  <FiEdit size={16} />
+                                </IconButton>
+                                <IconButton size="small" className="text-slate-400 hover:text-red-600 hover:bg-red-50">
+                                  <FiTrash2 size={16} />
+                                </IconButton>
+                              </Box>
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          paginatedCrockery.map((item: ProductInterface, idx: number) => (
-                            <TableRow key={item._id} hover>
-                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                              <TableCell className="font-medium text-orange-600">
-                                {item.productName}
-                              </TableCell>
-                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                              <TableCell>
-                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                  {item.productDescription || 'N/A'}
-                                </span>
-                              </TableCell>
-                              <TableCell>{item.quantity || 0}</TableCell>
-                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                              <TableCell>{item.gstPct}%</TableCell>
-                              <TableCell>₹{item.taxableValue || 0}</TableCell>
-                              <TableCell>
-                                {item.warrantyStart && item.warrantyEnd
-                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                  : 'N/A'}
-                              </TableCell>
-                              <TableCell align="right">
-                                <div className="flex justify-end gap-2">
-                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                    <FiEdit size={18} />
-                                  </IconButton>
-                                  <IconButton size="small" className="text-red-600">
-                                    <FiTrash2 size={18} />
-                                  </IconButton>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CustomTabPanel>
-
-                <CustomTabPanel value={value} index={2}>
-                  <TableContainer className="flex-1 overflow-auto">
-                    <Table stickyHeader>
-                      <TableHead className="bg-gray-50/80 backdrop-blur-md z-10">
-                        <TableRow>
-                          <TableCell className="font-bold bg-inherit">S/N</TableCell>
-                          <TableCell className="font-bold bg-inherit">Furniture Name</TableCell>
-                          <TableCell className="font-bold bg-inherit">Category</TableCell>
-                          <TableCell className="font-bold bg-inherit">Vendor</TableCell>
-                          <TableCell className="font-bold bg-inherit">Brand</TableCell>
-                          <TableCell className="font-bold bg-inherit">Description</TableCell>
-                          <TableCell className="font-bold bg-inherit">Quantity</TableCell>
-                          <TableCell className="font-bold bg-inherit">Rate</TableCell>
-                          <TableCell className="font-bold bg-inherit">GST %</TableCell>
-                          <TableCell className="font-bold bg-inherit">Taxable</TableCell>
-                          <TableCell className="font-bold bg-inherit">Warranty (Start - End)</TableCell>
-                          <TableCell className="font-bold bg-inherit" align="right">
-                            Actions
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {furnitureProducts.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={12} align="center" className="py-8 text-gray-500">
-                              No furniture found. Click "Add Furniture" to get started.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          paginatedFurniture.map((item: ProductInterface, idx: number) => (
-                            <TableRow key={item._id} hover>
-                              <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                              <TableCell className="font-medium text-purple-600">
-                                {item.productName}
-                              </TableCell>
-                              <TableCell>{item.categoryId?.categoryName || 'N/A'}</TableCell>
-                              <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                              <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                              <TableCell>
-                                <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                  {item.productDescription || 'N/A'}
-                                </span>
-                              </TableCell>
-                              <TableCell>{item.quantity || 0}</TableCell>
-                              <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                              <TableCell>{item.gstPct}%</TableCell>
-                              <TableCell>₹{item.taxableValue || 0}</TableCell>
-                              <TableCell>
-                                {item.warrantyStart && item.warrantyEnd
-                                  ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                  : 'N/A'}
-                              </TableCell>
-                              <TableCell align="right">
-                                <div className="flex justify-end gap-2">
-                                  <IconButton size="small" className="text-blue-600" onClick={() => handleEditProduct(item)}>
-                                    <FiEdit size={18} />
-                                  </IconButton>
-                                  <IconButton size="small" className="text-red-600">
-                                    <FiTrash2 size={18} />
-                                  </IconButton>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CustomTabPanel>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Box>
+
 
               <TablePagination
                 component="div"
