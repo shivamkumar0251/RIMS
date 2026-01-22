@@ -34,7 +34,7 @@ export const AdminLayout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Content Area */}
       <main
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${collapsed ? "md:ml-20" : "md:ml-64"
-          } h-screen overflow-hidden`}
+          } h-screen overflow-y-auto`}
       >
         <div className="flex-1 bg-white flex flex-col p-0 min-h-0">{children}</div>
       </main>

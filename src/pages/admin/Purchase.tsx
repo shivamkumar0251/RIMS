@@ -44,6 +44,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
 import { addStoreStock } from "../../redux/slices/storeStockSlice";
 import { addKitchenStock } from "../../redux/slices/kitchenStockSlice";
+import { addSetupStock } from "../../redux/slices/setupStockSlice";
 
 const Purchase: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -170,7 +171,7 @@ const Purchase: React.FC = () => {
           await dispatch(updateVendorOrder({
             vendorOrderId: order._id,
             // If target exists, it's being moved to stock (Received). Otherwise, it's just confirmed (Sent)
-            orderStatus: target === "Store" ? 'MoveToStore' : target === "Kitchen" ? 'MoveToKitchen' : "Delivered",
+            orderStatus: target === "Store" ? 'MoveToStore' : target === "Kitchen" ? 'MoveToKitchen' : target === "Setup" ? 'MoveToSetup' : "Delivered",
             products: orderProducts.map(item => ({
               productId: item.productId._id,
               sendToPurchaseQty: item.receivedQty,
@@ -190,7 +191,7 @@ const Purchase: React.FC = () => {
             type: "receipt"
           }));
           await dispatch(addStoreStock(storePayload)).unwrap();
-        } else {
+        } else if (target === 'Kitchen') {
           const kitchenPayload = validItems.map(item => ({
             productId: item.productId._id,
             qty: item.receivedQty,
@@ -198,8 +199,16 @@ const Purchase: React.FC = () => {
             type: "receipt"
           }));
           await dispatch(addKitchenStock(kitchenPayload)).unwrap();
+        } else if (target === 'Setup') {
+          const setupPayload = validItems.map(item => ({
+            productId: item.productId._id,
+            qty: item.receivedQty,
+            expiryDate: item.expiryDate,
+            type: "receipt"
+          }));
+          await dispatch(addSetupStock(setupPayload)).unwrap();
         }
-        toast.success(`Stock moved to ${target === 'Store' ? 'main store' : 'kitchen store'} successfully!`);
+        toast.success(`Stock moved to ${target === 'Store' ? 'main store' : target === 'Kitchen' ? 'kitchen store' : 'setup store'} successfully!`);
       } else {
         toast.success("Purchase Order confirmed and received successfully!");
       }
@@ -246,6 +255,7 @@ const Purchase: React.FC = () => {
     if (s === 'delivered') return 'text-emerald-500 bg-emerald-50 border-emerald-100';
     if (s === 'movetostore') return 'text-purple-600 bg-purple-50 border-purple-200';
     if (s === 'movetokitchen') return 'text-amber-600 bg-amber-50 border-amber-200';
+    if (s === 'movetosetup') return 'text-pink-600 bg-pink-50 border-pink-200';
     return 'text-gray-400 bg-gray-50 border-gray-100';
   };
 
@@ -262,14 +272,14 @@ const Purchase: React.FC = () => {
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} className="normal-case font-medium text-gray-600 hover:text-blue-600">Back</Button>
           <Typography variant="h6" className="font-bold text-gray-800 flex-1">
             {location.state?.target
-              ? `Move to ${location.state.target === 'Store' ? 'Main Store' : 'Kitchen Store'}`
+              ? `Move to ${location.state.target === 'Store' ? 'Main Store' : location.state.target === 'Kitchen' ? 'Kitchen Store' : 'Setup Store'}`
               : 'Confirm Purchase Order'
             }
             {selectedVendorOrders.length === 1 ? ` - #${orderNumbers}` : ` (${selectedVendorOrders.length} Orders)`}
           </Typography>
           <Box>
             <Button variant="contained" onClick={handleConfirmReceipt} disabled={isProcessing} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 font-bold">
-              {isProcessing ? "Processing..." : location.state?.target ? `MOVE TO ${location.state.target === 'Store' ? 'STORE' : 'KITCHEN STORE'}` : 'CONFIRM & SEND ORDER'}
+              {isProcessing ? "Processing..." : location.state?.target ? `MOVE TO ${location.state.target === 'Store' ? 'STORE' : location.state.target === 'Kitchen' ? 'KITCHEN' : 'SETUP STORE'}` : 'CONFIRM & SEND ORDER'}
             </Button>
           </Box>
         </Box>
@@ -288,7 +298,7 @@ const Purchase: React.FC = () => {
                     {location.state?.target ? 'Target Location' : 'Document Type'}
                   </Typography>
                   <Typography className="font-black text-indigo-600 uppercase italic">
-                    {location.state?.target ? (location.state.target === 'Store' ? 'Main Store Inventory' : 'Kitchen Store Stock') : 'Purchase Order Verification'}
+                    {location.state?.target ? (location.state.target === 'Store' ? 'Main Store Inventory' : location.state.target === 'Kitchen' ? 'Kitchen Store Stock' : 'Setup Store') : 'Purchase Order Verification'}
                   </Typography>
                 </Box>
               </Box>
@@ -469,7 +479,7 @@ const Purchase: React.FC = () => {
                 <Button
                   variant="outlined"
                   startIcon={<FiEdit />}
-                  disabled={['movetostore', 'movetokitchen'].includes(selectedOrder.orderStatus?.toLowerCase())}
+                  disabled={['movetostore', 'movetokitchen', 'movetosetup'].includes(selectedOrder.orderStatus?.toLowerCase())}
                   className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case"
                   onClick={() => { setEditingOrder(selectedOrder); setIsFormOpen(true); }}
                 >
@@ -477,7 +487,7 @@ const Purchase: React.FC = () => {
                 </Button>
                 <Button variant="outlined" startIcon={<FiPrinter />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Print</Button>
                 <Button variant="outlined" startIcon={<FiMail />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Email</Button>
-                {!['movetostore', 'movetokitchen'].includes(selectedOrder.orderStatus?.toLowerCase()) && (
+                {!['movetostore', 'movetokitchen', 'movetosetup'].includes(selectedOrder.orderStatus?.toLowerCase()) && (
                   <>
                     <Button
                       variant="contained"
@@ -523,6 +533,18 @@ const Purchase: React.FC = () => {
                         <Box className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
                         MOVE TO KITCHEN
                       </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          setMoveAnchorEl(null);
+                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Setup' } });
+                        }}
+                        className="text-xs font-bold text-slate-700 py-2.5"
+                      >
+                        <Box className="w-2 h-2 rounded-full bg-pink-500 mr-2" />
+                        MOVE TO SETUP STORE
+                      </MenuItem>
+
+
                     </Menu>
                   </>
                 )}
@@ -664,7 +686,7 @@ const Purchase: React.FC = () => {
           onClose={() => setIsFormOpen(false)}
           onSave={handleSaveOrder}
         />
-      </AdminLayout>
+      </AdminLayout >
     );
   }
 
@@ -763,6 +785,26 @@ const Purchase: React.FC = () => {
                 <Box className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
                 MOVE TO KITCHEN
               </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setMoveAnchorEl(null);
+                  if (checkedOrderIds.length === 0) {
+                    toast.error('Please select at least one order');
+                    return;
+                  }
+                  // Get all selected orders for move
+                  const ordersToMove = vendorOrders.filter(o => checkedOrderIds.includes(o._id));
+                  if (ordersToMove.length > 0) {
+                    navigate('/admin/purchase', {
+                      state: { vendorOrders: ordersToMove, target: 'Setup' }
+                    });
+                  }
+                }}
+                className="text-xs font-bold text-slate-700 py-2.5"
+              >
+                <Box className="w-2 h-2 rounded-full bg-pink-500 mr-2" />
+                MOVE TO SETUP STORE
+              </MenuItem>
             </Menu>
 
           </Box>
@@ -777,13 +819,13 @@ const Purchase: React.FC = () => {
                   <TableRow>
                     <TableCell padding="checkbox" className="bg-slate-50/80 backdrop-blur-sm">
                       <Checkbox
-                        indeterminate={checkedOrderIds.length > 0 && checkedOrderIds.length < vendorOrders.filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase())).length}
-                        checked={vendorOrders.length > 0 && checkedOrderIds.length === vendorOrders.filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase())).length}
+                        indeterminate={checkedOrderIds.length > 0 && checkedOrderIds.length < vendorOrders.filter(o => !['movetostore', 'movetokitchen', 'movetosetup'].includes(o.orderStatus?.toLowerCase())).length}
+                        checked={vendorOrders.length > 0 && checkedOrderIds.length === vendorOrders.filter(o => !['movetostore', 'movetokitchen', 'movetosetup'].includes(o.orderStatus?.toLowerCase())).length}
                         onChange={(e) => {
                           if (e.target.checked) {
                             // Only check orders that are NOT moved
                             const eligibleIds = vendorOrders
-                              .filter(o => !['movetostore', 'movetokitchen'].includes(o.orderStatus?.toLowerCase()))
+                              .filter(o => !['movetostore', 'movetokitchen', 'movetosetup'].includes(o.orderStatus?.toLowerCase()))
                               .map(o => o._id);
                             setCheckedOrderIds(eligibleIds);
                           } else {
@@ -910,7 +952,7 @@ const Purchase: React.FC = () => {
         />
 
       </Box>
-    </AdminLayout>
+    </AdminLayout >
   );
 };
 
