@@ -135,6 +135,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       to: "/admin/consumables",
     },
     {
+      icon: <FaBoxes size={18} />,
+      name: "Setup Store",
+      to: "/admin/setup-store",
+    },
+    {
       icon: <FaTh size={18} />,
       name: "Master Lists",
       to: "/admin/masters",

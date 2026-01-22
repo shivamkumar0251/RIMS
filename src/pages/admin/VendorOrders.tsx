@@ -82,6 +82,7 @@ const VendorsOrder: React.FC = () => {
       case 'sent': return 'info';
       case 'movetokitchen': return 'primary';
       case 'movetostore': return 'secondary';
+      case 'movetosetup': return 'error';
       default: return 'default';
     }
   };
@@ -143,6 +144,7 @@ const VendorsOrder: React.FC = () => {
             <MenuItem value="Delivered">Delivered</MenuItem>
             <MenuItem value="MoveToKitchen">Move To Kitchen</MenuItem>
             <MenuItem value="MoveToStore">Move To Store</MenuItem>
+            <MenuItem value="MoveToSetup">Move To Setup</MenuItem>
           </TextField>
 
           <Button

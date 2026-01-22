@@ -15,6 +15,7 @@ import purchaseReducer from '../slices/purchaseSlice';
 import storeStockReducer from '../slices/storeStockSlice';
 import kitchenStockReducer from '../slices/kitchenStockSlice';
 import consumableStockReducer from '../slices/consumableStockSlice';
+import setupStockReducer from '../slices/setupStockSlice';
 import productRequirementReducer from '../slices/productRequirementSlice';
 import franchiseReducer from '../slices/franchiseSlice';
 import outletReducer from '../slices/outletSlice';
@@ -42,6 +43,7 @@ export const store = configureStore({
     storeStock: storeStockReducer,
     kitchenStock: kitchenStockReducer,
     consumableStock: consumableStockReducer,
+    setupStock: setupStockReducer,
     productRequirement: productRequirementReducer,
     franchise: franchiseReducer,
     outlet: outletReducer,

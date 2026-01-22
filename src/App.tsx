@@ -4,7 +4,7 @@ import { ToastContainer } from "react-toastify";
 import MainSpinner from "./components/common/MainSpinner";
 
 const LazyUserDashboard = lazy(() => import('./pages/user/UserDashboard'));
-const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const LazyAdmindashboard = lazy(() => import('./pages/admin/AdminDashBoard'));
 const LazyHome = lazy(() => import("./pages/Home"));
 const LazyLogin = lazy(() => import("./pages/auth/Login"));
 const LazyAboutPage = lazy(() => import("./pages/About"));
@@ -26,6 +26,7 @@ import StoreStockComponent from "./pages/admin/StoreStock";
 import KitchenIssue from "./pages/admin/KitchenIssue";
 import KitchenConsumption from "./pages/admin/KitchenConsumption";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
+import SetupStockComponent from "./pages/admin/SetupStock";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
 import StoreStockPage from "./pages/user/StoreStockPage";
@@ -44,8 +45,8 @@ import ConsumablesReport from "./pages/admin/reports/ConsumablesReport";
 import SalesReport from "./pages/admin/reports/SalesReport";
 import PurchaseOriginReport from "./pages/admin/reports/PurchaseOriginReport";
 import RestaurantSetup from "./pages/admin/RestaurantSetup";
-import ForgetPassword from "./pages/auth/ForgetPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
+import ForgetPassword from "./pages/auth/Forgetpassword";
+import ResetPassword from "./pages/auth/Resetpassword";
 function App() {
   return (
     <>
@@ -79,6 +80,7 @@ function App() {
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/kitchen-consumption" element={<KitchenConsumption />} />
             <Route path="/admin/consumables" element={<Consumables />} />
+            <Route path="/admin/setup-store" element={<SetupStockComponent />} />
             <Route path="/admin/restaurant-setup" element={<RestaurantSetup />} />
             <Route path="/admin/reports/purchase" element={<PurchaseReport />} />
             <Route path="/admin/reports/stock" element={<StockReport />} />
