@@ -22,10 +22,11 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSearch, FiRefreshCw, FiFilter, FiCheck, FiX } from "react-icons/fi";
+import { FiSearch, FiRefreshCcw, FiFilter, FiCheck, FiX } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { toast } from "react-hot-toast";
 import { ExpiryBadge } from "../../components/common/ExpiryBadge";
+import AdvancedDateRangePicker from "../../components/common/AdvancedDateRangePicker";
 
 import {
   getStoreStocks,
@@ -177,34 +178,24 @@ const StoreStockComponent: React.FC = () => {
             className="w-full sm:w-64"
           />
 
-          <TextField
-            type="date"
-            size="small"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={fromDate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-            className="w-full sm:w-64"
-          />
-
-          <TextField
-            type="date"
-            size="small"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={toDate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-            className="w-full sm:w-64"
+          <AdvancedDateRangePicker
+            fromDate={fromDate}
+            toDate={toDate}
+            onRangeChange={(start, end) => {
+              setFromDate(start);
+              setToDate(end);
+              setPage(0);
+            }}
           />
 
           <Button
             size="small"
-            variant="text"
-            startIcon={<FiRefreshCw />}
+            variant="outlined"
+            startIcon={<FiRefreshCcw className="text-blue-600" />}
             onClick={handleResetFilters}
-            className="text-blue-600 normal-case"
+            className="border-gray-200 text-blue-600 hover:border-blue-100 hover:bg-blue-50 normal-case min-w-[100px] h-[40px] rounded-lg"
           >
-            Reset
+            Refresh
           </Button>
         </Box>
 

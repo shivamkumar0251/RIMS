@@ -366,7 +366,7 @@ export default function ProductCategories() {
               onClick={() => { setSearchTerm(""); setDateRange([null, null]); setPage(1); }}
               className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-9"
             >
-              Reset
+            REFRESH
             </Button>
           </Box>
 

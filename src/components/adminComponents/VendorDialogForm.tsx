@@ -67,7 +67,7 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
   };
 
   const SectionTitle = ({ title }: { title: string }) => (
-    <Typography className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-4 mt-2">
+    <Typography className="text-[14px] font-bold text-blue-600 uppercase mb-4 mt-2">
       {title}
     </Typography>
   );
@@ -85,7 +85,9 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
           maxHeight: isMobile ? "100%" : "90vh",
         },
       }}
-    >
+     >
+    
+
       <DialogTitle className="flex justify-between items-center border-b px-6 py-4">
         <Box>
           <Typography variant="h6" className="font-bold text-slate-800">

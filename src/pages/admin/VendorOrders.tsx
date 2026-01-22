@@ -16,9 +16,10 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { FiEye, FiRefreshCw } from "react-icons/fi";
+import { FiEye, FiRefreshCcw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import AdvancedDateRangePicker from "../../components/common/AdvancedDateRangePicker";
 import {
   getVendorOrders,
   selectVendorOrderState
@@ -100,30 +101,13 @@ const VendorsOrder: React.FC = () => {
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filters Section */}
         <Box className="bg-white p-4 border-b border-gray-200 shadow-sm flex flex-wrap items-center gap-4 shrink-0">
-          <TextField
-            type="date"
-            size="small"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={filters.fromDate}
-            onChange={e => {
-              setFilters({ ...filters, fromDate: e.target.value });
+          <AdvancedDateRangePicker
+            fromDate={filters.fromDate}
+            toDate={filters.toDate}
+            onRangeChange={(start, end) => {
+              setFilters({ ...filters, fromDate: start, toDate: end });
               setPage(0);
             }}
-            sx={{ width: 200 }}
-          />
-
-          <TextField
-            type="date"
-            size="small"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={filters.toDate}
-            onChange={e => {
-              setFilters({ ...filters, toDate: e.target.value });
-              setPage(0);
-            }}
-            sx={{ width: 200 }}
           />
 
           <TextField
@@ -146,13 +130,13 @@ const VendorsOrder: React.FC = () => {
           </TextField>
 
           <Button
-            size="medium"
+            size="small"
             variant="outlined"
-            startIcon={<FiRefreshCw className={loading ? "animate-spin" : ""} />}
+            startIcon={<FiRefreshCcw className={`text-blue-600 ${loading ? "animate-spin" : ""}`} />}
             onClick={handleResetFilters}
-            className="normal-case border-blue-100 text-blue-600 hover:bg-blue-50 font-semibold"
+            className="border-gray-200 text-blue-600 hover:border-blue-100 hover:bg-blue-50 normal-case min-w-[100px] h-[40px] rounded-lg"
           >
-            RESET
+            Refresh
           </Button>
         </Box>
 

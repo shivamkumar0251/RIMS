@@ -205,7 +205,7 @@ const KitchenIssue: React.FC = () => {
             onClick={handleResetFilters}
             className="text-blue-600 normal-case"
           >
-            Reset
+           REFRESH
           </Button>
 
           <Box className="ml-auto">
