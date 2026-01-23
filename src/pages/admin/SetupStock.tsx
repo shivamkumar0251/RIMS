@@ -26,6 +26,8 @@ import { FiSearch, FiRefreshCw, FiFilter, FiCheck, FiX } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { toast } from "react-hot-toast";
 import { ExpiryBadge } from "../../components/common/ExpiryBadge";
+import AdvancedDateRangePicker from "../../components/common/AdvancedDateRangePicker";
+import dayjs from "dayjs";
 
 import {
     getSetupStocks,
@@ -50,8 +52,9 @@ const SetupStockComponent: React.FC = () => {
     const [categoryId, setCategoryId] = useState("");
     const [companyId, setCompanyId] = useState("");
     const [search, setSearch] = useState("");
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
+    const [fromDate, setFromDate] = useState(dayjs().startOf('month').format("YYYY-MM-DD"));
+    const [toDate, setToDate] = useState(dayjs().format("YYYY-MM-DD"));
+    const [dateLabel, setDateLabel] = useState("This Month");
 
     // ---------------- Pagination ----------------
     const [page, setPage] = useState(0);
@@ -101,9 +104,17 @@ const SetupStockComponent: React.FC = () => {
         setSearch("");
         setCategoryId("");
         setCompanyId("");
-        setFromDate("");
-        setToDate("");
+        setDateLabel("This Month");
+        setFromDate(dayjs().startOf('month').format("YYYY-MM-DD"));
+        setToDate(dayjs().format("YYYY-MM-DD"));
         setPage(0);
+    };
+
+    const handleDateRangeChange = (start: string, end: string, label: string) => {
+        setFromDate(start);
+        setToDate(end);
+        setDateLabel(label);
+        setPage(0); // Reset page to first one on filter change
     };
 
     // ---------------- Filter Search Logic ----------------
@@ -177,24 +188,11 @@ const SetupStockComponent: React.FC = () => {
                         className="w-full sm:w-64"
                     />
 
-                    <TextField
-                        type="date"
-                        size="small"
-                        label="From"
-                        InputLabelProps={{ shrink: true }}
-                        value={fromDate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-                        className="w-full sm:w-64"
-                    />
-
-                    <TextField
-                        type="date"
-                        size="small"
-                        label="To"
-                        InputLabelProps={{ shrink: true }}
-                        value={toDate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-                        className="w-full sm:w-64"
+                    <AdvancedDateRangePicker
+                        fromDate={fromDate}
+                        toDate={toDate}
+                        onRangeChange={handleDateRangeChange}
+                        initialLabel={dateLabel}
                     />
 
                     <Button

@@ -1,13 +1,15 @@
 import React from "react";
 import { VendorDialogForm } from "../components/adminComponents/VendorDialogForm";
 
+import type { GetVendorData } from "../redux/slices/vendorSlice";
+
 interface VendorModalProps {
   open: boolean;
   onClose: () => void;
-  onAddVendor: (vendor: any) => void;
+  onAddVendor: (vendor: GetVendorData) => void | Promise<void>;
   variant?: "dialog" | "embedded";
   isEdit?: boolean;
-  initialData?: any;
+  initialData?: GetVendorData | null;
 }
 
 const VendorModal: React.FC<VendorModalProps> = ({
@@ -18,9 +20,8 @@ const VendorModal: React.FC<VendorModalProps> = ({
   initialData,
 }) => {
   // Adapter to match VendorDialogForm's expectation of a Promise
-  const handleSave = async (data: any) => {
-    onAddVendor(data);
-    return Promise.resolve();
+  const handleSave = async (data: GetVendorData) => {
+    await onAddVendor(data);
   };
 
   return (

@@ -16,11 +16,13 @@ import {
 } from "@mui/material";
 import { FiX } from "react-icons/fi";
 
+import type { GetVendorData } from "../../redux/slices/vendorSlice";
+
 interface VendorDialogFormProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: any) => Promise<void>;
-  initialData?: any;
+  onSave: (data: GetVendorData) => Promise<void>;
+  initialData?: GetVendorData | null;
   isEdit?: boolean;
 }
 
@@ -34,7 +36,7 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<GetVendorData>({
     vendor_name: "",
     vendor_mobileNo: "",
     vendor_email: "",
@@ -94,7 +96,7 @@ export const VendorDialogForm: React.FC<VendorDialogFormProps> = ({
     }
   }, [initialData, open]);
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: keyof GetVendorData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
