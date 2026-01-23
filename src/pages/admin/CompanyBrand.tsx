@@ -187,7 +187,7 @@ export default function CompanyBrand() {
               onClick={handleResetFilters}
               className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
             >
-              Reset
+              REFRESH
             </Button>
           </Box>
 
