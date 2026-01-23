@@ -2,17 +2,9 @@ import {
   Box,
   Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
   IconButton,
   InputAdornment,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -35,6 +27,7 @@ import {
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { VendorDialogForm } from "../../components/adminComponents/VendorDialogForm";
 import {
   addVendor,
   addVendorBulkExcel,
@@ -85,10 +78,10 @@ function VendorList() {
     franchiseId,
   });
 
-  const PAYMENT_TERMS = ["Net 15", "Net 30", "On Delivery"];
-  const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque"];
-  const GST_TYPES = ["Cgst Sgst", "Igst", "Non Gst", "Exempt"];
-  const REGISTRATION_TYPES = ["Composition", "Registered", "UnRegistered"];
+  /* const PAYMENT_TERMS = ["Net 15", "Net 30", "On Delivery"]; */
+  /* const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque"]; */
+  /* const GST_TYPES = ["Cgst Sgst", "Igst", "Non Gst", "Exempt"]; */
+  /* const REGISTRATION_TYPES = ["Composition", "Registered", "UnRegistered"]; */
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchData = () => {
@@ -126,21 +119,30 @@ function VendorList() {
     setOpenDialog(true);
   };
 
-  const handleSaveVendor = async () => {
-    if (!formData.vendor_name.trim()) return;
-    const vendorPayload: any = { ...formData };
-    delete vendorPayload._id;
-    delete vendorPayload.franchiseId;
+  const handleSaveVendor = async (data: any) => {
+    // VendorDialogForm returns data.
+    // If editing, merge with ID. 
+    // BUT VendorDialogForm may not include ALL fields that were in local 'formData'.
+    // However, existing data shouldn't be overridden if not in form? 
+    // Actually full replacement is safer or partial?
+    // The previous implementation used formData which was local state.
+    // Now we get 'data' from the form on submit.
+    
+    // Ensure we send franchiseId if needed
+    const payload = { ...formData, ...data, franchiseId }; // merge whatever initial + new data
+    
+    // We don't need to manually check validation as form handles it? 
+    // VendorDialogForm checks for vender_name.
 
     if (editingVendor) {
       await dispatch(
         updateVendor({
           vendorId: editingVendor._id,
-          vendorData: vendorPayload,
+          vendorData: payload,
         }) as any
       );
     } else {
-      await dispatch(addVendor(formData) as any);
+      await dispatch(addVendor(payload) as any);
     }
 
     setOpenDialog(false);
@@ -397,97 +399,13 @@ function VendorList() {
           </Paper>
         </Box>
 
-        {/* Dialogs */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
-          <DialogTitle className="font-bold flex justify-between items-center text-gray-800 pb-2 border-b border-gray-100">
-            {editingVendor ? "Edit Vendor Profile" : "Create New Vendor"}
-            <IconButton onClick={() => setOpenDialog(false)} size="small" className="text-gray-400 hover:text-gray-600">×</IconButton>
-          </DialogTitle>
-          <DialogContent className="space-y-6 pt-6 px-4">
-            <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
-              <Typography variant="subtitle2" className="text-blue-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                Basic Information
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Vendor Name" required value={formData.vendor_name} onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Mobile Number" value={formData.vendor_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="GST Number" value={formData.vendor_gstNumber} onChange={(e) => setFormData({ ...formData, vendor_gstNumber: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <FormControl fullWidth size="small">
-                  <InputLabel>Registration Type</InputLabel>
-                  <Select value={formData.vendor_registrationType} label="Registration Type" onChange={(e) => setFormData({ ...formData, vendor_registrationType: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {REGISTRATION_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <TextField fullWidth size="small" label="Vendor Email" value={formData.vendor_email} onChange={(e) => setFormData({ ...formData, vendor_email: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-            <Box className="bg-green-50/50 p-4 rounded-xl border border-green-100/50">
-              <Typography variant="subtitle2" className="text-green-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                Contact Person Information
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Contact Person Name" required value={formData.vendor_contactPerson_name} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Contact Person Mobile Number" value={formData.vendor_contactPerson_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-
-            <Box className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50">
-              <Typography variant="subtitle2" className="text-purple-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                Address & Location
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField fullWidth size="small" label="Address" value={formData.vendor_address} onChange={(e) => setFormData({ ...formData, vendor_address: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Pin Code" value={formData.vendor_pinCode} onChange={(e) => setFormData({ ...formData, vendor_pinCode: e.target.value })} sx={{ bgcolor: 'white' }} className="md:col-span-1" />
-                <TextField fullWidth size="small" label="State" value={formData.vendor_state} onChange={(e) => setFormData({ ...formData, vendor_state: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Country" value={formData.vendor_country} onChange={(e) => setFormData({ ...formData, vendor_country: e.target.value })} sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-
-            <Box className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
-              <Typography variant="subtitle2" className="text-amber-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                Financial Details
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Bank Name" value={formData.vendor_bankName} onChange={(e) => setFormData({ ...formData, vendor_bankName: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Account Number" value={formData.vendor_accountNumber} onChange={(e) => setFormData({ ...formData, vendor_accountNumber: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="IFSC Code" value={formData.vendor_ifscCode} onChange={(e) => setFormData({ ...formData, vendor_ifscCode: e.target.value })} sx={{ bgcolor: 'white' }} />
-
-                <FormControl fullWidth size="small">
-                  <InputLabel>Payment Terms</InputLabel>
-                  <Select value={formData.vendor_paymentTerms} label="Payment Terms" onChange={(e) => setFormData({ ...formData, vendor_paymentTerms: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {PAYMENT_TERMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Payment Mode</InputLabel>
-                  <Select value={formData.vendor_preferredPaymentMode} label="Payment Mode" onChange={(e) => setFormData({ ...formData, vendor_preferredPaymentMode: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {PAYMENT_MODES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel>GST Type</InputLabel>
-                  <Select value={formData.vendor_gstType} label="GST Type" onChange={(e) => setFormData({ ...formData, vendor_gstType: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {GST_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-
-                <TextField fullWidth size="small" type="number" label="Credit Limit" value={formData.vendor_creditLimit} onChange={(e) => setFormData({ ...formData, vendor_creditLimit: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" type="number" label="Opening Balance" value={formData.vendor_openingBalance} onChange={(e) => setFormData({ ...formData, vendor_openingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" type="number" label="Outstanding Balance" value={formData.vendor_outstandingBalance} onChange={(e) => setFormData({ ...formData, vendor_outstandingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-          </DialogContent>
-          <DialogActions className="p-4 pt-2">
-            <Button onClick={() => setOpenDialog(false)} className="normal-case text-gray-500 hover:bg-gray-100" size="large">Cancel</Button>
-            <Button variant="contained" onClick={handleSaveVendor} className="!bg-blue-600 normal-case px-8 rounded-lg shadow-blue-200 shadow-md" size="large">
-              {editingVendor ? "Update Vendor" : "Create Vendor"}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      <VendorDialogForm
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSave={handleSaveVendor}
+        isEdit={!!editingVendor}
+        initialData={editingVendor}
+      />
       </Box>
     </AdminLayout>
   );

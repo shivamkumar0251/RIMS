@@ -79,8 +79,12 @@ const PurchaseReport: React.FC = () => {
             })).unwrap();
             setIsReportRun(true);
             toast.success("Report generated successfully");
-        } catch (error: any) {
-            toast.error(error?.message || "Failed to generate report");
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error(String(error) || "Failed to generate report");
+            }
         }
     };
 
