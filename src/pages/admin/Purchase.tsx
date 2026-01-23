@@ -2,7 +2,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Box,
   Button,
-  Chip,
   CircularProgress,
   IconButton,
   Paper,
@@ -42,6 +41,7 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { PurchaseDrawerForm } from "../../components/adminComponents/PurchaseDrawerForm";
+import { PurchaseViewDrawer } from "../../components/adminComponents/PurchaseViewDrawer";
 import { addStoreStock } from "../../redux/slices/storeStockSlice";
 import { addKitchenStock } from "../../redux/slices/kitchenStockSlice";
 import { addSetupStock } from "../../redux/slices/setupStockSlice";
@@ -81,13 +81,13 @@ const Purchase: React.FC = () => {
   const { vendorOrders, loading: ordersLoading, allVendorOrdersData } = useAppSelector(selectVendorOrderState);
 
   // ---------------- UI States ----------------
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [actionAnchorEl, setActionAnchorEl] = useState<{ id: string, el: HTMLElement } | null>(null);
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(25);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [viewOrder, setViewOrder] = useState<any>(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState<null | HTMLElement>(null);
   const [checkedOrderIds, setCheckedOrderIds] = useState<string[]>([]);
 
@@ -243,10 +243,7 @@ const Purchase: React.FC = () => {
     }
   };
 
-  const selectedOrder = useMemo(() =>
-    vendorOrders.find(o => o._id === selectedOrderId),
-    [vendorOrders, selectedOrderId]
-  );
+
 
   const getStatusColor = (status: string) => {
     const s = (status || "").toLowerCase();
@@ -424,271 +421,7 @@ const Purchase: React.FC = () => {
     );
   }
 
-  // 2. PURCHASE DETAILS VIEW (Image 3)
-  if (selectedOrderId && selectedOrder) {
-    return (
-      <AdminLayout>
-        <Box className="flex h-screen bg-slate-50 overflow-hidden">
-          {/* Left Panel: PO List */}
-          <Box className="w-80 bg-white border-r border-slate-200 flex flex-col">
-            <Box className="p-4 border-b flex items-center justify-between">
-              <Typography className="font-bold text-slate-800">Purchase Orders</Typography>
-              <IconButton size="small" onClick={() => setSelectedOrderId(null)}><FiX /></IconButton>
-            </Box>
-            <Box className="flex-1 overflow-y-auto">
-              {vendorOrders.map(order => (
-                <Box
-                  key={order._id}
-                  onClick={() => setSelectedOrderId(order._id)}
-                  className={`p-4 border-b cursor-pointer transition-colors hover:bg-slate-50 ${selectedOrderId === order._id ? 'bg-blue-50/50 border-l-4 border-l-blue-600' : ''}`}
-                >
-                  <Box className="flex justify-between items-start mb-1">
-                    <Typography className="font-bold text-sm text-slate-900">{order.orderNumber}</Typography>
-                    <Typography className="text-[10px] text-slate-400 font-medium">{dayjs(order.orderDate).format('DD/MM/YY')}</Typography>
-                  </Box>
-                  <Typography className="text-xs text-slate-600 truncate mb-2">{(order.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</Typography>
-                  <Box className="flex justify-between items-center">
-                    <Typography variant="caption" className="text-gray-500 uppercase font-semibold">
-                      Status
-                    </Typography>
-                    <Box className="mt-1">
-                      <Chip
-                        label={order.orderStatus}
-                        color={getStatusColor(order.orderStatus) as any}
-                        size="small"
-                        className="font-bold text-xs"
-                      />
-                    </Box>
-                    <Typography className="font-bold text-sm text-slate-900">₹{order.totalAmount?.toLocaleString()}</Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
 
-          {/* Right Panel: PO Content */}
-          <Box className="flex-1 overflow-y-auto flex flex-col">
-            {/* Detail Header */}
-            <Box className="px-6 py-2.5 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
-              <Box className="flex items-center gap-4 min-w-0 flex-shrink-1">
-                <IconButton onClick={() => setSelectedOrderId(null)} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><ArrowBackIcon /></IconButton>
-                <Typography variant="h6" className="font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{selectedOrder.orderNumber}</Typography>
-                <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border flex-shrink-0 ${getStatusColor(selectedOrder.orderStatus)}`}>{selectedOrder.orderStatus}</span>
-              </Box>
-              <Box className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="outlined"
-                  startIcon={<FiEdit />}
-                  disabled={['movetostore', 'movetokitchen', 'movetosetup'].includes(selectedOrder.orderStatus?.toLowerCase())}
-                  className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case"
-                  onClick={() => { setEditingOrder(selectedOrder); setIsFormOpen(true); }}
-                >
-                  Edit
-                </Button>
-                <Button variant="outlined" startIcon={<FiPrinter />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Print</Button>
-                <Button variant="outlined" startIcon={<FiMail />} className="rounded-lg text-xs font-bold border-slate-200 text-slate-600 normal-case">Email</Button>
-                {!['movetostore', 'movetokitchen', 'movetosetup'].includes(selectedOrder.orderStatus?.toLowerCase()) && (
-                  <>
-                    <Button
-                      variant="contained"
-                      endIcon={<FiChevronDown />}
-                      onClick={(e) => setMoveAnchorEl(e.currentTarget)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold normal-case shadow-md whitespace-nowrap px-4"
-                    >
-                      MOVE STOCK
-                    </Button>
-                    <Menu
-                      anchorEl={moveAnchorEl}
-                      open={Boolean(moveAnchorEl)}
-                      onClose={() => setMoveAnchorEl(null)}
-                      PaperProps={{
-                        elevation: 3,
-                        sx: {
-                          mt: 1,
-                          minWidth: 180,
-                          borderRadius: '10px',
-                          border: '1px solid #e2e8f0',
-                        }
-                      }}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    >
-                      <MenuItem
-                        onClick={() => {
-                          setMoveAnchorEl(null);
-                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Store' } });
-                        }}
-                        className="text-xs font-bold text-slate-700 py-2.5"
-                      >
-                        <Box className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
-                        MOVE TO MAIN STORE
-                      </MenuItem>
-                      <MenuItem
-                        onClick={() => {
-                          setMoveAnchorEl(null);
-                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Kitchen' } });
-                        }}
-                        className="text-xs font-bold text-slate-700 py-2.5"
-                      >
-                        <Box className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
-                        MOVE TO KITCHEN
-                      </MenuItem>
-                      <MenuItem
-                        onClick={() => {
-                          setMoveAnchorEl(null);
-                          navigate('/admin/purchase', { state: { vendorOrder: selectedOrder, target: 'Setup' } });
-                        }}
-                        className="text-xs font-bold text-slate-700 py-2.5"
-                      >
-                        <Box className="w-2 h-2 rounded-full bg-pink-500 mr-2" />
-                        MOVE TO SETUP STORE
-                      </MenuItem>
-
-
-                    </Menu>
-                  </>
-                )}
-              </Box>
-            </Box>
-
-            {/* Document Body */}
-            <Box className="p-8 max-w-4xl mx-auto w-full">
-              <Paper className="p-8 shadow-xl rounded-2xl border border-slate-100">
-                {/* Header */}
-                <Box className="flex justify-between mb-12">
-                  <Box>
-                    <Typography variant="h4" className="font-black text-slate-900 mb-2 tracking-tight">PURCHASE ORDER</Typography>
-                    <Typography className="text-slate-400 font-medium italic">PO Number: <span className="text-slate-900 font-bold not-italic">{selectedOrder.orderNumber}</span></Typography>
-                  </Box>
-                  <Box className="text-right">
-                    <Typography className="font-black text-indigo-600 text-xl">RIMS RESTAURANT</Typography>
-                    <Typography className="text-xs text-slate-500 max-w-[200px] ml-auto">123 Business Avenue, Food Plaza, Sector 45, Gurugram, India</Typography>
-                  </Box>
-                </Box>
-
-                <Box className="flex gap-8 mb-12">
-                  <Box className="flex-1">
-                    <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Deliver To</Typography>
-                    <Typography className="font-bold text-slate-800 text-sm">Main Store Kitchen</Typography>
-                    <Typography className="text-xs text-slate-500 leading-relaxed">Ground Floor, Wing B<br />Contact: Operations Manager<br />+91 98765 43210</Typography>
-                  </Box>
-                  <Box className="flex-1">
-                    <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Vendor Details</Typography>
-                    <Typography className="font-bold text-slate-800 text-sm">{(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</Typography>
-                    <Typography className="text-xs text-slate-500 leading-relaxed">
-                      {(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_address || 'Vendor Address'}<br />
-                      GST: {(selectedOrder.products?.[0] as any)?.productId?.vendorsId?.vendor_gstNumber || 'GSTXXXXXXXX'}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Items Table */}
-                <TableContainer className="mb-8 border rounded-xl overflow-hidden">
-                  <Table size="small">
-                    <TableHead className="bg-slate-50">
-                      <TableRow>
-                        <TableCell className="font-bold text-slate-700 py-3">#</TableCell>
-                        <TableCell className="font-bold text-slate-700 py-3">Item Description</TableCell>
-                        <TableCell align="right" className="font-bold text-slate-700 py-3">Qty</TableCell>
-                        <TableCell align="right" className="font-bold text-slate-700 py-3">Rate</TableCell>
-                        <TableCell align="right" className="font-bold text-slate-700 py-3">Amount</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedOrder.products.map((p, idx) => {
-                        const quantity = p.orderQty || 0;
-                        const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
-                        const discount = (p as any).discount || 0;
-                        // Base Amount (Taxable) per item
-                        const baseAmount = (quantity * rate) - discount;
-
-                        return (
-                          <TableRow key={p._id} hover>
-                            <TableCell className="text-slate-400 py-3">{idx + 1}</TableCell>
-                            <TableCell className="py-3">
-                              <Typography className="font-bold text-slate-800 text-sm">{p.productId?.productName}</Typography>
-                            </TableCell>
-                            <TableCell align="right" className="py-3 font-medium">{quantity} {p.productId?.unit}</TableCell>
-                            <TableCell align="right" className="py-3 text-slate-600">₹{rate}</TableCell>
-                            <TableCell align="right" className="font-bold text-slate-800 py-3">₹{baseAmount.toLocaleString()}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <Box className="flex justify-end pr-4">
-                  <Box className="w-64 space-y-3">
-                    <Box className="flex justify-between text-slate-500 text-sm">
-                      {(() => {
-                        // Calculate totals locally to ensure consistency
-                        let calculatedSubTotal = 0;
-                        let calculatedGST = 0;
-
-                        selectedOrder.products.forEach(p => {
-                          const quantity = p.orderQty || 0;
-                          const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
-                          const discount = (p as any).discount || 0;
-                          const gstPct = (p as any).gstPct ?? (p.productId as any)?.gstPct ?? 0;
-
-                          const baseVal = Math.max(0, (quantity * rate) - discount);
-                          const tax = (baseVal * gstPct) / 100;
-
-                          calculatedSubTotal += baseVal;
-                          calculatedGST += tax;
-                        });
-
-                        return (
-                          <>
-                            <span>Sub Total</span>
-                            <span className="font-medium text-slate-700">₹{calculatedSubTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                          </>
-                        );
-                      })()}
-                    </Box>
-                    <Box className="flex justify-between text-slate-500 text-sm">
-                      <span>Total GST</span>
-                      <span className="font-medium text-slate-700">
-                        {(() => {
-                          let calculatedGST = 0;
-                          selectedOrder.products.forEach(p => {
-                            const quantity = p.orderQty || 0;
-                            const rate = (p as any).rate && (p as any).rate > 0 ? (p as any).rate : ((p.productId as any)?.perUnitRate || 0);
-                            const discount = (p as any).discount || 0;
-                            // Fallback to product GST if order-level GST is 0 or missing
-                            const gstPct = (p as any).gstPct || (p.productId as any)?.gstPct || 0;
-
-                            const baseVal = Math.max(0, (quantity * rate) - discount);
-                            const tax = (baseVal * gstPct) / 100;
-                            calculatedGST += tax;
-                          });
-                          return `+ ₹${calculatedGST.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-                        })()}
-                      </span>
-                    </Box>
-                    <Divider />
-                    <Box className="flex justify-between items-center text-slate-900">
-                      <span className="font-bold">Total Amount</span>
-                      <span className="text-xl font-black text-indigo-600">₹{selectedOrder.totalAmount?.toLocaleString()}</span>
-                    </Box>
-                  </Box>
-                </Box>
-              </Paper>
-            </Box>
-          </Box>
-        </Box>
-
-        <PurchaseDrawerForm
-          open={isFormOpen}
-          isEdit={Boolean(editingOrder)}
-          initialData={editingOrder}
-          onClose={() => setIsFormOpen(false)}
-          onSave={handleSaveOrder}
-        />
-      </AdminLayout >
-    );
-  }
 
   // 3. MAIN LIST VIEW (Image 1)
   return (
@@ -875,19 +608,19 @@ const Purchase: React.FC = () => {
                                 sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
                               />
                             </TableCell>
-                            <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setSelectedOrderId(row._id)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
-                            <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setSelectedOrderId(row._id)}>{row.orderNumber}</TableCell>
-                            <TableCell className="py-4 font-bold text-slate-800" onClick={() => setSelectedOrderId(row._id)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
-                            <TableCell className="py-4" onClick={() => setSelectedOrderId(row._id)}>
+                            <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setViewOrder(row)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                            <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setViewOrder(row)}>{row.orderNumber}</TableCell>
+                            <TableCell className="py-4 font-bold text-slate-800" onClick={() => setViewOrder(row)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                            <TableCell className="py-4" onClick={() => setViewOrder(row)}>
                               <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus === 'Sent' ? 'Draft' : row.orderStatus}</span>
                             </TableCell>
-                            <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setSelectedOrderId(row._id)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
+                            <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setViewOrder(row)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
                             <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
                               <Box className="flex items-center justify-end gap-2 pr-4">
                                 <Button
                                   startIcon={<FiEye size={16} />}
                                   className="min-w-0 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200 rounded-lg normal-case transition-colors"
-                                  onClick={() => setSelectedOrderId(row._id)}
+                                  onClick={() => setViewOrder(row)}
                                 >
                                   View
                                 </Button>
@@ -949,6 +682,12 @@ const Purchase: React.FC = () => {
           initialData={editingOrder}
           onClose={() => setIsFormOpen(false)}
           onSave={handleSaveOrder}
+        />
+
+        <PurchaseViewDrawer
+          open={Boolean(viewOrder)}
+          onClose={() => setViewOrder(null)}
+          order={viewOrder}
         />
 
       </Box>
