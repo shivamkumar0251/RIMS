@@ -17,8 +17,9 @@ export interface GetVendorNameListResponse {
 // ---------------- BULK UPLOAD VENDOR via EXCEL ----------------
 export interface BulkVendorExcelResponse {
   success: boolean;
-  inserted: number;
-  failed: number;
+  insertedCount: number;
+  failedCount?: number;
+  message?: string;
   errors?: { row: number; message: string }[];
   data: GetVendorData[];
 }
@@ -47,6 +48,10 @@ export interface GetVendorData {
   vendor_gstNumber: string,
   vendor_pan?: string,
   vendor_openingBalance: number,
+  vendor_address_line2?: string,
+  vendor_city?: string,
+  vendor_landmark?: string,
+  vendor_branchName?: string,
   createdAt?: string
 }
 

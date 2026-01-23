@@ -37,6 +37,7 @@ import {
   selectVendorLoading,
   updateVendor,
   type GetVendorData,
+  type BulkVendorExcelResponse,
 } from "../../redux/slices/vendorSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -53,7 +54,7 @@ function VendorList() {
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(25);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingVendor, setEditingVendor] = useState<any>(null);
+  const [editingVendor, setEditingVendor] = useState<GetVendorData | null>(null);
   const [formData, setFormData] = useState<GetVendorData>({
     vendor_name: "",
     vendor_mobileNo: "",
@@ -92,7 +93,7 @@ function VendorList() {
         limit,
         fromDate,
         toDate,
-      }) as any
+      })
     );
   };
 
@@ -100,7 +101,7 @@ function VendorList() {
     fetchData();
   }, [page, limit, search, fromDate, toDate]);
 
-  const handleOpenDialog = (vendor?: any) => {
+  const handleOpenDialog = (vendor?: GetVendorData) => {
     if (vendor) {
       setEditingVendor(vendor);
       setFormData({ ...vendor, franchiseId });
@@ -119,7 +120,7 @@ function VendorList() {
     setOpenDialog(true);
   };
 
-  const handleSaveVendor = async (data: any) => {
+  const handleSaveVendor = async (data: GetVendorData) => {
     // VendorDialogForm returns data.
     // If editing, merge with ID. 
     // BUT VendorDialogForm may not include ALL fields that were in local 'formData'.
@@ -134,15 +135,15 @@ function VendorList() {
     // We don't need to manually check validation as form handles it? 
     // VendorDialogForm checks for vender_name.
 
-    if (editingVendor) {
+    if (editingVendor && editingVendor._id) {
       await dispatch(
         updateVendor({
           vendorId: editingVendor._id,
           vendorData: payload,
-        }) as any
+        })
       );
     } else {
-      await dispatch(addVendor(payload) as any);
+      await dispatch(addVendor(payload));
     }
 
     setOpenDialog(false);
@@ -151,7 +152,7 @@ function VendorList() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this vendor?")) return;
-    await dispatch(deleteVendor(id) as any);
+    await dispatch(deleteVendor(id));
     fetchData();
   };
 
@@ -163,8 +164,8 @@ function VendorList() {
     fd.append("file", file);
     fd.append("franchiseId", franchiseId);
 
-    const res = await dispatch(addVendorBulkExcel(fd) as any);
-    const result = res?.payload;
+    const res = await dispatch(addVendorBulkExcel(fd));
+    const result = res?.payload as BulkVendorExcelResponse;
 
     if (result?.success) {
       alert(`Uploaded Successfully. Inserted: ${result.insertedCount}`);
