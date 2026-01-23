@@ -45,6 +45,7 @@ import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, getVendors, selectVendors } from "../../redux/slices/vendorSlice";
 
 import { CreateOrderModal } from "../../components/adminComponents/CreateOrderModal";
+import { getProducts, selectProductState, updateProduct } from "../../redux/slices/productSlice";
 
 export default function OrderManagementPage(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -492,6 +493,27 @@ export default function OrderManagementPage(): JSX.Element {
     [companies, brandSearch]
   );
 
+  ////// other vendor product start
+  const productState = useAppSelector(selectProductState);
+  const products = productState?.products || [];
+  const [otherProductSearch, setOtherProductSearch] = useState("");
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      dispatch(
+        getProducts({
+          search: otherProductSearch || undefined,
+          page: 1,
+          limit: 100,
+        })
+      );
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [dispatch, otherProductSearch]);
+  ////// other vendor product end
+
   return (
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -625,7 +647,85 @@ export default function OrderManagementPage(): JSX.Element {
             </Paper>
           ) : (
             <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-              <TableContainer className="flex-1 overflow-auto">
+
+              <Autocomplete
+                size="small"
+                options={products}
+                value={null} // always clear after select
+                isOptionEqualToValue={(o, v) => o._id === v?._id}
+                getOptionLabel={(p: any) =>
+                  [
+                    p.productName,
+                    p.unit,
+                    p.packSize,
+                    p.categoryId?.categoryName,
+                    p.vendorsId?.vendor_name,
+                    p.companyId?.brandName,
+                  ]
+                    .filter(Boolean)
+                    .join(" | ")
+                }
+
+                // 🔥 SEARCH TRIGGER
+                onInputChange={(_, value, reason) => {
+                  if (reason === "input") {
+                    setOtherProductSearch(value);
+                  }
+                }}
+
+                onChange={async (_, product) => {
+                  if (!product || !vendorId) return;
+
+                  try {
+                    await dispatch(
+                      updateProduct({
+                        productId: product._id,
+                        productData: {
+                          vendorsId: { _id: vendorId },
+                        } as any,
+                      })
+                    ).unwrap();
+
+                    dispatch(
+                      getOrdersProduct({
+                        search,
+                        page: page + 1,
+                        limit: rowsPerPage,
+                        category: categoryId.join(","),
+                        vendor: vendorId,
+                        brand: companyId.join(","),
+                        productType: "",
+                        fromDate,
+                        toDate,
+                      })
+                    );
+
+                    // 🔥 clear search after select
+                    setOtherProductSearch("");
+
+                  } catch (err) {
+                    console.error("Failed to update product vendor", err);
+                  }
+                }}
+
+                sx={{ width: 520 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Add Product to Vendor"
+                  />
+                )}
+              />
+
+
+              <TableContainer className="flex-1"
+                sx={{
+                  maxHeight: {
+                    xs: "70vh",
+                    md: "79vh",
+                  },
+                  overflowY: "auto",
+                }}>
                 <Table stickyHeader size="medium">
                   <TableHead>
                     <TableRow>
