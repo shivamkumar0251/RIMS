@@ -63,10 +63,20 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
     });
 
     const handleCopyTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setCopyType({
-            ...copyType,
-            [event.target.name]: event.target.checked,
-        });
+        const { name, checked } = event.target;
+        if (checked) {
+            setCopyType({
+                original: name === 'original',
+                duplicate: name === 'duplicate',
+                transport: name === 'transport',
+                office: name === 'office'
+            });
+        } else {
+            setCopyType({
+                ...copyType,
+                [name]: false
+            });
+        }
     };
 
     const handlePrint = () => {
@@ -349,12 +359,17 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
             open={open}
             onClose={onClose}
             PaperProps={{
-                sx: { width: isMobile ? '100vw' : '900px', bgcolor: '#f1f5f9' }
+                sx: { 
+                    width: isMobile ? '100vw' : '750px', 
+                    bgcolor: '#f8fafc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100vh'
+                }
             }}
         >
-            <Box className="flex flex-col h-full">
-                {/* Header */}
-                <Box className="bg-white border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+            {/* Header - Fixed at top */}
+            <Box className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-md" sx={{ flexShrink: 0, zIndex: 20 }}>
                     <Typography className="font-bold text-lg text-slate-800">Print / View Document</Typography>
                     <Box className="flex items-center gap-3">
                         <Button 
@@ -381,23 +396,46 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                     </Box>
                 </Box>
 
-                {/* Content - Invoice Replica */}
-                <Box className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center">
+                {/* Content - Invoice Replica - Scrollable */}
+                <Box 
+                    sx={{ 
+                        flex: 1, 
+                        overflowY: 'auto', 
+                        overflowX: 'hidden',
+                        bgcolor: '#f8fafc',
+                        py: 3,
+                        px: { xs: 2, sm: 3 }
+                    }}
+                >
                     <Paper 
-                        elevation={3} 
-                        className="bg-white p-8 max-w-[210mm] w-full min-h-[297mm] mx-auto relative text-slate-900"
-                        sx={{ '@media print': { boxShadow: 'none' } }}
+                        elevation={2} 
+                        className="bg-white mx-auto relative text-slate-900"
+                        sx={{ 
+                            maxWidth: '210mm',
+                            width: '100%',
+                            height: 'fit-content',
+                            p: { xs: 3, sm: 4, md: 5 },
+                            '@media print': { 
+                                boxShadow: 'none', 
+                                p: 4,
+                                minHeight: '297mm'
+                            }
+                        }}
                     >
                         {/* 1. Header Section */}
-                        <Box className="flex justify-between items-start mb-6">
+                        <Box className="flex justify-between items-start mb-4">
                             <Box className="flex items-center gap-4">
-                                {/* Logo Placeholder */}
-                                {/* Logo Placeholder - Replaced with Image look-alike */}
-                                <Box className="w-20 h-20 bg-white border border-slate-200 rounded-lg flex items-center justify-center p-1 overflow-hidden">
+                                {/* Logo - Circular Gray like reference */}
+                                <Box className="w-14 h-14 bg-slate-200 rounded-full flex items-center justify-center shadow-md">
                                     <img 
                                         src="/logo.png" 
                                         alt="Logo" 
-                                        className="w-full h-full object-contain"
+                                        className="w-10 h-10 object-contain rounded-full"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            target.parentElement!.innerHTML = '<svg class="w-8 h-8 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 10a1 1 0 112 0 1 1 0 01-2 0zm1-4a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1z"/></svg>';
+                                        }}
                                     />
                                 </Box>
                                 <Box>
@@ -418,13 +456,19 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                         {/* 2. Main Grid Container with Blue Borders */}
                         <Box className="border border-blue-500">
                             {/* Blue Header Info Bar */}
-                            <Box className="grid grid-cols-2 border-b border-blue-500">
+                            <Box className="grid grid-cols-2 border-b border-blue-500" sx={{ mt: 1 }}>
                                 <Box className="p-2 border-r border-blue-500">
                                     <Typography className="font-bold text-sm text-slate-800">GSTIN : <span className="font-medium">07AAPFH1234A1Z5</span></Typography>
                                 </Box>
                                 <Box className="p-2 bg-white flex justify-center items-center">
                                     <Typography className="font-black text-lg text-blue-600 uppercase tracking-wider">PURCHASE INVOICE</Typography>
-                                    <span className="ml-auto text-[10px] font-bold text-slate-400">ORIGINAL FOR RECIPIENT</span>
+                                    <span className="ml-auto text-[10px] font-bold text-slate-400">
+                                        {copyType.original && 'ORIGINAL FOR RECIPIENT'}
+                                        {!copyType.original && copyType.duplicate && 'DUPLICATE FOR TRANSPORTER'}
+                                        {!copyType.original && !copyType.duplicate && copyType.transport && 'TRIPLICATE FOR SUPPLIER'}
+                                        {!copyType.original && !copyType.duplicate && !copyType.transport && copyType.office && 'OFFICE COPY'}
+                                        {!copyType.original && !copyType.duplicate && !copyType.transport && !copyType.office && 'COPY'}
+                                    </span>
                                 </Box>
                             </Box>
 
@@ -433,7 +477,7 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                                 {/* Vendor Details (Left) */}
                                 <Box className="p-0 border-r border-blue-500">
                                     <Box className="bg-slate-50 border-b border-blue-200 px-2 py-1 font-bold text-slate-700 text-center">Vendor Detail</Box>
-                                    <Box className="p-3 space-y-1">
+                                    <Box className="p-2 space-y-0.5">
                                         <Box className="flex">
                                             <span className="font-bold w-20">M/S:</span>
                                             <span className="uppercase font-semibold">{invoiceData.vendor.vendor_name || 'N/A'}</span>
@@ -460,7 +504,7 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                                 {/* Invoice Details (Right) */}
                                 <Box className="p-0">
                                     <Box className="grid grid-cols-2 h-full">
-                                        <Box className="p-3 border-r border-blue-200 space-y-2">
+                                        <Box className="p-2 border-r border-blue-200 space-y-1.5">
                                             <Box>
                                                 <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice No.</span>
                                                 <span className="font-bold text-sm">{invoiceData.invoiceNo}</span>
@@ -470,7 +514,7 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                                                 <span className="font-medium">{invoiceData.reverseCharge}</span>
                                             </Box>
                                         </Box>
-                                        <Box className="p-3 space-y-2">
+                                        <Box className="p-2 space-y-1.5">
                                             <Box>
                                                 <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice Date</span>
                                                 <span className="font-bold text-sm">{invoiceData.invoiceDate}</span>
@@ -554,11 +598,11 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                             <Box className="grid grid-cols-12 min-h-[150px]">
                                 {/* Left Side: Amount in Words & Terms */}
                                 <Box className="col-span-8 border-r border-blue-500 flex flex-col justify-between">
-                                    <Box className="border-b border-blue-500 p-2 text-xs">
+                                    <Box className="border-b border-blue-500 p-1.5 text-xs">
                                         <Typography className="font-bold text-slate-700">Total in words</Typography>
                                         <Typography className="font-medium italic mt-1 text-slate-900">{invoiceData.amountInWords}</Typography>
                                     </Box>
-                                    <Box className="p-4 flex-1">
+                                    <Box className="p-2.5 flex-1">
                                         <Typography className="font-bold text-xs text-slate-700 mb-1">Terms & Condition</Typography>
                                         <ul className="list-disc list-inside text-[10px] text-slate-500 space-y-0.5">
                                             <li>Goods once sold will not be taken back.</li>
@@ -590,13 +634,13 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                                         (E & O.E.)
                                     </Box>
                                     
-                                    <Box className="mt-8 p-2 text-center border-t border-blue-200">
-                                        <Typography className="text-[9px] text-slate-500 mb-4 font-bold">Certified that the particulars given above are true and correct.</Typography>
-                                        <Typography className="font-black text-xs text-slate-800 uppercase mb-4">For RIMS RESTAURANT</Typography>
+                                    <Box className="mt-4 p-1.5 text-center border-t border-blue-200">
+                                        <Typography className="text-[9px] text-slate-500 mb-2 font-bold">Certified that the particulars given above are true and correct.</Typography>
+                                        <Typography className="font-black text-xs text-slate-800 uppercase mb-2">For RIMS RESTAURANT</Typography>
                                         
                                         {/* Signature Placeholder */}
                                         {/* <img src="/signature-placeholder.png" alt="Sig" className="h-10 mx-auto" /> */}
-                                        <Box className="h-8 mb-1"></Box>
+                                        <Box className="h-6 mb-1"></Box>
 
                                         <Typography className="text-[10px] font-bold text-slate-600">Authorized Signatory</Typography>
                                     </Box>
@@ -605,18 +649,41 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                         </Box>
                         
                         {/* Footer / Branding Line */}
-                        <Box className="mt-4 text-center ">
+                        <Box className="mt-3 text-center pb-2">
                             <Typography className="text-[10px] text-slate-400 uppercase tracking-widest">Thank you for your business</Typography>
                         </Box>
                     </Paper>
                 </Box>
 
-
-            {/* Sticky Footer for Actions */}
-            <Box className="bg-white border-t p-4 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                {/* 1. Checkboxes - Centered & Responsive */}
-                <Box className="flex justify-center mb-6 overflow-x-auto">
-                    <FormGroup row className="gap-6 flex-nowrap min-w-max px-2">
+                {/* Sticky Footer for Actions - Fixed at bottom */}
+                <Box 
+                    className="bg-white border-t" 
+                    sx={{ 
+                        flexShrink: 0, 
+                        zIndex: 20,
+                        p: { xs: 2, sm: 3 },
+                        boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }}
+                >
+                    {/* 1. Checkboxes - Centered & Responsive */}
+                    <Box 
+                        className="flex justify-center overflow-x-auto"
+                        sx={{ 
+                            mb: 2.5,
+                            pb: 2.5,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider'
+                        }}
+                    >
+                        <FormGroup 
+                            row 
+                            sx={{ 
+                                gap: { xs: 2, sm: 4 },
+                                flexWrap: 'nowrap',
+                                minWidth: 'max-content',
+                                px: 1
+                            }}
+                        >
                         <FormControlLabel 
                             control={<Checkbox checked={copyType.original} onChange={handleCopyTypeChange} name="original" 
                                 sx={{ color: '#10b981', '&.Mui-checked': { color: '#10b981' } }} 
@@ -641,67 +708,148 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                             />} 
                             label={<span className="text-sm font-bold text-slate-600">Office</span>} 
                         />
-                    </FormGroup>
-                </Box>
+                        </FormGroup>
+                    </Box>
 
                 {/* 2. Action Buttons - Wrapped & Responsive */}
-                <Box className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-5xl mx-auto">
-                    {/* Close (Left on Desktop, Top on Mobile) */}
+                <Box 
+                    sx={{ 
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                        gap: 1.5,
+                        maxWidth: '1200px',
+                        mx: 'auto',
+                        width: '100%'
+                    }}
+                >
                     <Button 
                         variant="contained" 
-                        startIcon={<FiX />}
+                        startIcon={<FaWhatsapp className="text-sm" />}
+                        onClick={() => handleShare('whatsapp')}
+                        sx={{
+                            bgcolor: '#25d366',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(37, 211, 102, 0.2)',
+                            '&:hover': { bgcolor: '#128c7e', boxShadow: '0 2px 4px rgba(37, 211, 102, 0.3)' }
+                        }}
+                    >
+                        WhatsApp
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<FiMail className="text-sm" />}
+                        onClick={() => handleShare('email')}
+                        sx={{
+                            bgcolor: '#f97316',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(249, 115, 22, 0.2)',
+                            '&:hover': { bgcolor: '#ea580c', boxShadow: '0 2px 4px rgba(249, 115, 22, 0.3)' }
+                        }}
+                    >
+                        Email
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<FaFileExcel className="text-sm" />}
+                        onClick={handleExcelExport}
+                        sx={{
+                            bgcolor: '#10b981',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(16, 185, 129, 0.2)',
+                            '&:hover': { bgcolor: '#059669', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }
+                        }}
+                    >
+                        Excel
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<FiDownload className="text-sm" />}
+                        onClick={handlePrint}
+                        sx={{
+                            bgcolor: '#f59e0b',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(245, 158, 11, 0.2)',
+                            '&:hover': { bgcolor: '#d97706', boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)' }
+                        }}
+                    >
+                        Download
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<FiPrinter className="text-sm" />}
+                        onClick={handlePrint}
+                        sx={{
+                            bgcolor: '#3b82f6',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(59, 130, 246, 0.2)',
+                            '&:hover': { bgcolor: '#2563eb', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)' }
+                        }}
+                    >
+                        Print
+                    </Button>
+                    
+                    {/* Close Button */}
+                    <Button 
+                        variant="contained" 
+                        startIcon={<FiX className="text-sm" />}
                         onClick={onClose}
-                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold normal-case px-6 py-2 rounded-lg shadow-none"
+                        sx={{
+                            bgcolor: '#ef4444', 
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textTransform: 'none',
+                            px: 2,
+                            py: 0.5,
+                            minHeight: '32px',
+                            borderRadius: 1.5,
+                            boxShadow: '0 1px 2px rgba(239, 68, 68, 0.2)',
+                            '&:hover': { 
+                                bgcolor: '#dc2626',
+                                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                            }
+                        }}
                     >
                         Close
                     </Button>
-
-                    {/* Actions (Right on Desktop, Stacked on Mobile) */}
-                    <Box className="flex flex-wrap justify-center gap-3 w-full sm:w-auto">
-                        <Button 
-                            variant="contained" 
-                            startIcon={<FaWhatsapp className="text-lg" />}
-                            onClick={() => handleShare('whatsapp')}
-                            className="bg-green-500 hover:bg-green-600 text-white font-bold normal-case px-4 py-2 rounded-lg"
-                        >
-                            Whatsapp
-                        </Button>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<FiMail />}
-                            onClick={() => handleShare('email')}
-                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold normal-case px-4 py-2 rounded-lg"
-                        >
-                            Email
-                        </Button>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<FaFileExcel />}
-                            onClick={handleExcelExport}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold normal-case px-4 py-2 rounded-lg"
-                        >
-                            Excel
-                        </Button>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<FiDownload />}
-                            onClick={handlePrint}
-                            className="bg-amber-400 hover:bg-amber-500 text-white font-bold normal-case px-4 py-2 rounded-lg"
-                        >
-                            Download
-                        </Button>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<FiPrinter />}
-                            onClick={handlePrint}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold normal-case px-4 py-2 rounded-lg"
-                        >
-                            Print
-                        </Button>
                     </Box>
                 </Box>
-            </Box>
-            </Box>
-    </Drawer>
+        </Drawer>
     );
 };
