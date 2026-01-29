@@ -2,18 +2,9 @@ import {
   Box,
   Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
   IconButton,
   InputAdornment,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -36,6 +27,7 @@ import {
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { AdminLayout } from "../../layouts/AdminLayout";
+import { VendorDialogForm } from "../../components/adminComponents/VendorDialogForm";
 import {
   addVendor,
   addVendorBulkExcel,
@@ -45,6 +37,7 @@ import {
   selectVendorLoading,
   updateVendor,
   type GetVendorData,
+  type BulkVendorExcelResponse,
 } from "../../redux/slices/vendorSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 
@@ -61,7 +54,7 @@ function VendorList() {
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(25);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingVendor, setEditingVendor] = useState<any>(null);
+  const [editingVendor, setEditingVendor] = useState<GetVendorData | null>(null);
   const [formData, setFormData] = useState<GetVendorData>({
     vendor_name: "",
     vendor_mobileNo: "",
@@ -86,10 +79,10 @@ function VendorList() {
     franchiseId,
   });
 
-  const PAYMENT_TERMS = ["Net 15", "Net 30", "On Delivery"];
-  const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque"];
-  const GST_TYPES = ["Cgst Sgst", "Igst", "Non Gst", "Exempt"];
-  const REGISTRATION_TYPES = ["Composition", "Registered", "UnRegistered"];
+  /* const PAYMENT_TERMS = ["Net 15", "Net 30", "On Delivery"]; */
+  /* const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque"]; */
+  /* const GST_TYPES = ["Cgst Sgst", "Igst", "Non Gst", "Exempt"]; */
+  /* const REGISTRATION_TYPES = ["Composition", "Registered", "UnRegistered"]; */
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchData = () => {
@@ -100,7 +93,7 @@ function VendorList() {
         limit,
         fromDate,
         toDate,
-      }) as any
+      })
     );
   };
 
@@ -108,7 +101,7 @@ function VendorList() {
     fetchData();
   }, [page, limit, search, fromDate, toDate]);
 
-  const handleOpenDialog = (vendor?: any) => {
+  const handleOpenDialog = (vendor?: GetVendorData) => {
     if (vendor) {
       setEditingVendor(vendor);
       setFormData({ ...vendor, franchiseId });
@@ -127,21 +120,30 @@ function VendorList() {
     setOpenDialog(true);
   };
 
-  const handleSaveVendor = async () => {
-    if (!formData.vendor_name.trim()) return;
-    const vendorPayload: any = { ...formData };
-    delete vendorPayload._id;
-    delete vendorPayload.franchiseId;
+  const handleSaveVendor = async (data: GetVendorData) => {
+    // VendorDialogForm returns data.
+    // If editing, merge with ID. 
+    // BUT VendorDialogForm may not include ALL fields that were in local 'formData'.
+    // However, existing data shouldn't be overridden if not in form? 
+    // Actually full replacement is safer or partial?
+    // The previous implementation used formData which was local state.
+    // Now we get 'data' from the form on submit.
+    
+    // Ensure we send franchiseId if needed
+    const payload = { ...formData, ...data, franchiseId }; // merge whatever initial + new data
+    
+    // We don't need to manually check validation as form handles it? 
+    // VendorDialogForm checks for vender_name.
 
-    if (editingVendor) {
+    if (editingVendor && editingVendor._id) {
       await dispatch(
         updateVendor({
           vendorId: editingVendor._id,
-          vendorData: vendorPayload,
-        }) as any
+          vendorData: payload,
+        })
       );
     } else {
-      await dispatch(addVendor(formData) as any);
+      await dispatch(addVendor(payload));
     }
 
     setOpenDialog(false);
@@ -150,7 +152,7 @@ function VendorList() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this vendor?")) return;
-    await dispatch(deleteVendor(id) as any);
+    await dispatch(deleteVendor(id));
     fetchData();
   };
 
@@ -162,8 +164,8 @@ function VendorList() {
     fd.append("file", file);
     fd.append("franchiseId", franchiseId);
 
-    const res = await dispatch(addVendorBulkExcel(fd) as any);
-    const result = res?.payload;
+    const res = await dispatch(addVendorBulkExcel(fd));
+    const result = res?.payload as BulkVendorExcelResponse;
 
     if (result?.success) {
       alert(`Uploaded Successfully. Inserted: ${result.insertedCount}`);
@@ -202,10 +204,9 @@ function VendorList() {
 
   return (
     <AdminLayout>
-
-      <Box className="flex flex-col h-[calc(100vh-10px)] p-4">
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Header Section */}
-        <Box className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+        <Box className="bg-white p-4 shadow-sm border-b border-gray-100 shrink-0">
           <Box className="flex flex-col xl:flex-row items-center justify-between gap-4">
             {/* Filters */}
             <Box className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -294,95 +295,95 @@ function VendorList() {
         </Box>
 
         {/* Table Section */}
-        <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-          <TableContainer className="flex-1 overflow-auto">
-            <Table stickyHeader size="medium">
-              <TableHead>
-                <TableRow>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Vendor Info</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Contact Details</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Location</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Bank Info</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Terms</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Credit</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3 text-center">Outstanding</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3">Created</TableCell>
-                  <TableCell className="bg-gray-50 font-bold text-gray-700 py-3" align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader size="medium">
+                <TableHead>
+                  <TableRow>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Vendor Info</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Contact Details</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Contact Person</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Location</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Bank Info</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Terms</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Credit</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3 text-center">Outstanding</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3">Created</TableCell>
+                    <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold text-gray-700 py-3" align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
 
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
-                ) : vendorsData.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} align="center" className="py-20 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
-                ) : (
-                  vendorsData.map((vendor) => (
-                    <TableRow key={vendor._id} hover className="transition-colors">
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="font-bold text-gray-800">{vendor.vendor_name}</Typography>
-                        <Box className="flex items-center gap-1 mt-0.5">
-                          <Typography variant="caption" className="text-gray-400 font-medium">GST:</Typography>
-                          <Typography variant="caption" className="text-gray-600">{vendor.vendor_gstNumber || "N/A"}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_mobileNo}</Typography>
-                        <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
-                          {vendor.vendor_registrationType}
-                        </Typography>
-                        <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "raj@gmail.com"}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3 max-w-[200px]">
-                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || 'Raj'}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || 9966332211}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3 max-w-[200px]">
-                        <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
-                        <Typography variant="caption" className="text-gray-500">{vendor.vendor_state}, {vendor.vendor_country}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Typography variant="body2" className="font-medium text-gray-700">{vendor.vendor_bankName}</Typography>
-                        <Typography variant="caption" className="text-gray-400 font-mono">Acc: {vendor.vendor_accountNumber || "N/A"}</Typography>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Box className="flex flex-col items-start gap-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                            {vendor.vendor_paymentTerms}
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={10} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
+                  ) : vendorsData.length === 0 ? (
+                    <TableRow><TableCell colSpan={10} align="center" className="py-20 text-gray-500 text-sm">No vendors found.</TableCell></TableRow>
+                  ) : (
+                    vendorsData.map((vendor) => (
+                      <TableRow key={vendor._id} hover className="transition-colors">
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="font-bold text-gray-800">{vendor.vendor_name}</Typography>
+                          <Box className="flex items-center gap-1 mt-0.5">
+                            <Typography variant="caption" className="text-gray-400 font-medium">GST:</Typography>
+                            <Typography variant="caption" className="text-gray-600">{vendor.vendor_gstNumber || "N/A"}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="text-gray-700">{vendor.vendor_mobileNo}</Typography>
+                          <Typography variant="caption" className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full inline-block mt-1">
+                            {vendor.vendor_registrationType}
+                          </Typography>
+                          <Typography variant="body2" className="text-gray-700">{vendor.vendor_email || "-"}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3 max-w-[200px]">
+                          <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_contactPerson_name || '-'}</Typography>
+                          <Typography variant="caption" className="text-gray-500">{vendor.vendor_contactPerson_mobileNo || '-'}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3 max-w-[200px]">
+                          <Typography variant="body2" className="truncate text-gray-700">{vendor.vendor_address}</Typography>
+                          <Typography variant="caption" className="text-gray-500">{vendor.vendor_state}, {vendor.vendor_country}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Typography variant="body2" className="font-medium text-gray-700">{vendor.vendor_bankName}</Typography>
+                          <Typography variant="caption" className="text-gray-400 font-mono">Acc: {vendor.vendor_accountNumber || "N/A"}</Typography>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Box className="flex flex-col items-start gap-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                              {vendor.vendor_paymentTerms}
+                            </span>
+                            <Typography variant="caption" className="text-gray-500 font-medium">{vendor.vendor_preferredPaymentMode}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <span className="font-medium text-gray-700">₹{vendor.vendor_creditLimit?.toLocaleString()}</span>
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <span className={`font-bold ${vendor.vendor_outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            ₹{vendor.vendor_outstandingBalance?.toLocaleString()}
                           </span>
-                          <Typography variant="caption" className="text-gray-500 font-medium">{vendor.vendor_preferredPaymentMode}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell className="py-3 text-center">
-                        <span className="font-medium text-gray-700">₹{vendor.vendor_creditLimit?.toLocaleString()}</span>
-                      </TableCell>
-                      <TableCell className="py-3 text-center">
-                        <span className={`font-bold ${vendor.vendor_outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          ₹{vendor.vendor_outstandingBalance?.toLocaleString()}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-3 text-gray-500 text-sm">
-                        {dayjs(vendor.createdAt).format("DD MMM, YYYY")}
-                      </TableCell>
-                      <TableCell className="py-3" align="right">
-                        <Box className="flex gap-1 justify-end">
-                          <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
-                            <FiEdit size={15} />
-                          </IconButton>
-                          <IconButton onClick={() => handleDelete(vendor?._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
-                            <FiTrash2 size={15} />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        </TableCell>
+                        <TableCell className="py-3 text-gray-500 text-sm">
+                          {dayjs(vendor.createdAt).format("DD MMM, YYYY")}
+                        </TableCell>
+                        <TableCell className="py-3" align="right">
+                          <Box className="flex gap-1 justify-end">
+                            <IconButton onClick={() => handleOpenDialog(vendor)} size="small" className="text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
+                              <FiEdit size={15} />
+                            </IconButton>
+                            <IconButton onClick={() => vendor?._id && handleDelete(vendor._id)} size="small" className="text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100">
+                              <FiTrash2 size={15} />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          <Box className="border-t border-gray-200 bg-gray-50/50 p-1">
             <TablePagination
               component="div"
               count={vendorsResponse?.total || 0}
@@ -394,102 +395,18 @@ function VendorList() {
                 setPage(0);
               }}
               rowsPerPageOptions={[25, 50, 100]}
-              className="text-sm text-gray-600"
+              className="border-t bg-gray-50 shrink-0"
             />
-          </Box>
-        </Paper>
+          </Paper>
+        </Box>
 
-        {/* Dialogs */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
-          <DialogTitle className="font-bold flex justify-between items-center text-gray-800 pb-2 border-b border-gray-100">
-            {editingVendor ? "Edit Vendor Profile" : "Create New Vendor"}
-            <IconButton onClick={() => setOpenDialog(false)} size="small" className="text-gray-400 hover:text-gray-600">×</IconButton>
-          </DialogTitle>
-          <DialogContent className="space-y-6 pt-6 px-4">
-            <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
-              <Typography variant="subtitle2" className="text-blue-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                Basic Information
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Vendor Name" required value={formData.vendor_name} onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Mobile Number" value={formData.vendor_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="GST Number" value={formData.vendor_gstNumber} onChange={(e) => setFormData({ ...formData, vendor_gstNumber: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <FormControl fullWidth size="small">
-                  <InputLabel>Registration Type</InputLabel>
-                  <Select value={formData.vendor_registrationType} label="Registration Type" onChange={(e) => setFormData({ ...formData, vendor_registrationType: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {REGISTRATION_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <TextField fullWidth size="small" label="Vendor Email" value={formData.vendor_email} onChange={(e) => setFormData({ ...formData, vendor_email: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-            <Box className="bg-green-50/50 p-4 rounded-xl border border-green-100/50">
-              <Typography variant="subtitle2" className="text-green-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                Contact Person Information
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Contact Person Name" required value={formData.vendor_contactPerson_name} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_name: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Contact Person Mobile Number" value={formData.vendor_contactPerson_mobileNo} onChange={(e) => setFormData({ ...formData, vendor_contactPerson_mobileNo: e.target.value })} variant="outlined" sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-
-            <Box className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50">
-              <Typography variant="subtitle2" className="text-purple-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                Address & Location
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField fullWidth size="small" label="Address" value={formData.vendor_address} onChange={(e) => setFormData({ ...formData, vendor_address: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Pin Code" value={formData.vendor_pinCode} onChange={(e) => setFormData({ ...formData, vendor_pinCode: e.target.value })} sx={{ bgcolor: 'white' }} className="md:col-span-1" />
-                <TextField fullWidth size="small" label="State" value={formData.vendor_state} onChange={(e) => setFormData({ ...formData, vendor_state: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Country" value={formData.vendor_country} onChange={(e) => setFormData({ ...formData, vendor_country: e.target.value })} sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-
-            <Box className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
-              <Typography variant="subtitle2" className="text-amber-700 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                Financial Details
-              </Typography>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <TextField fullWidth size="small" label="Bank Name" value={formData.vendor_bankName} onChange={(e) => setFormData({ ...formData, vendor_bankName: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="Account Number" value={formData.vendor_accountNumber} onChange={(e) => setFormData({ ...formData, vendor_accountNumber: e.target.value })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" label="IFSC Code" value={formData.vendor_ifscCode} onChange={(e) => setFormData({ ...formData, vendor_ifscCode: e.target.value })} sx={{ bgcolor: 'white' }} />
-
-                <FormControl fullWidth size="small">
-                  <InputLabel>Payment Terms</InputLabel>
-                  <Select value={formData.vendor_paymentTerms} label="Payment Terms" onChange={(e) => setFormData({ ...formData, vendor_paymentTerms: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {PAYMENT_TERMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Payment Mode</InputLabel>
-                  <Select value={formData.vendor_preferredPaymentMode} label="Payment Mode" onChange={(e) => setFormData({ ...formData, vendor_preferredPaymentMode: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {PAYMENT_MODES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel>GST Type</InputLabel>
-                  <Select value={formData.vendor_gstType} label="GST Type" onChange={(e) => setFormData({ ...formData, vendor_gstType: e.target.value })} sx={{ bgcolor: 'white' }}>
-                    {GST_TYPES.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                  </Select>
-                </FormControl>
-
-                <TextField fullWidth size="small" type="number" label="Credit Limit" value={formData.vendor_creditLimit} onChange={(e) => setFormData({ ...formData, vendor_creditLimit: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" type="number" label="Opening Balance" value={formData.vendor_openingBalance} onChange={(e) => setFormData({ ...formData, vendor_openingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth size="small" type="number" label="Outstanding Balance" value={formData.vendor_outstandingBalance} onChange={(e) => setFormData({ ...formData, vendor_outstandingBalance: Number(e.target.value) })} sx={{ bgcolor: 'white' }} />
-              </div>
-            </Box>
-          </DialogContent>
-          <DialogActions className="p-4 pt-2">
-            <Button onClick={() => setOpenDialog(false)} className="normal-case text-gray-500 hover:bg-gray-100" size="large">Cancel</Button>
-            <Button variant="contained" onClick={handleSaveVendor} className="!bg-blue-600 normal-case px-8 rounded-lg shadow-blue-200 shadow-md" size="large">
-              {editingVendor ? "Update Vendor" : "Create Vendor"}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      <VendorDialogForm
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSave={handleSaveVendor}
+        isEdit={!!editingVendor}
+        initialData={editingVendor}
+      />
       </Box>
     </AdminLayout>
   );

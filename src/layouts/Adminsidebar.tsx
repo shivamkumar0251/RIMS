@@ -7,14 +7,12 @@ import {
   FaChevronRight,
   FaCog,
   FaHome,
-  FaProductHunt,
   FaShoppingBag,
   FaShoppingCart,
   FaSignOutAlt,
   FaTh,
+  FaChartBar,
 } from "react-icons/fa";
-import { FaShop } from "react-icons/fa6";
-import { MdBrandingWatermark } from "react-icons/md";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -22,7 +20,7 @@ import { logout } from "../redux/slices/authSlice";
 import type { AppDispatch } from "../redux/store/store";
 import { PiOvenDuotone } from "react-icons/pi";
 import { BiSolidPurchaseTag } from "react-icons/bi";
-import { FiSend, FiPlus } from "react-icons/fi";
+import { FiPlus, FiSend } from "react-icons/fi";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -137,12 +135,33 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       to: "/admin/consumables",
     },
     {
-      icon: <FaProductHunt size={18} />,
-      name: "Categories List",
-      to: "/admin/categories",
+      icon: <FaBoxes size={18} />,
+      name: "Setup Store",
+      to: "/admin/setup-store",
     },
-    { icon: <MdBrandingWatermark size={18} />, name: "Brand List", to: "/admin/company" },
-    { icon: <FaShop size={18} />, name: "Vendor List", to: "/admin/vendorList" },
+    {
+      icon: <FaTh size={18} />,
+      name: "Master Lists",
+      to: "/admin/masters",
+      children: [
+        { name: "Categories List", to: "/admin/categories" },
+        { name: "Brand List", to: "/admin/company" },
+        { name: "Vendor List", to: "/admin/vendorList" },
+      ],
+    },
+    {
+      icon: <FaChartBar size={18} />,
+      name: "Reports",
+      to: "/admin/reports",
+      children: [
+        { name: "Purchase Report", to: "/admin/reports/purchase" },
+        { name: "Stock Report", to: "/admin/reports/stock" },
+        { name: "Consumption Report", to: "/admin/reports/consumption" },
+        { name: "Consumables Report", to: "/admin/reports/consumables" },
+        { name: "Sales Report", to: "/admin/reports/sales" },
+        { name: "Purchase Origin Report", to: "/admin/reports/purchase-origin" },
+      ],
+    },
   ];
 
   const handleLogout = () => {
@@ -244,7 +263,8 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                               isGroup = sub.type === "group";
                             }
 
-                            const isSubActive = location.pathname + location.search === subPath;
+                            const isSubActive = location.pathname === subPath.split('?')[0] &&
+                              (subPath.includes('?') ? location.search.includes(subPath.split('?')[1]) : true);
 
                             if (isGroup) return null; // Simplified 
 
@@ -259,14 +279,14 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                                     }`}
                                 >
                                   <span>{subName}</span>
-                                  {item.name !== "Order Management" && (
+                                  {!["Order Management", "Master Lists", "Reports"].includes(item.name) && (
                                     <FiPlus
                                       className={`transition-all duration-200 hover:text-blue-200 cursor-pointer ${isSubActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                       size={16}
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        navigate(`${subPath.split('?')[0]}?action=add`);
+                                        navigate(subPath.includes('?') ? `${subPath}&action=add` : `${subPath}?action=add`);
                                       }}
                                     />
                                   )}

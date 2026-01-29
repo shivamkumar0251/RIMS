@@ -83,6 +83,12 @@ export const API_ENDPOINTS = {
   ADD_BULK_CONSUMABLE: `${API_BASE_URL}/consumableStock/bulk/create`,
   UPDATE_CONSUMABLE: (id: string) => `${API_BASE_URL}/consumableStock/${id}`,
   DELETE_CONSUMABLE: (id: string) => `${API_BASE_URL}/consumableStock/${id}`,
+  // ===== setupStore =====
+  GET_SETUP_STOCK: `${API_BASE_URL}/setupStock`,
+  ADD_SETUP_STOCK: `${API_BASE_URL}/setupStock`,
+  ADD_BULK_SETUP_STOCK: `${API_BASE_URL}/setupStock/bulk/create`,
+  UPDATE_SETUP_STOCK: (id: string) => `${API_BASE_URL}/setupStock/${id}`,
+  DELETE_SETUP_STOCK: (id: string) => `${API_BASE_URL}/setupStock/${id}`,
   // ===== Product Requirements =====
   ADD_PRODUCT_REQUIREMENT: `${API_BASE_URL}/product-requirements`,
   GET_PRODUCT_REQUIREMENTS: `${API_BASE_URL}/product-requirements`,
@@ -90,4 +96,10 @@ export const API_ENDPOINTS = {
   DELETE_PRODUCT_REQUIREMENT: (id: string) => `${API_BASE_URL}/product-requirements/${id}`,
   // ===== Dashboard =====
   GET_DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
+  // ===== Reports =====
+  GET_PURCHASE_REPORT: `${API_BASE_URL}/reports/purchase`,
+  GET_STOCK_REPORT: `${API_BASE_URL}/reports/stock`,
+  GET_CONSUMPTION_REPORT: `${API_BASE_URL}/reports/consumption`,
+  GET_SALES_REPORT: `${API_BASE_URL}/reports/sales`,
+  GET_PURCHASE_ORIGIN_REPORT: `${API_BASE_URL}/reports/purchase-origin`,
 };

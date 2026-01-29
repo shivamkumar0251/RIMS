@@ -29,7 +29,7 @@ import { useSearchParams } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "jspdf-autotable";
-import * as XLSX from 'xlsx';
+// import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -45,6 +45,7 @@ import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, getVendors, selectVendors } from "../../redux/slices/vendorSlice";
 
 import { CreateOrderModal } from "../../components/adminComponents/CreateOrderModal";
+import { getProducts, selectProductState, updateProduct } from "../../redux/slices/productSlice";
 
 export default function OrderManagementPage(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -126,6 +127,16 @@ export default function OrderManagementPage(): JSX.Element {
     if (mode === 'brand' && companyId.length === 0) return false;
     return true;
   }, [mode, vendorId, categoryId, companyId]);
+
+  // Vendor detection for selected items
+  const selectedVendorIds = useMemo(() => {
+    const selectedProds = ordersList.filter(p => selected.includes(p._id));
+    const vIds = selectedProds.map(p => p.vendorsId?._id).filter(Boolean);
+    return Array.from(new Set(vIds));
+  }, [selected, ordersList]);
+
+  const isMultipleVendorsSelected = selectedVendorIds.length > 1;
+  const singleSelectedVendorId = selectedVendorIds.length === 1 ? selectedVendorIds[0] as string : null;
 
   // Load dropdowns
   useEffect(() => {
@@ -267,14 +278,18 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Generic Action Handler
   const handleOrderAction = async (type: "whatsapp" | "pdf" | "excel" | "csv") => {
-    // 1. Identify selected vendor (assuming single vendor selection enforced by UI logic)
-    // If mixed vendors, we might need a distinct check. But current UI enforces single vendor for valid order.
-    // We can pick the vendor from the first selected product or the filter.
+    // 1. Identify selected vendor
+    // Use the filter 'vendorId' if set, otherwise use the auto-detected single vendor from selection
+    const targetVendorId = vendorId || singleSelectedVendorId;
+    const currentVendor = vendorsData.find(v => v._id === targetVendorId);
 
-    // Safer to rely on the filter 'vendorId' being set.
-    const currentVendor = vendorsData.find(v => v._id === vendorId);
     if (!currentVendor) {
       alert("Please select a vendor first.");
+      return;
+    }
+
+    if (isMultipleVendorsSelected) {
+      alert("Please select products from only one vendor.");
       return;
     }
 
@@ -287,7 +302,8 @@ export default function OrderManagementPage(): JSX.Element {
       products: selectedProducts.map(p => ({
         productId: p._id,
         orderQty: qtyMap[p._id]
-      }))
+      })),
+      purchaseType: "Order"
     };
 
     // 3. Save Order to Backend (Always save when "Creating" an order record)
@@ -477,14 +493,32 @@ export default function OrderManagementPage(): JSX.Element {
     [companies, brandSearch]
   );
 
+  ////// other vendor product start
+  const productState = useAppSelector(selectProductState);
+  const products = productState?.products || [];
+  const [otherProductSearch, setOtherProductSearch] = useState("");
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      dispatch(
+        getProducts({
+          search: otherProductSearch || undefined,
+          page: 1,
+          limit: 100,
+        })
+      );
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [dispatch, otherProductSearch]);
+  ////// other vendor product end
+
   return (
     <AdminLayout>
-      <Box className="flex flex-col h-[calc(100vh-10px)]">
-
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Header Section */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-white p-4 shadow-sm border border-gray-100">
-
-          {/* Left Side - Title */}
+        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white shadow-sm border-b border-gray-100 shrink-0">
           <Box className="flex items-center gap-3">
             <Typography variant="h6" className="font-bold text-gray-800">
               {mode === 'vendor' && 'Order Management - By Vendor'}
@@ -494,7 +528,6 @@ export default function OrderManagementPage(): JSX.Element {
             </Typography>
           </Box>
 
-          {/* Right Side - Filter Dropdown (based on mode) */}
           <Box className="flex items-center gap-3">
             {mode === 'vendor' && (
               <Autocomplete
@@ -503,14 +536,13 @@ export default function OrderManagementPage(): JSX.Element {
                 getOptionLabel={(option) => option.vendor_name || ""}
                 value={vendorsData.find(v => v._id === vendorId) || null}
                 onChange={(_, newValue) => {
-                  const newVal = newValue ? newValue._id : "";
+                  const newVal = newValue?._id || "";
                   setVendorId(newVal);
                   const currentParams = Object.fromEntries(searchParams.entries());
                   if (newVal) {
                     setSearchParams({ ...currentParams, vendorId: newVal });
                   } else {
                     delete currentParams.vendorId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -535,7 +567,6 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
                   } else {
                     delete currentParams.categoryId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -560,7 +591,6 @@ export default function OrderManagementPage(): JSX.Element {
                     setSearchParams({ ...currentParams, companyId: newVals.join(',') });
                   } else {
                     delete currentParams.companyId;
-                    delete currentParams.mode;
                     delete currentParams.id;
                     setSearchParams(currentParams);
                   }
@@ -571,346 +601,354 @@ export default function OrderManagementPage(): JSX.Element {
             )}
 
             {shouldShowTable && (
-              <Button
-                variant="contained"
-                size="medium"
-                onClick={() => setCreateOrderOpen(true)}
-                disabled={selected.length === 0}
-              // className="!bg-blue-600 hover:!bg-blue-700 normal-case px-6"
-              >
-                Create Order
-              </Button>
+              <Box className="flex flex-col items-end gap-1">
+                <Button
+                  variant="contained"
+                  size="medium"
+                  onClick={() => setCreateOrderOpen(true)}
+                  disabled={selected.length === 0 || isMultipleVendorsSelected}
+                  className="bg-blue-600 hover:bg-blue-700 normal-case"
+                >
+                  Create Order
+                </Button>
+                {isMultipleVendorsSelected && (
+                  <Typography variant="caption" color="error" className="font-medium">
+                    Multiple vendors selected
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
         </Box>
 
-        {/* Table Section */}
-        {!shouldShowTable ? (
-          <Paper className="flex-1 flex items-center justify-center shadow-md rounded-xl border border-gray-100 bg-white">
-            <Box className="text-center py-20 px-6">
-              <Box className="mb-4">
-                <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
+        {/* Main Content Area */}
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
+          {!shouldShowTable ? (
+            <Paper className="flex-1 flex items-center justify-center shadow-md rounded-xl border border-gray-100 bg-white">
+              <Box className="text-center py-20 px-6">
+                <Box className="mb-4">
+                  <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </Box>
+                <Typography variant="h6" className="text-gray-700 font-semibold mb-2">
+                  {!mode && 'Select an Order Type'}
+                  {mode === 'vendor' && !vendorId && 'Select a Vendor'}
+                  {mode === 'category' && categoryId.length === 0 && 'Select a Category'}
+                  {mode === 'brand' && companyId.length === 0 && 'Select a Brand'}
+                </Typography>
+                <Typography variant="body2" className="text-gray-500 max-w-md mx-auto">
+                  {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to get started.'}
+                  {mode === 'vendor' && !vendorId && 'Please select a vendor from the dropdown above to view available products.'}
+                  {mode === 'category' && categoryId.length === 0 && 'Please select a category from the dropdown above to view available products.'}
+                  {mode === 'brand' && companyId.length === 0 && 'Please select a brand from the dropdown above to view available products.'}
+                </Typography>
               </Box>
-              <Typography variant="h6" className="text-gray-700 font-semibold mb-2">
-                {!mode && 'Select an Order Type'}
-                {mode === 'vendor' && !vendorId && 'Select a Vendor'}
-                {mode === 'category' && categoryId.length === 0 && 'Select a Category'}
-                {mode === 'brand' && companyId.length === 0 && 'Select a Brand'}
-              </Typography>
-              <Typography variant="body2" className="text-gray-500 max-w-md mx-auto">
-                {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to get started.'}
-                {mode === 'vendor' && !vendorId && 'Please select a vendor from the dropdown above to view available products.'}
-                {mode === 'category' && categoryId.length === 0 && 'Please select a category from the dropdown above to view available products.'}
-                {mode === 'brand' && companyId.length === 0 && 'Please select a brand from the dropdown above to view available products.'}
-              </Typography>
-            </Box>
-          </Paper>
-        ) : (
-          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
-            <TableContainer className="flex-1 overflow-auto">
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow className="bg-gray-50">
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        color="primary"
-                        checked={
-                          ordersList.length > 0 &&
-                          selected.length === ordersList.length
-                        }
-                        onChange={toggleAll}
-                      />
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-700">
-                      <Box className="flex items-center gap-2">
-                        Product
-                        <IconButton size="small" onClick={(e) => setProductAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={productSearch ? "text-blue-600" : "text-gray-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(productAnchor)}
-                        anchorEl={productAnchor}
-                        onClose={() => setProductAnchor(null)}
-                        PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Product..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={productSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProductSearch(e.target.value)}
-                            InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                          />
+            </Paper>
+          ) : (
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+
+              <Autocomplete
+                size="small"
+                options={products}
+                value={null} // always clear after select
+                isOptionEqualToValue={(o, v) => o._id === v?._id}
+                getOptionLabel={(p: any) =>
+                  [
+                    p.productName,
+                    p.unit,
+                    p.packSize,
+                    p.categoryId?.categoryName,
+                    p.vendorsId?.vendor_name,
+                    p.companyId?.brandName,
+                  ]
+                    .filter(Boolean)
+                    .join(" | ")
+                }
+
+                // 🔥 SEARCH TRIGGER
+                onInputChange={(_, value, reason) => {
+                  if (reason === "input") {
+                    setOtherProductSearch(value);
+                  }
+                }}
+
+                onChange={async (_, product) => {
+                  if (!product || !vendorId) return;
+
+                  try {
+                    await dispatch(
+                      updateProduct({
+                        productId: product._id,
+                        productData: {
+                          vendorsId: { _id: vendorId },
+                        } as any,
+                      })
+                    ).unwrap();
+
+                    dispatch(
+                      getOrdersProduct({
+                        search,
+                        page: page + 1,
+                        limit: rowsPerPage,
+                        category: categoryId.join(","),
+                        vendor: vendorId,
+                        brand: companyId.join(","),
+                        productType: "",
+                        fromDate,
+                        toDate,
+                      })
+                    );
+
+                    // 🔥 clear search after select
+                    setOtherProductSearch("");
+
+                  } catch (err) {
+                    console.error("Failed to update product vendor", err);
+                  }
+                }}
+
+                sx={{ width: 520 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Add Product to Vendor"
+                  />
+                )}
+              />
+
+
+              <TableContainer className="flex-1"
+                sx={{
+                  maxHeight: {
+                    xs: "70vh",
+                    md: "79vh",
+                  },
+                  overflowY: "auto",
+                }}>
+                <Table stickyHeader size="medium">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox" className="bg-gray-50/80 backdrop-blur-md z-10">
+                        <Checkbox
+                          color="primary"
+                          checked={ordersList.length > 0 && selected.length === ordersList.length}
+                          onChange={toggleAll}
+                        />
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-2">
+                          Product
+                          <IconButton size="small" onClick={(e) => setProductAnchor(e.currentTarget)}>
+                            <FiFilter size={14} className={productSearch ? "text-blue-600" : "text-gray-400"} />
+                          </IconButton>
                         </Box>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-700">
-                      <Box className="flex items-center gap-2">
-                        Category
-                        <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(catAnchor)}
-                        anchorEl={catAnchor}
-                        onClose={() => setCatAnchor(null)}
-                        PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Category..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={catSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCatSearch(e.target.value)}
-                            InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                          />
-                        </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton
-                            onClick={() => { setCategoryId([]); }}
-                            selected={categoryId.length === 0}
-                          >
-                            <Checkbox
+                        <Popover
+                          open={Boolean(productAnchor)}
+                          anchorEl={productAnchor}
+                          onClose={() => setProductAnchor(null)}
+                          PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                        >
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField
+                              placeholder="Search Product..."
                               size="small"
-                              checked={categoryId.length === 0}
-                              indeterminate={categoryId.length > 0 && categoryId.length < categories.length}
+                              fullWidth
+                              variant="outlined"
+                              value={productSearch}
+                              onChange={(e) => setProductSearch(e.target.value)}
+                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
                             />
-                            <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
-                          </ListItemButton>
-                          {filteredCats.map((c) => {
-                            const isSelected = categoryId.includes(c._id);
-                            return (
-                              <ListItemButton
-                                key={c._id}
-                                onClick={() => {
-                                  setCategoryId(prev =>
-                                    isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id]
-                                  );
-                                }}
-                                selected={isSelected}
-                              >
-                                <Checkbox size="small" checked={isSelected} />
-                                <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
-                              </ListItemButton>
-                            );
-                          })}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-700">
-                      <Box className="flex items-center gap-2">
-                        Vendor
-                        <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(vendorAnchor)}
-                        anchorEl={vendorAnchor}
-                        onClose={() => setVendorAnchor(null)}
-                        PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Vendor..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={vendorSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVendorSearch(e.target.value)}
-                            InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                          />
+                          </Box>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-2">
+                          Category
+                          <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
+                            <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
+                          </IconButton>
                         </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
-                            <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '12px' }} />
-                          </ListItemButton>
-                          {filteredVendors.map((v) => (
-                            <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
-                              <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '12px' }} />
+                        <Popover
+                          open={Boolean(catAnchor)}
+                          anchorEl={catAnchor}
+                          onClose={() => setCatAnchor(null)}
+                          PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                        >
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField
+                              placeholder="Search Category..."
+                              size="small"
+                              fullWidth
+                              variant="outlined"
+                              value={catSearch}
+                              onChange={(e) => setCatSearch(e.target.value)}
+                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
+                            />
+                          </Box>
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => setCategoryId([])} selected={categoryId.length === 0}>
+                              <Checkbox size="small" checked={categoryId.length === 0} indeterminate={categoryId.length > 0 && categoryId.length < categories.length} />
+                              <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
                             </ListItemButton>
-                          ))}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-700">
-                      <Box className="flex items-center gap-2">
-                        Brand
-                        <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
-                          <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
-                        </IconButton>
-                      </Box>
-                      <Popover
-                        open={Boolean(brandAnchor)}
-                        anchorEl={brandAnchor}
-                        onClose={() => setBrandAnchor(null)}
-                        PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                      >
-                        <Box className="p-2 border-b bg-gray-50">
-                          <TextField
-                            placeholder="Search Company..."
-                            size="small"
-                            fullWidth
-                            variant="outlined"
-                            value={brandSearch}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBrandSearch(e.target.value)}
-                            InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                          />
+                            {filteredCats.map((c) => {
+                              const isSelected = categoryId.includes(c._id);
+                              return (
+                                <ListItemButton key={c._id} onClick={() => setCategoryId(prev => isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id])} selected={isSelected}>
+                                  <Checkbox size="small" checked={isSelected} />
+                                  <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
+                                </ListItemButton>
+                              );
+                            })}
+                          </List>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-2">
+                          Vendor
+                          <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
+                            <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
+                          </IconButton>
                         </Box>
-                        <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                          <ListItemButton
-                            onClick={() => { setCompanyId([]); }}
-                            selected={companyId.length === 0}
-                          >
-                            <Checkbox
+                        <Popover
+                          open={Boolean(vendorAnchor)}
+                          anchorEl={vendorAnchor}
+                          onClose={() => setVendorAnchor(null)}
+                          PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                        >
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField
+                              placeholder="Search Vendor..."
                               size="small"
-                              checked={companyId.length === 0}
-                              indeterminate={companyId.length > 0 && companyId.length < companies.length}
+                              fullWidth
+                              variant="outlined"
+                              value={vendorSearch}
+                              onChange={(e) => setVendorSearch(e.target.value)}
+                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
                             />
-                            <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
-                          </ListItemButton>
-                          {filteredBrands.map((b) => {
-                            const isSelected = companyId.includes(b._id);
-                            return (
-                              <ListItemButton
-                                key={b._id}
-                                onClick={() => {
-                                  setCompanyId(prev =>
-                                    isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id]
-                                  );
-                                }}
-                                selected={isSelected}
-                              >
-                                <Checkbox size="small" checked={isSelected} />
-                                <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                          </Box>
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
+                              <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '12px' }} />
+                            </ListItemButton>
+                            {filteredVendors.map((v) => (
+                              <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
+                                <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '12px' }} />
                               </ListItemButton>
-                            );
-                          })}
-                        </List>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-700">Unit</TableCell>
-                    <TableCell className="font-bold text-gray-700">Current Store Qty</TableCell>
-                    <TableCell className="font-bold text-gray-700" style={{ width: 140 }}>Order Qty</TableCell>
-                    <TableCell className="font-bold text-gray-700">Created</TableCell>
-                  </TableRow>
-                </TableHead>
+                            ))}
+                          </List>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                        <Box className="flex items-center gap-2">
+                          Brand
+                          <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
+                            <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
+                          </IconButton>
+                        </Box>
+                        <Popover
+                          open={Boolean(brandAnchor)}
+                          anchorEl={brandAnchor}
+                          onClose={() => setBrandAnchor(null)}
+                          PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                        >
+                          <Box className="p-2 border-b bg-gray-50">
+                            <TextField
+                              placeholder="Search Company..."
+                              size="small"
+                              fullWidth
+                              variant="outlined"
+                              value={brandSearch}
+                              onChange={(e) => setBrandSearch(e.target.value)}
+                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
+                            />
+                          </Box>
+                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                            <ListItemButton onClick={() => setCompanyId([])} selected={companyId.length === 0}>
+                              <Checkbox size="small" checked={companyId.length === 0} indeterminate={companyId.length > 0 && companyId.length < companies.length} />
+                              <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
+                            </ListItemButton>
+                            {filteredBrands.map((b) => {
+                              const isSelected = companyId.includes(b._id);
+                              return (
+                                <ListItemButton key={b._id} onClick={() => setCompanyId(prev => isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id])} selected={isSelected}>
+                                  <Checkbox size="small" checked={isSelected} />
+                                  <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                                </ListItemButton>
+                              );
+                            })}
+                          </List>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Unit</TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Pack Size</TableCell>
+                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Order Qty</TableCell>
+                    </TableRow>
+                  </TableHead>
 
-                <TableBody>
-                  {orderState.loading ? (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center" className="py-20">
-                        <CircularProgress size={30} />
-                        <Typography className="mt-2 text-gray-500">Loading products...</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : !shouldShowTable ? (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center" className="py-20">
-                        <Typography variant="h6" className="text-gray-400 font-medium">
-                          {mode === 'vendor' ? "Please select a Vendor" :
-                            mode === 'category' ? "Please select a Category" :
-                              mode === 'brand' ? "Please select a Brand" : "Please select filters from the sidebar"}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : ordersList.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center" className="py-10 text-gray-500">
-                        No products found matching criteria.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    ordersList.map((p) => {
-                      const pid = p._id;
-                      const isSelected = selected.includes(pid);
-
-                      return (
-                        <TableRow key={pid} hover selected={isSelected} className="transition-colors hover:bg-gray-50">
+                  <TableBody>
+                    {orderState.loading ? (
+                      <TableRow><TableCell colSpan={8} align="center" className="py-20"><CircularProgress size={30} /></TableCell></TableRow>
+                    ) : ordersList.length === 0 ? (
+                      <TableRow><TableCell colSpan={8} align="center" className="py-10 text-gray-500">No products found.</TableCell></TableRow>
+                    ) : (
+                      ordersList.map((p) => (
+                        <TableRow key={p._id} hover selected={selected.includes(p._id)}>
                           <TableCell padding="checkbox">
-                            <Checkbox color="primary" checked={isSelected} onChange={() => toggleRow(pid)} />
+                            <Checkbox color="primary" checked={selected.includes(p._id)} onChange={() => toggleRow(p._id)} />
                           </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" className="font-medium text-gray-800">{p.productName}</Typography>
-                            <Typography variant="caption" className="text-gray-500">{p.packSize} | {p.unit}</Typography>
-                          </TableCell>
-                          <TableCell className="text-gray-600 font-medium">{p.categoryId?.categoryName || "N/A"}</TableCell>
-                          <TableCell className="text-gray-600">{p.vendorsId?.vendor_name}</TableCell>
-                          <TableCell className="text-gray-600">{p.companyId?.brandName}</TableCell>
+                          <TableCell className="font-medium text-gray-800">{p.productName}</TableCell>
+                          <TableCell className="text-gray-600">{p.categoryId?.categoryName || "-"}</TableCell>
+                          <TableCell className="text-gray-600">{p.vendorsId?.vendor_name || "-"}</TableCell>
+                          <TableCell className="text-gray-500 italic">{p.companyId?.brandName || "-"}</TableCell>
                           <TableCell className="text-gray-600">{p.unit}</TableCell>
-                          <TableCell className="text-center font-semibold text-gray-700">{p.currentPurchaseQty ?? "-"}</TableCell>
+                          <TableCell className="text-gray-600">{p.packSize || "-"}</TableCell>
                           <TableCell>
                             <TextField
                               size="small"
                               type="number"
+                              className="w-24"
+                              value={qtyMap[p._id] || ""}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setQtyMap((prev) => ({ ...prev, [p._id]: isNaN(val) ? 1 : val }));
+                                if (!selected.includes(p._id)) toggleRow(p._id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
                               placeholder="0"
-                              value={qtyMap[pid] || ""}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                const val = Number(e.target.value);
-                                setQtyMap(prev => ({ ...prev, [pid]: val }));
-                                if (val > 0) {
-                                  if (!selected.includes(pid)) setSelected(prev => [...prev, pid]);
-                                } else {
-                                  setSelected(prev => prev.filter(id => id !== pid));
-                                }
-                              }}
-                              sx={{
-                                "& .MuiInputBase-input": { py: 0.5, px: 1, textAlign: 'center' },
-                                "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
-                                  display: "none",
-                                },
-                                "& input[type=number]": {
-                                  MozAppearance: "textfield",
-                                },
-                              }}
                             />
                           </TableCell>
-                          <TableCell className="text-gray-500 text-xs">
-                            {p.createdAt ? dayjs(p.createdAt).format("DD/MM/YYYY") : "-"}
-                          </TableCell>
                         </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-            <Box className="border-t border-gray-200 bg-gray-50">
               <TablePagination
                 component="div"
-                count={ordersResponse?.total ?? 0}
+                count={ordersResponse?.total || 0}
                 page={page}
                 onPageChange={(_, p) => setPage(p)}
                 rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10));
-                  setPage(0);
-                }}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
                 rowsPerPageOptions={[25, 50, 100]}
+                className="border-t bg-gray-50 shrink-0"
               />
-            </Box>
-          </Paper>
-        )}
-      </Box>
+            </Paper>
+          )}
+        </Box>
 
-      <CreateOrderModal
-        open={createOrderOpen}
-        onClose={() => setCreateOrderOpen(false)}
-        productCount={selected.length}
-        onSendWhatsapp={() => handleOrderAction("whatsapp")}
-        onDownloadPDF={() => handleOrderAction("pdf")}
-        onDownloadExcel={() => handleOrderAction("excel")}
-        onDownloadCSV={() => handleOrderAction("csv")}
-      />
+        <CreateOrderModal
+          open={createOrderOpen}
+          onClose={() => setCreateOrderOpen(false)}
+          productCount={selected.length}
+          onSendWhatsapp={() => handleOrderAction("whatsapp")}
+          onDownloadPDF={() => handleOrderAction("pdf")}
+          onDownloadExcel={() => handleOrderAction("excel")}
+          onDownloadCSV={() => handleOrderAction("csv")}
+        />
+      </Box>
     </AdminLayout>
   );
 }

@@ -14,23 +14,26 @@ import {
   TableRow,
   TextField,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
   Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Card,
   CardContent,
   Divider,
 } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState, useMemo } from "react";
-import { FiSearch, FiRefreshCw, FiFileText, FiDownload } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiFileText, FiDownload, FiCheck, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import AdvancedDateRangePicker from "../../components/common/AdvancedDateRangePicker";
 
 import {
   getConsumableStocks,
@@ -50,9 +53,10 @@ const Consumables: React.FC = () => {
   // ---------------- Filters ----------------
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [dateLabel, setDateLabel] = useState("This Month");
   const [search, setSearch] = useState("");
+
   const [purposeFilter, setPurposeFilter] = useState("");
-  const [userFilter, setUserFilter] = useState("");
 
   // ---------------- Pagination ----------------
   const [page, setPage] = useState(0);
@@ -61,7 +65,9 @@ const Consumables: React.FC = () => {
   // ---------------- Report Modal ----------------
   const [reportOpen, setReportOpen] = useState(false);
 
-  // ---------------- Fetch consumables ----------------
+  // ---------------- Fetch Data ----------------
+
+
   useEffect(() => {
     dispatch(
       getConsumableStocks({
@@ -81,12 +87,17 @@ const Consumables: React.FC = () => {
     toDate,
   ]);
 
-  const handleResetFilters = () => {
-    setSearch("");
+  const handleDateRangeChange = (start: string, end: string, label: string) => {
+    setFromDate(start);
+    setToDate(end);
+    setDateLabel(label);
+  };
+
+  const handleRefresh = () => {
     setPurposeFilter("");
-    setUserFilter("");
     setFromDate("");
     setToDate("");
+    setDateLabel("This Month");
     setPage(0);
   };
 
@@ -102,13 +113,9 @@ const Consumables: React.FC = () => {
       }
 
       // User filter (placeholder - add when user field is available)
-      if (userFilter && !("Admin".toLowerCase().includes(userFilter.toLowerCase()))) {
-        return false;
-      }
-
       return true;
     });
-  }, [consumableStocks, purposeFilter, userFilter]);
+  }, [consumableStocks, purposeFilter]);
 
   // Calculate summary statistics
   const reportSummary = useMemo(() => {
@@ -232,7 +239,6 @@ const Consumables: React.FC = () => {
         doc.text(`Date Range: ${fromDate || "All"} to ${toDate || "All"}`, 14, 44);
         doc.text(`Search: ${search || "None"}`, 14, 50);
         doc.text(`Purpose: ${purposeFilter || "All"}`, 14, 56);
-        doc.text(`User: ${userFilter || "All"}`, 14, 62);
 
         // Summary Statistics
         doc.setFontSize(12);
@@ -301,11 +307,11 @@ const Consumables: React.FC = () => {
   // ---------------- Render ----------------
   return (
     <AdminLayout>
-      <div>
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {/* Filter Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-gray-100 shadow-sm">
+        <Box className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100 bg-white shadow-sm shrink-0">
           {/* Filters Area */}
-          <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <Box className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <TextField
               placeholder="Search product..."
               size="small"
@@ -317,374 +323,384 @@ const Consumables: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <FiSearch className="text-gray-400" />
+                    <FiSearch size={16} className="text-gray-400" />
                   </InputAdornment>
                 ),
               }}
-              className="w-full sm:w-64"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", bgcolor: "#fcfcfc" } }}
+              className="w-full sm:w-44"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fcfcfc", height: '40px', fontSize: '13px' } }}
             />
 
-            <Box className="flex items-center gap-2">
-              <TextField
-                type="date"
-                size="small"
-                label="From"
-                InputLabelProps={{ shrink: true }}
-                value={fromDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromDate(e.target.value)}
-                className="w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-              />
-              <TextField
-                type="date"
-                size="small"
-                label="To"
-                InputLabelProps={{ shrink: true }}
-                value={toDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToDate(e.target.value)}
-                className="w-40"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-              />
-            </Box>
-
-            <TextField
-              select
-              size="small"
-              label="Purpose"
-              value={purposeFilter}
-              onChange={(e) => setPurposeFilter(e.target.value)}
-              className="w-40"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="Usage">Usage</MenuItem>
-              <MenuItem value="Wastage">Wastage</MenuItem>
-            </TextField>
-
-            <TextField
-              size="small"
-              placeholder="Filter by user..."
-              value={userFilter}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserFilter(e.target.value)}
-              className="w-48"
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
+            <AdvancedDateRangePicker
+                fromDate={fromDate || dayjs().startOf('month').format("YYYY-MM-DD")}
+                toDate={toDate || dayjs().format("YYYY-MM-DD")}
+                onRangeChange={handleDateRangeChange}
+                initialLabel={dateLabel}
             />
+
+            <FormControl size="small" className="w-32">
+              <InputLabel sx={{ fontSize: '13px', top: '-3px' }}>Purpose</InputLabel>
+              <Select
+                 label="Purpose"
+                 value={purposeFilter}
+                 onChange={(e) => setPurposeFilter(e.target.value)}
+                 sx={{ borderRadius: "10px", fontSize: '13px', height: '40px' }}
+              >
+                 <MenuItem value="" sx={{ fontSize: '13px' }}>All</MenuItem>
+                 <MenuItem value="Usage" sx={{ fontSize: '13px' }}>Usage</MenuItem>
+                 <MenuItem value="Wastage" sx={{ fontSize: '13px' }}>Wastage</MenuItem>
+              </Select>
+            </FormControl>
+
+
 
             <Button
               size="small"
               variant="text"
-              startIcon={<FiRefreshCw />}
-              onClick={handleResetFilters}
-              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
+              startIcon={loading ? <CircularProgress size={16} /> : <FiRefreshCw size={16} />}
+              onClick={handleRefresh}
+              disabled={loading}
+              className="text-slate-500 hover:text-indigo-600 normal-case font-semibold px-3"
+              sx={{ borderRadius: '10px', fontSize: '13px', height: '40px', border: '1px solid transparent', '&:hover': { bgcolor: 'transparent', borderColor: 'transparent' } }}
             >
-              Reset
+              {loading ? "Refreshing..." : "Refresh"}
             </Button>
           </Box>
 
           {/* Generate Report Button */}
-          <Box className="w-full md:w-auto flex justify-end">
+          <Box className="w-full lg:w-auto flex justify-end">
             <Button
               variant="contained"
-              startIcon={<FiFileText />}
+              startIcon={<FiFileText size={18} />}
               onClick={() => setReportOpen(true)}
-              className="bg-green-600 hover:bg-green-700 normal-case"
+              className="bg-blue-600 hover:bg-blue-700 shadow-md whitespace-nowrap"
+              sx={{ 
+                borderRadius: '10px', 
+                height: '40px', 
+                px: 3,
+                fontSize: '13px',
+                fontWeight: 700,
+                letterSpacing: '0.3px',
+                textTransform: 'none'
+              }}
             >
               Generate Report
             </Button>
           </Box>
         </Box>
 
-        {/* Summary Cards */}
-        <Box className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Records</Typography>
-              <Typography variant="h5" className="font-bold text-blue-600">{reportSummary.recordCount}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Consumed</Typography>
-              <Typography variant="h5" className="font-bold text-purple-600">{reportSummary.totalConsumed}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Usage</Typography>
-              <Typography variant="h5" className="font-bold text-green-600">{reportSummary.totalUsage}</Typography>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent>
-              <Typography variant="caption" className="text-gray-500">Total Wastage</Typography>
-              <Typography variant="h5" className="font-bold text-red-600">{reportSummary.totalWastage}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
+        {/* Content Section */}
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
+          {/* Summary Cards */}
+          <Box className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 shrink-0">
+            <Card className="shadow-sm border-0 border-l-4 border-blue-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Records</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                    <FiFileText size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.recordCount}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 border-l-4 border-purple-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Consumed</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-purple-50 text-purple-600">
+                    <FiDownload size={18} className="translate-y-[1px]" />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalConsumed}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 border-l-4 border-green-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Usage</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-green-50 text-green-600">
+                    <FiCheck size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalUsage}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-0 border-l-4 border-red-500 rounded-xl">
+              <CardContent className="p-3 sm:p-4">
+                <Typography variant="caption" className="text-gray-500 font-medium block mb-1 uppercase tracking-wider">Total Wastage</Typography>
+                <Box className="flex items-center gap-2">
+                  <Box className="p-2 rounded-lg bg-red-50 text-red-600">
+                    <FiX size={18} />
+                  </Box>
+                  <Typography variant="h5" className="font-black text-slate-800 tracking-tight">{reportSummary.totalWastage}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
 
-        {/* Read-Only Table */}
-        <Paper className="shadow-md rounded-xl overflow-hidden border border-gray-100">
-          <TableContainer>
-            <Table>
-              <TableHead className="bg-gray-50">
-                <TableRow>
-                  <TableCell className="font-bold">Date</TableCell>
-                  <TableCell className="font-bold">Product</TableCell>
-                  <TableCell className="font-bold">Category</TableCell>
-                  <TableCell className="font-bold text-center">Consumed Qty</TableCell>
-                  <TableCell className="font-bold">Unit</TableCell>
-                  <TableCell className="font-bold">Purpose</TableCell>
-                  <TableCell className="font-bold">User</TableCell>
-                  <TableCell className="font-bold">Remarks</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" className="py-10">
-                      <CircularProgress size={30} />
-                      <Typography className="mt-2 text-gray-500 text-sm">
-                        Loading consumption logs...
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
-                      No consumption records found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((row) => {
-                    const usageQty = row.transfersToUsage || 0;
-                    const wastageQty = row.transfersToWastage || 0;
-                    const consumedQty = usageQty + wastageQty;
-                    const isWastage = wastageQty > 0 && usageQty === 0;
-                    const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
-
-                    return (
-                      <TableRow key={row._id} hover>
-                        <TableCell className="text-gray-600">
-                          {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" className="font-medium">
-                            {row.productId?.productName}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            className="text-gray-500"
-                          >
-                            {row.productId?.packSize}
-                          </Typography>
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {row.productId?.categoryId?.categoryName || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">
-                          {consumedQty || 0}
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          {row.productId?.unit || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={purpose}
-                            size="small"
-                            color={isWastage ? "error" : "success"}
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          Admin
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-sm max-w-xs truncate">
-                          -
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={allConsumableStocksData?.pagination.total || 0}
-            page={page}
-            onPageChange={(
-              _: React.MouseEvent<HTMLButtonElement> | null,
-              p: number
-            ) => setPage(p)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(
-              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-            ) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            className="border-t bg-gray-50"
-          />
-        </Paper>
-
-        {/* Info Box */}
-        <Box className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <Typography variant="body2" className="text-blue-800">
-            <strong>Note:</strong> This is a read-only consumption log. Records are automatically created when items are consumed from the Kitchen Consumption screen.
-          </Typography>
-        </Box>
-
-        {/* Report Modal */}
-        <Dialog
-          open={reportOpen}
-          onClose={() => setReportOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle className="bg-gray-50 border-b">
-            <Box className="flex items-center justify-between">
-              <Typography variant="h6" className="font-bold">Consumption Report</Typography>
-              <Typography variant="caption" className="text-gray-500">
-                Generated on {dayjs().format("DD/MM/YYYY HH:mm")}
-              </Typography>
-            </Box>
-          </DialogTitle>
-
-          <DialogContent className="mt-4">
-            {/* Filters Applied */}
-            <Box className="mb-4 p-3 bg-gray-50 rounded">
-              <Typography variant="subtitle2" className="font-bold mb-2">Filters Applied:</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Date Range:</strong> {fromDate || "All"} to {toDate || "All"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Search:</strong> {search || "None"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>Purpose:</strong> {purposeFilter || "All"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" className="text-gray-600">
-                    <strong>User:</strong> {userFilter || "All"}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-
-            <Divider className="my-4" />
-
-            {/* Summary Statistics */}
-            <Typography variant="subtitle2" className="font-bold mb-3">Summary Statistics:</Typography>
-            <Grid container spacing={2} className="mb-4">
-              <Grid item xs={6} md={3}>
-                <Card className="bg-blue-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Records</Typography>
-                    <Typography variant="h6" className="font-bold text-blue-600">
-                      {reportSummary.recordCount}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-purple-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Total Consumed</Typography>
-                    <Typography variant="h6" className="font-bold text-purple-600">
-                      {reportSummary.totalConsumed}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-green-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Usage</Typography>
-                    <Typography variant="h6" className="font-bold text-green-600">
-                      {reportSummary.totalUsage}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Card className="bg-red-50">
-                  <CardContent className="text-center">
-                    <Typography variant="caption" className="text-gray-600">Wastage</Typography>
-                    <Typography variant="h6" className="font-bold text-red-600">
-                      {reportSummary.totalWastage}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            <Divider className="my-4" />
-
-            {/* Product Breakdown */}
-            <Typography variant="subtitle2" className="font-bold mb-3">Product Breakdown:</Typography>
-            <TableContainer component={Paper} variant="outlined" className="max-h-64">
-              <Table size="small">
-                <TableHead className="bg-gray-50">
-                  <TableRow>
-                    <TableCell className="font-bold">Product</TableCell>
-                    <TableCell className="font-bold text-right">Consumed</TableCell>
-                    <TableCell className="font-bold text-right">Usage</TableCell>
-                    <TableCell className="font-bold text-right">Wastage</TableCell>
+          {/* Read-Only Table Section */}
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow className="bg-gray-50/50">
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Date</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Product</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Category</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 text-center bg-inherit py-3">Consumed</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Unit</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Purpose</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">User</TableCell>
+                    <TableCell className="font-bold text-[13px] text-gray-700 bg-inherit py-3">Remarks</TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
-                  {reportSummary.productBreakdown.map((product, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell className="text-right font-bold">{product.consumed}</TableCell>
-                      <TableCell className="text-right text-green-600">{product.usage}</TableCell>
-                      <TableCell className="text-right text-red-600">{product.wastage}</TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" className="py-10">
+                        <CircularProgress size={30} />
+                        <Typography className="mt-2 text-gray-500 text-sm">
+                          Loading consumption logs...
+                        </Typography>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" className="py-10 text-gray-500 text-sm">
+                        No consumption records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredData.map((row) => {
+                      const usageQty = row.transfersToUsage || 0;
+                      const wastageQty = row.transfersToWastage || 0;
+                      const consumedQty = usageQty + wastageQty;
+                      const isWastage = wastageQty > 0 && usageQty === 0;
+                      const purpose = wastageQty > 0 ? (usageQty > 0 ? "Both" : "Wastage") : "Usage";
+
+                      return (
+                        <TableRow key={row._id} hover>
+                          <TableCell className="text-gray-600">
+                            {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" className="font-medium">
+                              {row.productId?.productName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              className="text-gray-500"
+                            >
+                              {row.productId?.packSize}
+                            </Typography>
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {row.productId?.categoryId?.categoryName || "N/A"}
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-blue-600">
+                            {consumedQty || 0}
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            {row.productId?.unit || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={purpose}
+                              size="small"
+                              color={isWastage ? "error" : "success"}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            Admin
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-sm max-w-xs truncate">
+                            -
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
-          </DialogContent>
 
-          <DialogActions className="bg-gray-50 border-t p-4">
-            <Button
-              onClick={() => setReportOpen(false)}
-              variant="outlined"
-              className="normal-case"
-            >
-              Close
-            </Button>
-            <Button
-              onClick={handleExportCSV}
-              startIcon={<FiDownload />}
-              variant="outlined"
-              color="success"
-              className="normal-case"
-            >
-              Export CSV
-            </Button>
-            <Button
-              onClick={handleExportPDF}
-              startIcon={<FiDownload />}
-              variant="contained"
-              color="primary"
-              className="normal-case"
-            >
-              Export PDF
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </div>
+            <TablePagination
+              component="div"
+              count={allConsumableStocksData?.pagination.total || 0}
+              page={page}
+              onPageChange={(
+                _: React.MouseEvent<HTMLButtonElement> | null,
+                p: number
+              ) => setPage(p)}
+              rowsPerPage={limit}
+              onRowsPerPageChange={(
+                e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+              ) => {
+                setLimit(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              className="border-t bg-gray-50"
+            />
+          </Paper>
+
+          {/* Info Box */}
+          <Box className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl shrink-0 flex items-center gap-3">
+             <Box className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+               <FiFileText size={16} />
+             </Box>
+            <Typography variant="body2" className="text-blue-800 text-[11px] sm:text-[13px] leading-relaxed">
+              <strong>Note:</strong> This is a <strong>read-only</strong> consumption log. Records are automatically created when items are consumed from the <em>Kitchen Consumption</em> screen.
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Report Modal */}
+      <Dialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle className="bg-gray-50 border-b">
+          <Box className="flex items-center justify-between">
+            <Typography variant="h6" className="font-bold">Consumption Report</Typography>
+            <Typography variant="caption" className="text-gray-500">
+              Generated on {dayjs().format("DD/MM/YYYY HH:mm")}
+            </Typography>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent className="mt-4">
+          {/* Filters Applied */}
+          <Box className="mb-4 p-3 bg-gray-50 rounded">
+            <Typography variant="subtitle2" className="font-bold mb-2">Filters Applied:</Typography>
+            <Box className="grid grid-cols-2 gap-4">
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Date Range:</strong> {fromDate || "All"} to {toDate || "All"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Search:</strong> {search || "None"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" className="text-gray-600">
+                  <strong>Purpose:</strong> {purposeFilter || "All"}
+                </Typography>
+              </Box>
+
+            </Box>
+          </Box>
+
+          <Divider className="my-4" />
+
+          {/* Summary Statistics */}
+          <Typography variant="subtitle2" className="font-bold mb-3">Summary Statistics:</Typography>
+          <Box className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Box>
+              <Card className="bg-blue-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Records</Typography>
+                  <Typography variant="h6" className="font-bold text-blue-600">
+                    {reportSummary.recordCount}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-purple-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Total Consumed</Typography>
+                  <Typography variant="h6" className="font-bold text-purple-600">
+                    {reportSummary.totalConsumed}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-green-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Usage</Typography>
+                  <Typography variant="h6" className="font-bold text-green-600">
+                    {reportSummary.totalUsage}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box>
+              <Card className="bg-red-50">
+                <CardContent className="text-center p-4">
+                  <Typography variant="caption" className="text-gray-600">Wastage</Typography>
+                  <Typography variant="h6" className="font-bold text-red-600">
+                    {reportSummary.totalWastage}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          <Divider className="my-4" />
+
+          {/* Product Breakdown */}
+          <Typography variant="subtitle2" className="font-bold mb-3">Product Breakdown:</Typography>
+          <TableContainer component={Paper} variant="outlined" className="max-h-64">
+            <Table size="small">
+              <TableHead className="bg-gray-50">
+                <TableRow>
+                  <TableCell className="font-bold">Product</TableCell>
+                  <TableCell className="font-bold text-right">Consumed</TableCell>
+                  <TableCell className="font-bold text-right">Usage</TableCell>
+                  <TableCell className="font-bold text-right">Wastage</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {reportSummary.productBreakdown.map((product, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell className="text-right font-bold">{product.consumed}</TableCell>
+                    <TableCell className="text-right text-green-600">{product.usage}</TableCell>
+                    <TableCell className="text-right text-red-600">{product.wastage}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+
+        <DialogActions className="bg-gray-50 border-t p-4">
+          <Button
+            onClick={() => setReportOpen(false)}
+            variant="outlined"
+            className="normal-case"
+          >
+            Close
+          </Button>
+          <Button
+            onClick={handleExportCSV}
+            startIcon={<FiDownload />}
+            variant="outlined"
+            color="success"
+            className="normal-case"
+          >
+            Export CSV
+          </Button>
+          <Button
+            onClick={handleExportPDF}
+            startIcon={<FiDownload />}
+            variant="contained"
+            color="primary"
+            className="normal-case"
+          >
+            Export PDF
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AdminLayout>
   );
 };

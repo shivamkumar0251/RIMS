@@ -15,12 +15,14 @@ import purchaseReducer from '../slices/purchaseSlice';
 import storeStockReducer from '../slices/storeStockSlice';
 import kitchenStockReducer from '../slices/kitchenStockSlice';
 import consumableStockReducer from '../slices/consumableStockSlice';
+import setupStockReducer from '../slices/setupStockSlice';
 import productRequirementReducer from '../slices/productRequirementSlice';
 import franchiseReducer from '../slices/franchiseSlice';
 import outletReducer from '../slices/outletSlice';
 import vendorOrderReducer from '../slices/vendorOrderSlice';
 import franchiseInquiryReducer from '../slices/franchiseInquirySlice';
 import dashboardReducer from '../slices/dashboardSlice';
+import reportReducer from '../slices/reportSlice';
 
 const persistedUserDetailsReducer = persistReducer(
   persistConfig,
@@ -41,12 +43,14 @@ export const store = configureStore({
     storeStock: storeStockReducer,
     kitchenStock: kitchenStockReducer,
     consumableStock: consumableStockReducer,
+    setupStock: setupStockReducer,
     productRequirement: productRequirementReducer,
     franchise: franchiseReducer,
     outlet: outletReducer,
     vendorOrder: vendorOrderReducer,
     franchiseInquiry: franchiseInquiryReducer,
     dashboard: dashboardReducer,
+    reports: reportReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -26,6 +26,7 @@ import StoreStockComponent from "./pages/admin/StoreStock";
 import KitchenIssue from "./pages/admin/KitchenIssue";
 import KitchenConsumption from "./pages/admin/KitchenConsumption";
 import UserRegistrationForm from "./pages/admin/UserRegistration";
+import SetupStockComponent from "./pages/admin/SetupStock";
 import UserOrderManagementPage from "./pages/user/OrderManagementPage";
 import TabbedSettingsUI from "./pages/user/SettingsPage";
 import StoreStockPage from "./pages/user/StoreStockPage";
@@ -37,6 +38,12 @@ import VendorList from "./pages/admin/VendorList";
 import VendorsOrder from "./pages/admin/VendorOrders";
 import Purchase from "./pages/admin/Purchase";
 import VendorOrderDetails from "./pages/admin/VendorOrderDetails";
+import PurchaseReport from "./pages/admin/reports/PurchaseReport";
+import StockReport from "./pages/admin/reports/StockReport";
+import ConsumptionReport from "./pages/admin/reports/ConsumptionReport";
+import ConsumablesReport from "./pages/admin/reports/ConsumablesReport";
+import SalesReport from "./pages/admin/reports/SalesReport";
+import PurchaseOriginReport from "./pages/admin/reports/PurchaseOriginReport";
 import RestaurantSetup from "./pages/admin/RestaurantSetup";
 import ForgetPassword from "./pages/auth/Forgetpassword";
 import ResetPassword from "./pages/auth/Resetpassword";
@@ -73,7 +80,14 @@ function App() {
             <Route path="/admin/kitchenStock" element={<KitchenStock />} />
             <Route path="/admin/kitchen-consumption" element={<KitchenConsumption />} />
             <Route path="/admin/consumables" element={<Consumables />} />
+            <Route path="/admin/setup-store" element={<SetupStockComponent />} />
             <Route path="/admin/restaurant-setup" element={<RestaurantSetup />} />
+            <Route path="/admin/reports/purchase" element={<PurchaseReport />} />
+            <Route path="/admin/reports/stock" element={<StockReport />} />
+            <Route path="/admin/reports/consumption" element={<ConsumptionReport />} />
+            <Route path="/admin/reports/consumables" element={<ConsumablesReport />} />
+            <Route path="/admin/reports/sales" element={<SalesReport />} />
+            <Route path="/admin/reports/purchase-origin" element={<PurchaseOriginReport />} />
             {/* <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} /> */}
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>

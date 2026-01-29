@@ -28,6 +28,7 @@ const storeStockSchema = new mongoose.Schema({
   // computed / stored
   closingStock: { type: Number, required: true, default: 0 },
 
+  expiryDate: { type: Date },
   remarks: { type: String }
 }, { timestamps: true });
 

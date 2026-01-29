@@ -15,50 +15,64 @@ exports.getProducts = async (req, res) => {
     const { search, brand, category, vendor, productType, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
     const query = { franchiseId };
 
+    const PRODUCT_TYPE = ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"];
     if (productType) {
-      query.productType = productType;
+      const types = String(productType).split(',').map(t => t.trim()).filter(Boolean);
+      const validTypes = types.filter(t => PRODUCT_TYPE.includes(t));
+      if (validTypes.length > 0) {
+        query.productType = { $in: validTypes };
+      }
     }
 
-    // Filter by brand
+    // Filter by brand (company)
     if (brand) {
-      if (isObjectId(brand)) {
-        query.companyId = brand;
-      } else {
-        const comp = await CompanyBrands.findOne({ brandName: brand, franchiseId });
-        if (comp) {
-          query.companyId = comp._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const brandParts = String(brand).split(',').map(v => v.trim()).filter(Boolean);
+      const brandIds = [];
+      const brandNames = [];
+      brandParts.forEach(p => {
+        if (isObjectId(p)) brandIds.push(new mongoose.Types.ObjectId(p));
+        else brandNames.push(p);
+      });
+      if (brandNames.length > 0) {
+        const found = await CompanyBrands.find({ brandName: { $in: brandNames }, franchiseId }).select('_id');
+        found.forEach(f => brandIds.push(f._id));
       }
+      if (brandIds.length > 0) query.companyId = { $in: brandIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Filter by category
     if (category) {
-      if (isObjectId(category)) {
-        query.categoryId = category;
-      } else {
-        const cat = await Categorys.findOne({ categoryName: category, franchiseId });
-        if (cat) {
-          query.categoryId = cat._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const catParts = String(category).split(',').map(v => v.trim()).filter(Boolean);
+      const catIds = [];
+      const catNames = [];
+      catParts.forEach(p => {
+        if (isObjectId(p)) catIds.push(new mongoose.Types.ObjectId(p));
+        else catNames.push(p);
+      });
+      if (catNames.length > 0) {
+        const found = await Categorys.find({ categoryName: { $in: catNames }, franchiseId }).select('_id');
+        found.forEach(f => catIds.push(f._id));
       }
+      if (catIds.length > 0) query.categoryId = { $in: catIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Filter by vendor
     if (vendor) {
-      if (isObjectId(vendor)) {
-        query.vendorsId = vendor;
-      } else {
-        const v = await Vendors.findOne({ vendor_name: vendor, franchiseId });
-        if (v) {
-          query.vendorsId = v._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0, page: 1, limit: parseInt(limit) });
-        }
+      const venParts = String(vendor).split(',').map(v => v.trim()).filter(Boolean);
+      const venIds = [];
+      const venNames = [];
+      venParts.forEach(p => {
+        if (isObjectId(p)) venIds.push(new mongoose.Types.ObjectId(p));
+        else venNames.push(p);
+      });
+      if (venNames.length > 0) {
+        const found = await Vendors.find({ vendor_name: { $in: venNames }, franchiseId }).select('_id');
+        found.forEach(f => venIds.push(f._id));
       }
+      if (venIds.length > 0) query.vendorsId = { $in: venIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // Search by product name
@@ -165,11 +179,21 @@ exports.createBulkOrders = async (req, res) => {
 
       productsArray.push({
         productId: orderItem.productId,
-        orderQty: orderQty
+        orderQty: orderQty,
+        rate: orderItem.rate !== undefined ? Number(orderItem.rate) : (product.perUnitRate || 0),
+        discount: Number(orderItem.discount || 0),
+        gstPct: orderItem.gstPct !== undefined ? Number(orderItem.gstPct) : (product.gstPct || 0),
+        amount: 0 // Will be calculated below
       });
 
-      // Calculate total amount: taxableValue * orderQty
-      totalAmount += (product.taxableValue || 0) * orderQty;
+      // Calculate total amount
+      const currentItem = productsArray[productsArray.length - 1];
+      const subtotal = (currentItem.orderQty * currentItem.rate) - currentItem.discount;
+      const taxableVal = Math.max(0, subtotal);
+      const taxAmount = (taxableVal * currentItem.gstPct) / 100;
+      currentItem.amount = taxableVal + taxAmount;
+
+      totalAmount += currentItem.amount;
       totelOrderQty += orderQty;
     }
 
@@ -180,6 +204,7 @@ exports.createBulkOrders = async (req, res) => {
       products: productsArray,
       totalAmount,
       totelOrderQty,
+      purchaseType: req.body.purchaseType || 'Order',
       orderDate: new Date()
     };
 
@@ -195,47 +220,55 @@ exports.createBulkOrders = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
-    const { search, brand, category, vendor, paymentStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
+    const { search, brand, category, vendor, productType, orderStatus, fromDate, toDate, page = 1, limit = 50, sortBy = 'createdAt', sortDir = 'desc' } = req.query;
 
     const query = { franchiseId };
 
     // Build product filter for brand/category/vendor
     let productFilter = { franchiseId };
-    if (brand) {
-      if (isObjectId(brand)) {
-        productFilter.companyId = brand;
-      } else {
-        const comp = await CompanyBrands.findOne({ brandName: brand, franchiseId });
-        if (comp) {
-          productFilter.companyId = comp._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+    const PRODUCT_TYPE = ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"];
+    if (productType) {
+      const types = String(productType).split(',').map(t => t.trim()).filter(Boolean);
+      const validTypes = types.filter(t => PRODUCT_TYPE.includes(t));
+      if (validTypes.length > 0) {
+        productFilter.productType = { $in: validTypes };
       }
+    }
+    if (brand) {
+      const parts = String(brand).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await CompanyBrands.find({ brandName: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
+      }
+      if (ids.length > 0) productFilter.companyId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
     if (category) {
-      if (isObjectId(category)) {
-        productFilter.categoryId = category;
-      } else {
-        const cat = await Categorys.findOne({ categoryName: category, franchiseId });
-        if (cat) {
-          productFilter.categoryId = cat._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+      const parts = String(category).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await Categorys.find({ categoryName: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
       }
+      if (ids.length > 0) productFilter.categoryId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
     if (vendor) {
-      if (isObjectId(vendor)) {
-        productFilter.vendorsId = vendor;
-      } else {
-        const v = await Vendors.findOne({ vendor_name: vendor, franchiseId });
-        if (v) {
-          productFilter.vendorsId = v._id;
-        } else {
-          return res.status(200).json({ success: true, data: [], total: 0 });
-        }
+      const parts = String(vendor).split(',').map(v => v.trim()).filter(Boolean);
+      const ids = [];
+      const names = [];
+      parts.forEach(p => { if (isObjectId(p)) ids.push(new mongoose.Types.ObjectId(p)); else names.push(p); });
+      if (names.length > 0) {
+        const found = await Vendors.find({ vendor_name: { $in: names }, franchiseId }).select('_id');
+        found.forEach(f => ids.push(f._id));
       }
+      if (ids.length > 0) productFilter.vendorsId = { $in: ids };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // If any product filter exists, find matching product IDs
@@ -282,8 +315,13 @@ exports.getOrders = async (req, res) => {
       }
     }
     // ✅ Payment status filter
-    if (paymentStatus) {
-      query.paymentStatus = paymentStatus;
+    if (orderStatus) {
+      if (orderStatus === "Delivered") {
+        query.orderStatus = { $ne: "Draft" };
+      } else {
+
+        query.orderStatus = orderStatus;
+      }
     }
 
     const p = Math.max(1, parseInt(page));
@@ -308,9 +346,39 @@ exports.getOrders = async (req, res) => {
       });
 
     const total = await OrderRequired.countDocuments(query);
+
+    // Enrich orders to ensure rate/discount/gstPct/amount are set (backward compatibility)
+    const enrichedOrders = orders.map(order => {
+      const o = order.toObject();
+      if (o.products && Array.isArray(o.products)) {
+        o.products = o.products.map(p => {
+          if (p.productId) {
+            // Backfill rate/gst/discount for old orders or if 0
+            if (!p.rate) p.rate = p.productId.perUnitRate || 0;
+            if (p.gstPct === undefined) p.gstPct = p.productId.gstPct || 0;
+            if (p.discount === undefined) p.discount = 0;
+
+            // Recalculate amount if 0
+            if (!p.amount || p.amount === 0) {
+              const subtotal = (p.orderQty * p.rate) - p.discount;
+              const taxableVal = Math.max(0, subtotal);
+              const taxAmount = (taxableVal * p.gstPct) / 100;
+              p.amount = taxableVal + taxAmount;
+            }
+          }
+          return p;
+        });
+
+        // Ensure totalAmount matches sum of products if it seems wrong or 0? 
+        // Actually trust stored totalAmount, but maybe recalculate for safety?
+        // Let's stick to just enriching items for now so UI is happy.
+      }
+      return o;
+    });
+
     return res.status(200).json({
       success: true,
-      data: orders,
+      data: enrichedOrders,
       total,
       page: p,
       limit: l
@@ -372,11 +440,21 @@ exports.updateOrderProducts = async (req, res) => {
 
       productsArray.push({
         productId: orderItem.productId,
-        orderQty: orderQty
+        orderQty: orderQty,
+        rate: orderItem.rate !== undefined ? Number(orderItem.rate) : (product.perUnitRate || 0),
+        discount: Number(orderItem.discount || 0),
+        gstPct: orderItem.gstPct !== undefined ? Number(orderItem.gstPct) : (product.gstPct || 0),
+        amount: 0
       });
 
-      // Calculate total amount: taxableValue * orderQty
-      totalAmount += (product.taxableValue || 0) * orderQty;
+      // Calculate total amount
+      const currentItem = productsArray[productsArray.length - 1];
+      const subtotal = (currentItem.orderQty * currentItem.rate) - currentItem.discount;
+      const taxableVal = Math.max(0, subtotal);
+      const taxAmount = (taxableVal * currentItem.gstPct) / 100;
+      currentItem.amount = taxableVal + taxAmount;
+
+      totalAmount += currentItem.amount;
       totelOrderQty += orderQty;
     }
 
@@ -450,11 +528,17 @@ exports.deleteOrderItems = async (req, res) => {
     let totelOrderQty = 0;
 
     for (const orderItem of updatedProducts) {
-      const product = await Products.findById(orderItem.productId);
-      if (product) {
-        totalAmount += (product.taxableValue || 0) * (orderItem.orderQty || 0);
-        totelOrderQty += (orderItem.orderQty || 0);
+      if (orderItem.amount && orderItem.amount > 0) {
+        // Use stored amount if available (new logic)
+        totalAmount += orderItem.amount;
+      } else {
+        // Fallback for old orders: re-fetch product
+        const product = await Products.findById(orderItem.productId);
+        if (product) {
+          totalAmount += (product.taxableValue || 0) * (orderItem.orderQty || 0);
+        }
       }
+      totelOrderQty += (orderItem.orderQty || 0);
     }
 
     const updated = await OrderRequired.findOneAndUpdate(
@@ -519,7 +603,7 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
     const { id } = req.params;
-    const { products, status } = req.body;
+    const { products, orderStatus } = req.body;
 
     // Validation
     if (!id) {
@@ -527,10 +611,10 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
     }
 
     // If neither products nor status is provided, it's a bad request
-    if (!status && (!products || !Array.isArray(products) || products.length === 0)) {
+    if (!orderStatus && (!products || !Array.isArray(products) || products.length === 0)) {
       return res.status(400).json({
         success: false,
-        message: 'products array or status is required'
+        message: 'products array or orderStatus is required'
       });
     }
 
@@ -540,17 +624,17 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Update status if provided
-    if (status) {
-      order.status = status;
+    // Update orderStatus if provided
+    if (orderStatus) {
+      order.orderStatus = orderStatus;
     }
 
-    // If no products to update, just save the status and return
+    // If no products to update, just save the orderStatus and return
     if (!products || !Array.isArray(products) || products.length === 0) {
       await order.save();
       return res.status(200).json({
         success: true,
-        message: 'Order status updated successfully',
+        message: 'Order orderStatus updated successfully',
         data: order
       });
     }
@@ -636,17 +720,9 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
       }
     }
 
-    // Update paymentStatus based on comparison
-    let paymentStatus = 'Pending';
-    if (order.totalAmount === totalClosingAmount) {
-      paymentStatus = 'Paid';
-    } else if (totalClosingAmount > 0 && totalClosingAmount !== order.totalAmount) {
-      paymentStatus = 'Partial';
-    }
-
     // Update order
     order.totalClosingAmount = totalClosingAmount;
-    order.paymentStatus = paymentStatus;
+    order.orderStatus = orderStatus;
     await order.save();
 
     // Create or update Purchase records for each product
@@ -661,6 +737,8 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
         // Update existing purchase: set rcvdPurchaseQty and add to currentPurchaseQty
         existingPurchase.rcvdPurchaseQty = prod.sendToPurchaseQty;
         existingPurchase.currentPurchaseQty = (existingPurchase.currentPurchaseQty || 0) + prod.sendToPurchaseQty;
+        existingPurchase.purchaseType = order.purchaseType || 'Order';
+        existingPurchase.orderId = id;
         await existingPurchase.save();
         purchaseUpdates.push(existingPurchase);
       } else {
@@ -670,7 +748,9 @@ exports.vendorUpdatesendToPurchaseQty = async (req, res) => {
           productId: prod.productId,
           rcvdPurchaseQty: prod.sendToPurchaseQty,
           sendToStoreQty: 0,
-          currentPurchaseQty: prod.sendToPurchaseQty
+          currentPurchaseQty: prod.sendToPurchaseQty,
+          purchaseType: order.purchaseType || 'Order',
+          orderId: id
         });
         purchaseUpdates.push(newPurchase);
       }

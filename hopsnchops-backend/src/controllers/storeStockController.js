@@ -36,7 +36,7 @@ const rolloverKitchenIfNeeded = (doc) => {
 exports.addStoreStock = async (req, res) => {
   try {
     const franchiseId = req.user.franchiseId;
-    const { productId: rawProductId, qty } = req.body;
+    const { productId: rawProductId, qty, type } = req.body;
 
     const productId = rawProductId?._id || rawProductId;
     if (!productId) {
@@ -64,36 +64,46 @@ exports.addStoreStock = async (req, res) => {
         rcvdStoreQty: 0,
         transfersToKitchenStore: 0,
         closingStock: 0,
+        expiryDate: req.body.expiryDate
       });
     } else {
       rolloverIfNeeded(storeStock);
     }
 
-    // Subtract from closingStock and record transfer out
-    storeStock.transfersToKitchenStore = (storeStock.transfersToKitchenStore || 0) + transferQty;
+    if (type === 'receipt') {
+      // Direct receipt from vendor/purchase
+      storeStock.rcvdStoreQty = (storeStock.rcvdStoreQty || 0) + transferQty;
+    } else {
+      // Transfer OUT to kitchen
+      storeStock.transfersToKitchenStore = (storeStock.transfersToKitchenStore || 0) + transferQty;
+    }
+
     storeStock.closingStock = Math.max(0, (storeStock.openingStock || 0) + (storeStock.rcvdStoreQty || 0) - (storeStock.transfersToKitchenStore || 0));
     await storeStock.save();
 
-    // Update or create kitchen stock (add to rcvdKitchenQty)
-    let kitchenStock = await KitchenStocks.findOne({ franchiseId, productId }).sort({ updatedAt: -1 });
-    if (!kitchenStock) {
-      kitchenStock = await KitchenStocks.create({
-        franchiseId,
-        productId,
-        openingStock: 0,
-        rcvdKitchenQty: transferQty,
-        closingStock: transferQty,
-      });
-    } else {
-      rolloverKitchenIfNeeded(kitchenStock);
-      kitchenStock.rcvdKitchenQty = (kitchenStock.rcvdKitchenQty || 0) + transferQty;
-      kitchenStock.closingStock = Math.max(0, (kitchenStock.openingStock || 0) + (kitchenStock.rcvdKitchenQty || 0) - (kitchenStock.transfersToConsumable || 0));
-      await kitchenStock.save();
+    let kitchenStock = null;
+    if (type !== 'receipt') {
+      // Update or create kitchen stock (ONLY for transfers)
+      kitchenStock = await KitchenStocks.findOne({ franchiseId, productId }).sort({ updatedAt: -1 });
+      if (!kitchenStock) {
+        kitchenStock = await KitchenStocks.create({
+          franchiseId,
+          productId,
+          openingStock: 0,
+          rcvdKitchenQty: transferQty,
+          closingStock: transferQty,
+        });
+      } else {
+        rolloverKitchenIfNeeded(kitchenStock);
+        kitchenStock.rcvdKitchenQty = (kitchenStock.rcvdKitchenQty || 0) + transferQty;
+        kitchenStock.closingStock = Math.max(0, (kitchenStock.openingStock || 0) + (kitchenStock.rcvdKitchenQty || 0) - (kitchenStock.transfersToConsumable || 0));
+        await kitchenStock.save();
+      }
     }
 
     return res.status(201).json({
       success: true,
-      message: "Transfer to kitchen recorded",
+      message: type === 'receipt' ? "Stock received successfully" : "Transfer to kitchen recorded",
       data: { storeStock, kitchenStock }
     });
 
@@ -130,7 +140,7 @@ exports.addBulkStoreStock = async (req, res) => {
     // Process each transfer
     for (let i = 0; i < transfers.length; i++) {
       try {
-        const { productId: rawProductId, qty } = transfers[i];
+        const { productId: rawProductId, qty, type } = transfers[i];
 
         const productId = rawProductId?._id || rawProductId;
         if (!productId) {
@@ -173,30 +183,40 @@ exports.addBulkStoreStock = async (req, res) => {
             rcvdStoreQty: 0,
             transfersToKitchenStore: 0,
             closingStock: 0,
+            expiryDate: transfers[i].expiryDate
           });
         } else {
           rolloverIfNeeded(storeStock);
         }
 
-        // Subtract from closingStock and record transfer out
-        storeStock.transfersToKitchenStore = (storeStock.transfersToKitchenStore || 0) + transferQty;
+        if (type === 'receipt') {
+          // Direct receipt from vendor/purchase
+          storeStock.rcvdStoreQty = (storeStock.rcvdStoreQty || 0) + transferQty;
+        } else {
+          // Transfer OUT to kitchen
+          storeStock.transfersToKitchenStore = (storeStock.transfersToKitchenStore || 0) + transferQty;
+        }
+
         storeStock.closingStock = Math.max(0, (storeStock.openingStock || 0) + (storeStock.rcvdStoreQty || 0) - (storeStock.transfersToKitchenStore || 0));
         await storeStock.save();
 
-        // Update or create kitchen stock (add to openingStock and rcvdKitchenQty)
-        let kitchenStock = await KitchenStocks.findOne({ franchiseId, productId }).sort({ createdAt: -1 });
-        if (!kitchenStock) {
-          kitchenStock = await KitchenStocks.create({
-            franchiseId,
-            productId,
-            openingStock: transferQty,
-            rcvdKitchenQty: transferQty,
-            closingStock: transferQty,
-          });
-        } else {
-          kitchenStock.rcvdKitchenQty = (kitchenStock.rcvdKitchenQty || 0) + transferQty;
-          kitchenStock.closingStock = Math.max(0, (kitchenStock.openingStock || 0) + (kitchenStock.rcvdKitchenQty || 0) - (kitchenStock.transfersToConsumable || 0));
-          await kitchenStock.save();
+        let kitchenStock = null;
+        if (type !== 'receipt') {
+          // Update or create kitchen stock (ONLY for transfers)
+          kitchenStock = await KitchenStocks.findOne({ franchiseId, productId }).sort({ createdAt: -1 });
+          if (!kitchenStock) {
+            kitchenStock = await KitchenStocks.create({
+              franchiseId,
+              productId,
+              openingStock: transferQty,
+              rcvdKitchenQty: transferQty,
+              closingStock: transferQty,
+            });
+          } else {
+            kitchenStock.rcvdKitchenQty = (kitchenStock.rcvdKitchenQty || 0) + transferQty;
+            kitchenStock.closingStock = Math.max(0, (kitchenStock.openingStock || 0) + (kitchenStock.rcvdKitchenQty || 0) - (kitchenStock.transfersToConsumable || 0));
+            await kitchenStock.save();
+          }
         }
 
         results.successful.push({
@@ -215,7 +235,7 @@ exports.addBulkStoreStock = async (req, res) => {
     const httpStatus = results.failed.length === 0 ? 201 : results.successful.length === 0 ? 400 : 207;
     return res.status(httpStatus).json({
       success: results.failed.length === 0,
-      message: "Bulk transfer completed",
+      message: "Bulk operation completed",
       data: results
     });
 
@@ -260,6 +280,7 @@ exports.getStoreStock = async (req, res) => {
     }
 
     // Sanity Fix: Correct any negative closingStock or double-counting on creation day
+    // ALSO: Recovery for the bug where Purchase movements were logged as transfers
     const today = normalizeDate(Date.now());
     await StoreStock.updateMany(
       { 
@@ -271,18 +292,53 @@ exports.getStoreStock = async (req, res) => {
               { createdAt: { $gte: today } },
               { openingStock: { $gt: 0 } }
             ]
+          },
+          {
+            $and: [
+              { openingStock: 0 },
+              { rcvdStoreQty: 0 },
+              { transfersToKitchenStore: { $gt: 0 } }
+            ]
           }
         ]
       },
       [
         {
           $set: {
-            openingStock: { $cond: [{ $gte: ["$createdAt", today] }, 0, "$openingStock"] },
-            closingStock: { $max: [0, { $subtract: [{ $add: [{ $cond: [{ $gte: ["$createdAt", today] }, 0, "$openingStock"] }, "$rcvdStoreQty"] }, "$transfersToKitchenStore"] }] }
+            // If it was a bug (0 opening, 0 rcvd but has transfers), move transfer to rcvd
+            rcvdStoreQty: { 
+              $cond: [
+                { $and: [{ $eq: ["$openingStock", 0] }, { $eq: ["$rcvdStoreQty", 0] }, { $gt: ["$transfersToKitchenStore", 0] }] },
+                "$transfersToKitchenStore",
+                "$rcvdStoreQty"
+              ]
+            },
+            transfersToKitchenStore: {
+              $cond: [
+                { $and: [{ $eq: ["$openingStock", 0] }, { $eq: ["$rcvdStoreQty", 0] }, { $gt: ["$transfersToKitchenStore", 0] }] },
+                0,
+                "$transfersToKitchenStore"
+              ]
+            },
+            openingStock: { $cond: [{ $gte: ["$createdAt", today] }, 0, "$openingStock"] }
+          }
+        },
+        {
+          $set: {
+            closingStock: { $max: [0, { $subtract: [{ $add: ["$openingStock", "$rcvdStoreQty"] }, "$transfersToKitchenStore"] }] }
           }
         }
       ]
     );
+
+    // 2. Cleanup: Remove completely empty records to avoid UI clutter
+    await StoreStock.deleteMany({
+      franchiseId,
+      openingStock: 0,
+      rcvdStoreQty: 0,
+      transfersToKitchenStore: 0,
+      closingStock: 0
+    });
 
     // auto rollover: if last update before today, set openingStock = closingStock
     await StoreStock.updateMany({ franchiseId, updatedAt: { $lt: today } }, [
@@ -306,7 +362,7 @@ exports.getStoreStock = async (req, res) => {
     let stocks = await StoreStock.find(query)
       .populate({
         path: "productId",
-        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId",
+        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId expiryDate",
         populate: [
           { path: "categoryId", select: "_id categoryName" },
           { path: "vendorsId", select: "_id vendor_name" },
@@ -352,10 +408,21 @@ exports.updateStoreStock = async (req, res) => {
       });
     }
 
+    const populated = await StoreStock.findById(updatedStoreStock._id)
+      .populate({
+        path: "productId",
+        select: "productName unit packSize taxableValue perUnitRate stockAlert categoryId vendorsId companyId expiryDate",
+        populate: [
+          { path: "categoryId", select: "_id categoryName" },
+          { path: "vendorsId", select: "_id vendor_name" },
+          { path: "companyId", select: "_id brandName" }
+        ]
+      });
+
     return res.status(200).json({
       success: true,
       message: "StoreStock updated successfully",
-      data: updatedStoreStock
+      data: populated
     });
 
   } catch (error) {

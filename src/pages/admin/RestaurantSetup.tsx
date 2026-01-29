@@ -11,12 +11,14 @@ import {
   TableHead,
   TableRow,
   Button,
-  // TextField,
-  // InputAdornment,
+  TablePagination,
   IconButton,
+  Typography,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 
-import { FiPlus, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiEdit, FiTrash2, FiSearch } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
@@ -24,40 +26,13 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
+import { addProduct, updateProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-hot-toast";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
 import VendorModal from "../../layouts/VendorModal";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
 
-function CustomTabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `simple-tab-${index}`,
-    "aria-controls": `simple-tabpanel-${index}`,
-  };
-}
 
 export default function RestaurantSetup() {
   const [value, setValue] = useState(0);
@@ -76,17 +51,46 @@ export default function RestaurantSetup() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [editData, setEditData] = useState<Partial<ProductInterface>>({});
+  const [searchName, setSearchName] = useState("");
+
+  const refreshProducts = () => {
+    dispatch(getProducts({
+      page: 1,
+      limit: 1000,
+      productType: "Equipment,Crockery,Furniture",
+      search: searchName || undefined
+    }));
+  };
 
   React.useEffect(() => {
     dispatch(getCategories({ page: 1, limit: 1000 }));
     dispatch(getCompanies({ page: 1, limit: 1000 }));
     dispatch(getVendorNameList());
-    dispatch(getProducts({ page: 1, limit: 1000 }));
   }, [dispatch]);
+
+  React.useEffect(() => {
+    refreshProducts();
+  }, [dispatch, searchName]);
+
 
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
+    setPage(0); // Reset page on tab change
+  };
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const categories = ["Equipment", "Crockery", "Furniture"];
@@ -96,6 +100,15 @@ export default function RestaurantSetup() {
   const crockeryProducts = products.filter((p: ProductInterface) => p.productType === "Crockery");
   const furnitureProducts = products.filter((p: ProductInterface) => p.productType === "Furniture");
 
+  const paginatedEquipment = equipmentProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedCrockery = crockeryProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedFurniture = furnitureProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const currentCount = [equipmentProducts.length, crockeryProducts.length, furnitureProducts.length][value];
+  const currentProducts = [paginatedEquipment, paginatedCrockery, paginatedFurniture][value];
+  const currentCategoryLabel = ["Equipment Name", "Crockery Name", "Furniture Name"][value];
+
+
   const currentCategory = categories[value] as string;
 
   // Action Handling
@@ -103,9 +116,17 @@ export default function RestaurantSetup() {
   const isAddMode = action === "add";
 
   const handleCloseForm = () => {
+    setIsEdit(false);
+    setEditData({});
     navigate("/admin/restaurant-setup");
     // Refresh products after closing form
-    dispatch(getProducts({ page: 1, limit: 1000 }));
+    dispatch(getProducts({ page: 1, limit: 1000, productType: "Equipment,Crockery,Furniture" }));
+  };
+
+  const handleEditProduct = (item: ProductInterface) => {
+    setEditData(item);
+    setIsEdit(true);
+    navigate("?action=add");
   };
 
   const handleSaveProduct = async (productData: ProductInterface) => {
@@ -115,16 +136,21 @@ export default function RestaurantSetup() {
         gstPct: Number(productData.gstPct || 0),
         taxableValue: Number(productData.taxableValue || 0),
         perUnitRate: Number(productData.perUnitRate || 0),
-        // Ensure we send string IDs if objects are populated
-        categoryId: productData.categoryId?._id ? productData.categoryId : undefined,
-        vendorsId: productData.vendorsId?._id ? productData.vendorsId : undefined,
-        companyId: productData.companyId?._id ? productData.companyId : undefined,
+        // Ensure we send string IDs
+        categoryId: typeof productData.categoryId === 'object' ? productData.categoryId?._id : productData.categoryId,
+        vendorsId: typeof productData.vendorsId === 'object' ? productData.vendorsId?._id : productData.vendorsId,
+        companyId: typeof productData.companyId === 'object' ? productData.companyId?._id : productData.companyId,
       };
 
-      await dispatch(addProduct(payload)).unwrap();
-      toast.success("Item added successfully");
-      dispatch(getProducts({ page: 1, limit: 1000 }));
-      navigate("/admin/restaurant-setup");
+      if (isEdit && productData._id) {
+        await dispatch(updateProduct({ productId: productData._id, productData: payload })).unwrap();
+        toast.success("Item updated successfully");
+      } else {
+        await dispatch(addProduct(payload)).unwrap();
+        toast.success("Item added successfully");
+      }
+
+      handleCloseForm();
     } catch (err: any) {
       toast.error(err.message || "Failed to save item");
     }
@@ -158,274 +184,157 @@ export default function RestaurantSetup() {
 
   return (
     <AdminLayout>
-      <div>
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {!isAddMode ? (
-          <>
-            <Paper className="shadow-md rounded-xl overflow-hidden">
-              <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1 }} className="flex flex-row flex-wrap justify-between items-center">
+          <Box className="flex-1 flex flex-col overflow-hidden">
+            <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white min-h-0">
+              {/* Header Area: Tabs & Search */}
+              <Box className="flex flex-col md:flex-row items-center justify-between px-4 gap-4 border-b border-gray-100 bg-white shrink-0">
                 <Tabs
                   value={value}
                   onChange={handleChange}
-                  aria-label="restaurant setup tabs"
-                  textColor="primary"
-                  indicatorColor="primary"
+                  sx={{
+                    '& .MuiTab-root': {
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      minWidth: 100,
+                      py: 2,
+                      color: 'text.secondary',
+                      '&.Mui-selected': { color: 'primary.main' },
+                    },
+                    '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+                  }}
                 >
-                  <Tab
-                    label="Equipment"
-                    {...a11yProps(0)}
-                    className="normal-case font-semibold"
-                  />
-                  <Tab
-                    label="Crockery"
-                    {...a11yProps(1)}
-                    className="normal-case font-semibold"
-                  />
-                  <Tab
-                    label="Furniture"
-                    {...a11yProps(2)}
-                    className="normal-case font-semibold"
-                  />
+                  <Tab label="Equipment" />
+                  <Tab label="Crockery" />
+                  <Tab label="Furniture" />
                 </Tabs>
-                <Button
-                  variant="contained"
-                  startIcon={<FiPlus />}
-                  onClick={() => navigate("?action=add")}
-                  className="!bg-blue-600 hover:!bg-blue-700 normal-case"
-                >
-                  Add {currentCategory}
-                </Button>
+
+                <Box className="flex items-center gap-3 w-full md:w-auto pb-2 md:pb-0">
+                  <TextField
+                    placeholder={`Search ${currentCategory.toLowerCase()}...`}
+                    size="small"
+                    value={searchName}
+                    onChange={(e) => { setSearchName(e.target.value); setPage(0); }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FiSearch className="text-gray-400" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    className="flex-1 md:w-64"
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<FiPlus />}
+                    onClick={() => navigate("?action=add")}
+                    size="small"
+                    className="bg-blue-600 hover:bg-blue-700 normal-case shadow-none h-[38px] px-4 shrink-0"
+                  >
+                    Add {currentCategory}
+                  </Button>
+                </Box>
               </Box>
 
-              {/* <div className="p-4 flex justify-between items-center bg-gray-50/50">
-                <TextField
-                  size="small"
-                  placeholder={`Search ${currentCategory}...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FiSearch className="text-gray-400" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  className="w-full sm:w-80 bg-white"
-                />
-              </div> */}
 
-              <CustomTabPanel value={value} index={0}>
-                <TableContainer>
-                  <Table>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Equipment Name</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
+              <Box className="flex-1 flex flex-col overflow-hidden min-h-0">
+                <TableContainer className="flex-1 overflow-auto relative min-h-[200px]">
+                  <Table stickyHeader size="medium">
+                    <TableHead>
+                      <TableRow sx={{ '& th': { borderBottom: '1px solid', borderColor: 'divider' } }}>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]" sx={{ width: 50 }}>S/N</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]" sx={{ minWidth: 160 }}>{currentCategoryLabel}</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Category</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Vendor</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Brand</TableCell>
+                        <TableCell className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px] text-center">GST</TableCell>
+                        <TableCell align="right" className="bg-slate-50 font-semibold text-slate-500 py-4 uppercase tracking-wider text-[11px]">Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {equipmentProducts.length === 0 ? (
+                      {currentProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} align="center" className="py-8 text-gray-500">
-                            No equipment found. Click "Add Equipment" to get started.
+                          <TableCell colSpan={7} align="center" className="py-20 text-gray-500 text-sm">
+                            No {currentCategory.toLowerCase()} found. Click "Add {currentCategory}" to get started.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        equipmentProducts.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell className="font-medium text-blue-600">
-                              {item.productName}
+                        currentProducts.map((item: ProductInterface, idx: number) => (
+                          <TableRow key={item._id} hover className="group transition-colors duration-200">
+                            <TableCell className="py-2.5 text-slate-500 text-[12px] font-medium">
+                              {page * rowsPerPage + idx + 1}
                             </TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
+                            <TableCell className="py-2.5">
+                              <Box className="flex flex-col gap-0.5">
+                                <Typography className="font-semibold text-slate-800 text-[13px] leading-tight">
+                                  {item.productName}
+                                </Typography>
+                                <Typography className="text-slate-400 text-[11px] leading-tight truncate max-w-[180px]">
+                                  {item.productDescription || "-"}
+                                </Typography>
+                              </Box>
                             </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px] font-medium capitalize">
+                                {item.categoryId?.categoryName || 'N/A'}
+                              </Typography>
                             </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
-                                  <FiEdit size={18} />
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px]">
+                                {item.vendorsId?.vendor_name || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="py-2.5">
+                              <Typography className="text-slate-600 text-[13px] font-medium italic">
+                                {item.companyId?.brandName || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className="text-center py-2.5">
+                              <Box className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[11px] font-bold inline-block">
+                                {item.gstPct}%
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" className="py-2.5">
+                              <Box className="flex gap-0.5 justify-end">
+                                <IconButton onClick={() => handleEditProduct(item)} size="small" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                  <FiEdit size={16} />
                                 </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
+                                <IconButton size="small" className="text-slate-400 hover:text-red-600 hover:bg-red-50">
+                                  <FiTrash2 size={16} />
                                 </IconButton>
-                              </div>
+                              </Box>
                             </TableCell>
                           </TableRow>
-                        )))}
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </CustomTabPanel>
+              </Box>
 
-              <CustomTabPanel value={value} index={1}>
-                <TableContainer>
-                  <Table>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Item Name</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {crockeryProducts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={10} align="center" className="py-8 text-gray-500">
-                            No crockery found. Click "Add Crockery" to get started.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        crockeryProducts.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell className="font-medium text-orange-600">
-                              {item.productName}
-                            </TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
-                                  <FiEdit size={18} />
-                                </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
-                                </IconButton>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CustomTabPanel>
 
-              <CustomTabPanel value={value} index={2}>
-                <TableContainer>
-                  <Table>
-                    <TableHead className="bg-gray-50">
-                      <TableRow>
-                        <TableCell className="font-bold">S/N</TableCell>
-                        <TableCell className="font-bold">Furniture Name</TableCell>
-                        <TableCell className="font-bold">Vendor</TableCell>
-                        <TableCell className="font-bold">Brand</TableCell>
-                        <TableCell className="font-bold">Description</TableCell>
-                        <TableCell className="font-bold">Quantity</TableCell>
-                        <TableCell className="font-bold">Rate</TableCell>
-                        <TableCell className="font-bold">GST %</TableCell>
-                        <TableCell className="font-bold">Taxable</TableCell>
-                        <TableCell className="font-bold">Warranty (Start - End)</TableCell>
-                        <TableCell className="font-bold" align="right">
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {furnitureProducts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={10} align="center" className="py-8 text-gray-500">
-                            No furniture found. Click "Add Furniture" to get started.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        furnitureProducts.map((item: ProductInterface, idx: number) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell className="font-medium text-purple-600">
-                              {item.productName}
-                            </TableCell>
-                            <TableCell>{item.vendorsId?.vendor_name || 'N/A'}</TableCell>
-                            <TableCell>{item.companyId?.brandName || 'N/A'}</TableCell>
-                            <TableCell>
-                              <span className="truncate block max-w-[150px]" title={item.productDescription}>
-                                {item.productDescription || 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
-                            <TableCell>₹{item.perUnitRate || 0}</TableCell>
-                            <TableCell>{item.gstPct}%</TableCell>
-                            <TableCell>₹{item.taxableValue || 0}</TableCell>
-                            <TableCell>
-                              {item.warrantyStart && item.warrantyEnd
-                                ? `${item.warrantyStart} to ${item.warrantyEnd}`
-                                : 'N/A'}
-                            </TableCell>
-                            <TableCell align="right">
-                              <div className="flex justify-end gap-2">
-                                <IconButton size="small" className="text-blue-600">
-                                  <FiEdit size={18} />
-                                </IconButton>
-                                <IconButton size="small" className="text-red-600">
-                                  <FiTrash2 size={18} />
-                                </IconButton>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CustomTabPanel>
-
+              <TablePagination
+                component="div"
+                count={currentCount}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+                className="border-t bg-gray-50 shrink-0"
+              />
             </Paper>
-
-            <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
-            <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
-            <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
-          </>
+          </Box>
         ) : (
           <ProductDrawerForm
             open={true}
             onClose={handleCloseForm}
-            isEdit={false}
-            initialData={{ productType: categories[value] }}
+            isEdit={isEdit}
+            title={isEdit ? `Edit ${editData.productName}` : `Add ${categories[value]}`}
+            initialData={isEdit ? editData : { productType: categories[value] }}
             categories={categoriesList}
             vendors={vendors}
             companies={companies}
@@ -438,7 +347,11 @@ export default function RestaurantSetup() {
             onFillFromSearch={() => { }}
           />
         )}
-      </div>
-    </AdminLayout >
+
+        <CreateCategoryModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} onSave={handleSaveCategory} />
+        <CreateBrandModal open={brandModalOpen} onClose={() => setBrandModalOpen(false)} onSave={handleSaveBrand} />
+        <VendorModal open={vendorDrawerOpen} onClose={() => setVendorDrawerOpen(false)} onAddVendor={handleSaveVendor} />
+      </Box>
+    </AdminLayout>
   );
 }

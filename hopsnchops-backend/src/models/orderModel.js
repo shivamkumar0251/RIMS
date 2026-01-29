@@ -24,6 +24,10 @@ const productsOrderSchema = new mongoose.Schema(
     orderQty: { type: Number, required: true, default: 0 },
     sendToPurchaseQty: { type: Number, default: 0 },
     remarks: { type: String },
+    rate: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    gstPct: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 }
   },
   { _id: true, timestamps: true }
 );
@@ -38,10 +42,15 @@ const OrderRequiredSchema = new mongoose.Schema(
     orderNumber: { type: String, unique: true },
     totalAmount: { type: Number, default: 0 },
     totalClosingAmount: { type: Number, default: 0 },
-    paymentStatus: {
+    orderStatus: {
       type: String,
-      enum: ["Paid", "Pending", "Partial"],
-      default: "Pending",
+      enum: ["Draft", "Sent", "SentToPurchase", "Delivered", "Received", "MoveToKitchen", "MoveToStore"],
+      default: "Draft",
+    },
+    purchaseType: {
+      type: String,
+      enum: ["Direct", "Order"],
+      default: "Direct",
     },
     vendorsId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -93,4 +102,3 @@ OrderRequiredSchema.pre("save", async function (next) {
 -------------------------------------------------------- */
 const OrderRequired = mongoose.model("OrderRequired", OrderRequiredSchema);
 module.exports = OrderRequired;
-

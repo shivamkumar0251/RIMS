@@ -1,3 +1,4 @@
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { AxiosError } from 'axios';
 import apiCaller from '../../api/client';
@@ -44,6 +45,7 @@ export interface ProductInterface {
   isActive?: boolean;
   warrantyStart?: string;
   warrantyEnd?: string;
+  expiryDate?: string;
   createdAt: string;
 }
 
@@ -83,13 +85,13 @@ const initialState: ProductState = {
 // GET PRODUCTS
 export const getProducts = createAsyncThunk<
   GetProductsResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, company?: string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, company?: string, productType?: string },
   { rejectValue: { message: string } }
 >(
   'product/getProducts',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', company = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', company = '', productType = '' }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_PRODUCTS}?search=${search}&category=${category}&vendor=${vendor}&company=${company}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
+      const url = `${API_ENDPOINTS.GET_PRODUCTS}?search=${search}&category=${category}&vendor=${vendor}&company=${company}&productType=${productType}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -126,7 +128,7 @@ export const addProduct = createAsyncThunk<
       });
 
       if (response.status === 201 || response.status === 200) {
-        return response.data as ProductInterface;
+        return (response.data as any).data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({
@@ -190,7 +192,7 @@ export const updateProduct = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as ProductInterface;
+        return (response.data as any).data as ProductInterface;
       }
 
       return thunkAPI.rejectWithValue({

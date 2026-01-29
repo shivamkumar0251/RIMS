@@ -16,14 +16,18 @@ import {
     TableRow,
     Paper,
     Select,
-    Divider,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { FiX, FiPlus, FiTrash2, FiSearch, FiSettings } from "react-icons/fi";
+import { FiX, FiPlus, FiTrash2, FiSettings } from "react-icons/fi";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
-import { getProducts, selectProducts } from "../../redux/slices/productSlice";
-import { getVendorNameList, selectVendorNames, getVendorById, type GetVendorData } from "../../redux/slices/vendorSlice";
+import { getProducts, selectProducts, addProduct } from "../../redux/slices/productSlice";
+import { getVendorNameList, selectVendorNames, getVendorById, type GetVendorData, getVendors } from "../../redux/slices/vendorSlice";
+import { getCategories, selectCategories } from "../../redux/slices/categorySlice";
+import { getCompanies, selectCompanies } from "../../redux/slices/companySlice";
+import { ProductDrawerForm } from "./ProductDrawerForm";
+import { VendorDialogForm } from "./VendorDialogForm";
 import { toast } from "react-hot-toast";
+import { addVendor } from "../../redux/slices/vendorSlice";
 
 interface PurchaseDrawerFormProps {
     open: boolean;
@@ -34,6 +38,7 @@ interface PurchaseDrawerFormProps {
 }
 
 interface ItemRow {
+    id: string;
     productId: any;
     productName: string;
     barcode: string;
@@ -58,6 +63,8 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
     const dispatch = useAppDispatch();
     const products = useAppSelector(selectProducts);
     const vendors = useAppSelector(selectVendorNames);
+    const categories = useAppSelector(selectCategories);
+    const companies = useAppSelector(selectCompanies);
 
     // --- State ---
     const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -76,17 +83,23 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
     const [deliveryMode, setDeliveryMode] = useState("");
 
     const [items, setItems] = useState<ItemRow[]>([
-        { productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "PKT", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }
+        { id: `${Date.now()}-0`, productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "PKT", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }
     ]);
 
-    const [discountType, setDiscountType] = useState<"Rs" | "%">("%");
-    const [discountValue, setDiscountValue] = useState(0);
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+    const [activeRowIdx, setActiveRowIdx] = useState<number | null>(null);
+
+
 
     // --- Effects ---
     useEffect(() => {
         if (open) {
             dispatch(getProducts({ page: 1, limit: 1000 }));
             dispatch(getVendorNameList());
+            dispatch(getVendors({ page: 1, limit: 1000 }));
+            dispatch(getCategories({ page: 1, limit: 1000 }));
+            dispatch(getCompanies({ page: 1, limit: 1000 }));
 
             if (initialData) {
                 setInvoiceNo(initialData.orderNumber || "");
@@ -101,48 +114,76 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
                 setShipTo(initialData.shipTo || "Same as Billing Address");
                 setPlaceOfSupply(initialData.placeOfSupply || "Himachal Pradesh");
 
-                const v = vendors.find(v => v._id === (initialData.vendorId?._id || initialData.vendorId));
-                if (v) {
-                    setSelectedVendor(v);
-                    fetchVendorData(v._id);
-                }
-
                 if (initialData.products) {
-                    setItems(initialData.products.map((p: any) => ({
-                        productId: p.productId,
-                        productName: p.productId?.productName || "",
-                        barcode: p.productId?.barcode || "",
-                        hsn: p.productId?.hsnCode || "",
-                        qty: p.orderQty || 1,
-                        uom: p.productId?.unit || "Unit",
-                        price: p.rate || 0,
-                        discount: 0,
-                        tax: 0,
-                        cess: 0,
-                        total: (p.orderQty || 1) * (p.rate || 0),
-                        note: ""
-                    })));
+                    setItems(initialData.products.map((p: any, idx: number) => {
+                        const quantity = p.sendToPurchaseQty || p.orderQty || 1;
+                        const rate = p.rate || p.productId?.perUnitRate || 0;
+                        const discount = p.discount || 0;
+                        // Use || to fallback if gstPct is 0 (common in legacy data)
+                        const taxPct = p.gstPct || p.productId?.gstPct || 0;
+                        
+                        // Calculate initial total for the row
+                        const subtotal = (quantity * rate) - discount;
+                        const taxable = Math.max(0, subtotal);
+                        const taxAmount = (taxable * taxPct) / 100;
+                        const total = taxable + taxAmount;
+
+                        return {
+                            id: `${Date.now()}-${idx}`,
+                            productId: p.productId,
+                            productName: p.productId?.productName || "",
+                            barcode: p.productId?.barcode || "",
+                            hsn: p.productId?.hsnCode || "",
+                            qty: quantity,
+                            uom: p.uom || p.productId?.unit || "Unit",
+                            price: rate,
+                            discount: discount,
+                            tax: taxPct,
+                            cess: 0,
+                            total: total,
+                            note: p.remarks || ""
+                        };
+                    }));
                 }
             } else {
                 setInvoiceNo("");
                 setSelectedVendor(null);
                 setVendorDetails(null);
-                setItems([{ productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "PKT", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }]);
+                setItems([{ id: `${Date.now()}-0`, productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "PKT", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }]);
             }
         }
-    }, [open, initialData, vendors]);
+    }, [open, initialData, dispatch]);
+
+    // Separate effect for vendor selection from initialData
+    useEffect(() => {
+        if (open && initialData && vendors.length > 0) {
+            // Check both vendorId and vendorsId (backend population often uses plural)
+            const vID = initialData.vendorId || initialData.vendorsId;
+            const targetId = vID?._id || vID;
+
+            const v = vendors.find(v => v._id === targetId);
+            if (v && !selectedVendor) {
+                setSelectedVendor(v);
+                fetchVendorData(v._id);
+            }
+        }
+    }, [open, initialData, vendors, selectedVendor]);
 
     const fetchVendorData = async (vendorId: string) => {
         try {
-            const data = await dispatch(getVendorById(vendorId)).unwrap();
+            const response = await dispatch(getVendorById(vendorId)).unwrap();
+            const data = (response as any).data || response; // Handle potential response wrapper
             setVendorDetails(data);
+            if (data.vendor_state) {
+                setPlaceOfSupply(data.vendor_state);
+            }
         } catch (err) {
             toast.error("Failed to load vendor details");
         }
     };
 
     const handleAddItem = () => {
-        setItems([...items, { productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "Unit", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }]);
+        setItems([...items, { id: `${Date.now()}-${Math.random()}`, productId: null, productName: "", barcode: "", hsn: "", qty: 1, uom: "Unit", price: 0, discount: 0, tax: 0, cess: 0, total: 0, note: "" }]);
     };
 
     const handleItemChange = (idx: number, field: keyof ItemRow, val: any) => {
@@ -158,7 +199,14 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
         } else {
             (item as any)[field] = val;
         }
-        item.total = item.qty * item.price;
+        // Calculate subtotal with discount
+        const subtotal = (item.qty * item.price) - (item.discount || 0);
+        // Calculate tax amount (CGST + SGST) on the discounted subtotal? Or original? 
+        // Usually tax is on the transaction value (after discount).
+        const taxVal = Math.max(0, subtotal); // Ensure taxable value isn't negative
+        const taxAmount = (taxVal * item.tax) / 100;
+        // Total = Subtotal + Tax
+        item.total = taxVal + taxAmount;
         newItems[idx] = item;
         setItems(newItems);
     };
@@ -190,222 +238,609 @@ export const PurchaseDrawerForm: React.FC<PurchaseDrawerFormProps> = ({
             products: items.map(it => ({
                 productId: it.productId?._id,
                 orderQty: it.qty,
-                rate: it.price
+                rate: it.price,
+                discount: it.discount || 0,
+                gstPct: it.tax || 0
             })),
             totalAmount: totals.total,
-            status: "Draft"
+            status: "Draft",
+            purchaseType: initialData?.purchaseType || "Direct"
         };
         await onSave(payload);
     };
 
     return (
-        <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: '100vw', bgcolor: '#f8fafc' } }}>
-            <Box className="flex flex-col h-screen overflow-hidden">
-                <Box className="px-6 py-3 bg-white border-b flex items-center justify-between shadow-sm">
-                    <Box className="flex items-center gap-2">
-                        <Box className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100">
-                            <FiSettings className={isEdit ? "animate-spin-slow" : ""} />
+        <>
+            <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: '100vw', bgcolor: '#f8fafc' } }}>
+                <Box className="flex flex-col h-screen overflow-hidden">
+                    <Box className="px-6 py-3 bg-white border-b flex items-center justify-between shadow-sm">
+                        <Box className="flex items-center gap-2">
+                            <Box className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100">
+                                <FiSettings className={isEdit ? "animate-spin-slow" : ""} />
+                            </Box>
+                            <Typography className="font-bold text-slate-700">{isEdit ? "Update Purchase Invoice" : "Create Purchase Invoice"}</Typography>
                         </Box>
-                        <Typography className="font-bold text-slate-700">{isEdit ? "Update Purchase Invoice" : "Create Purchase Invoice"}</Typography>
+                        <IconButton onClick={onClose} size="small"><FiX /></IconButton>
                     </Box>
-                    <IconButton onClick={onClose} size="small"><FiX /></IconButton>
-                </Box>
 
-                <Box className="flex-1 overflow-y-auto p-4 content-center">
-                    <Box className="max-w-[1500px] mx-auto space-y-4">
-                        <Box className="grid grid-cols-12 gap-4">
-                            {/* Vendor Information Box */}
-                            <Box className="col-span-12 lg:col-span-5">
-                                <Paper className="p-5 rounded-xl border border-slate-200">
-                                    <Box className="flex justify-between items-center mb-4">
-                                        <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider">Vendor Information</Typography>
-                                        <Button size="small" variant="contained" className="bg-[#00c2a8] text-[10px] py-0.5 px-3 normal-case rounded-md">+ Add Vendor</Button>
-                                    </Box>
-                                    <Box className="space-y-3">
-                                        {[
-                                            {
-                                                label: "M/S.*", field: (
-                                                    <Box className="flex-1 flex gap-1">
-                                                        <Autocomplete fullWidth size="small" options={vendors} getOptionLabel={(o) => o.vendor_name || ""} value={selectedVendor}
-                                                            onChange={(_, v) => { setSelectedVendor(v); if (v) fetchVendorData(v._id); }}
-                                                            renderInput={(params) => <TextField {...params} variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white' } }} />}
+                    <Box className="flex-1 overflow-y-auto p-4 content-center">
+                        <Box className="max-w-[1500px] mx-auto space-y-4">
+                            <Box className="grid grid-cols-12 gap-4">
+                                {/* Vendor Information Box */}
+                                <Box className="col-span-12 lg:col-span-5">
+                                    <Paper className="p-5 rounded-xl border border-slate-200">
+                                        <Box className="flex justify-between items-center mb-4">
+                                            <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider">Vendor Information</Typography>
+                                            <Button
+                                                size="small"
+                                                variant="contained"
+                                                onClick={() => setIsVendorDialogOpen(true)}
+                                                className="bg-[#00c2a8] text-[10px] py-0.5 px-3 normal-case rounded-md"
+                                            >
+                                                + Add Vendor
+                                            </Button>
+                                        </Box>
+                                        <Box className="space-y-3">
+                                            {[
+                                                {
+                                                    label: "M/S.*", field: (
+                                                        <Box className="flex-1 flex gap-1">
+                                                            <Autocomplete
+                                                                fullWidth
+                                                                size="small"
+                                                                options={vendors}
+                                                                getOptionLabel={(o) => o?.vendor_name || ""}
+                                                                isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                                                                value={selectedVendor}
+                                                                onChange={(_, v) => {
+                                                                    setSelectedVendor(v);
+                                                                    if (v) {
+                                                                        fetchVendorData(v._id);
+                                                                    } else {
+                                                                        setVendorDetails(null);
+                                                                        setPlaceOfSupply("Himachal Pradesh"); // Initial default or clear
+                                                                    }
+                                                                }}
+                                                                renderInput={(params) => <TextField {...params} variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: '10px', height: '40px' }, '& .MuiInputLabel-root': { fontSize: '13px' }, '& .MuiInputBase-input': { fontSize: '13px' } }} />}
+                                                            />
+                                                            {/* <IconButton className="bg-slate-50 border border-slate-200" size="small"><FiSearch size={14} /></IconButton> */}
+                                                        </Box>
+                                                    )
+                                                },
+                                                {
+                                                    label: "Address", field: <TextField fullWidth multiline rows={2} size="small"
+                                                        value={vendorDetails?.vendor_address || ""}
+                                                        onChange={(e) => vendorDetails && setVendorDetails({ ...vendorDetails, vendor_address: e.target.value })}
+                                                        InputProps={{ sx: { bgcolor: 'white', fontSize: '13px', borderRadius: '10px' } }} />
+                                                },
+                                                {
+                                                    label: "Contact Person", field: <TextField fullWidth size="small"
+                                                        value={vendorDetails?.vendor_contactPerson_name || ""}
+                                                        onChange={(e) => vendorDetails && setVendorDetails({ ...vendorDetails, vendor_contactPerson_name: e.target.value })}
+                                                        InputProps={{ sx: { bgcolor: 'white', fontSize: '13px', borderRadius: '10px', height: '40px' } }} />
+                                                },
+                                                {
+                                                    label: "Phone No", field: <TextField fullWidth size="small"
+                                                        value={vendorDetails?.vendor_mobileNo || ""}
+                                                        onChange={(e) => vendorDetails && setVendorDetails({ ...vendorDetails, vendor_mobileNo: e.target.value })}
+                                                        InputProps={{ sx: { bgcolor: 'white', fontSize: '13px', borderRadius: '10px', height: '40px' } }} />
+                                                },
+                                                {
+                                                    label: "Email", field: <TextField fullWidth size="small"
+                                                        value={vendorDetails?.vendor_email || ""}
+                                                        onChange={(e) => vendorDetails && setVendorDetails({ ...vendorDetails, vendor_email: e.target.value })}
+                                                        InputProps={{ sx: { bgcolor: 'white', fontSize: '13px', borderRadius: '10px', height: '40px' } }} />
+                                                },
+                                                {
+                                                    label: "GSTIN / PAN",
+                                                    field: (
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            value={[vendorDetails?.vendor_gstNumber, vendorDetails?.vendor_pan].filter(Boolean).join(" / ") || ""}
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }}
                                                         />
-                                                        <IconButton className="bg-slate-50 border border-slate-200" size="small"><FiSearch size={14} /></IconButton>
-                                                    </Box>
-                                                )
-                                            },
-                                            { label: "Address", field: <TextField fullWidth multiline rows={2} size="small" value={vendorDetails?.vendor_address || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                            { label: "Contact Person", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_contactPerson_name || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                            { label: "Phone No", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_mobileNo || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                            { label: "GSTIN / PAN", field: <TextField fullWidth size="small" value={vendorDetails?.vendor_gstNumber || ""} InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '11px' } }} /> },
-                                        ].map((item, i) => (
-                                            <Box key={i} className="flex gap-4 items-center">
-                                                <Typography className="text-[11px] font-medium text-slate-500 w-28 shrink-0">{item.label}</Typography>
-                                                {item.field}
+                                                    )
+                                                },
+                                                {
+                                                    label: "Bank Details",
+                                                    field: (
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            placeholder="A/c No, IFSC"
+                                                            value={[vendorDetails?.vendor_accountNumber, vendorDetails?.vendor_ifscCode].filter(Boolean).join(", ") || ""}
+                                                            InputProps={{ readOnly: true, sx: { bgcolor: '#f8fafc', fontSize: '13px', borderRadius: '10px', height: '40px' } }}
+                                                        />
+                                                    )
+                                                },
+                                            ].map((item, i) => (
+                                                <Box key={i} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                                    <Typography className="text-[10px] sm:text-[11px] font-semibold text-slate-500 sm:w-28 shrink-0">{item.label}</Typography>
+                                                    {item.field}
+                                                </Box>
+                                            ))}
+                                            <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Rev. Charge</Typography>
+                                                <Select fullWidth size="small" value={revCharge} onChange={(e) => setRevCharge(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="No" sx={{ fontSize: '13px' }}>No</MenuItem><MenuItem value="Yes" sx={{ fontSize: '13px' }}>Yes</MenuItem>
+                                                </Select>
                                             </Box>
-                                        ))}
-                                        <Box className="flex gap-4 items-center">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-28 shrink-0">Rev. Charge</Typography>
-                                            <Select fullWidth size="small" value={revCharge} onChange={(e) => setRevCharge(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                <MenuItem value="No">No</MenuItem><MenuItem value="Yes">Yes</MenuItem>
-                                            </Select>
+                                            {/* <Box className="flex justify-end"><Button className="text-[#00c2a8] text-[10px] normal-case font-bold">+ Add New Shipping</Button></Box> */}
+                                            <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Ship To</Typography>
+                                                <Select fullWidth size="small" value={shipTo} onChange={(e) => setShipTo(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="Same as Billing Address" sx={{ fontSize: '13px' }}>Same as Billing Address</MenuItem>
+                                                </Select>
+                                            </Box>
+                                            <Box className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                                <Typography className="text-[12px] sm:text-[13px] font-semibold text-slate-500 sm:w-28 shrink-0">Place of Supply*</Typography>
+                                                <TextField fullWidth size="small" value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
                                         </Box>
-                                        <Box className="flex justify-end"><Button className="text-[#00c2a8] text-[10px] normal-case font-bold">+ Add New Shipping</Button></Box>
-                                        <Box className="flex gap-4 items-center">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-28 shrink-0">Ship To</Typography>
-                                            <Select fullWidth size="small" value={shipTo} onChange={(e) => setShipTo(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                <MenuItem value="Same as Billing Address">Same as Billing Address</MenuItem>
-                                            </Select>
+                                    </Paper>
+                                </Box>
+
+                                {/* Purchase Invoice Detail Box */}
+                                <Box className="col-span-12 lg:col-span-7">
+                                    <Paper className="p-5 rounded-xl border border-slate-200 h-full relative">
+                                        <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider mb-5">Purchase Invoice Detail</Typography>
+                                        <Box className="grid grid-cols-12 gap-x-6 gap-y-4">
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Invoice Type</Typography>
+                                                <Select fullWidth size="small" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="Regular" sx={{ fontSize: '13px' }}>Regular</MenuItem>
+                                                    <MenuItem value="Bill to Supply" sx={{ fontSize: '13px' }}>Bill to Supply</MenuItem>
+                                                </Select>
+                                            </Box>
+                                            <Box className="col-span-12" />
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Invoice No.*</Typography>
+                                                <TextField fullWidth size="small" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">Date*</Typography>
+                                                <TextField type="date" fullWidth size="small" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">Challan No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="Challan No." value={challanNo} onChange={(e) => setChallanNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">Challan Date</Typography>
+                                                <TextField type="date" fullWidth size="small" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24">L.R. No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="L.R. No." value={lrNo} onChange={(e) => setLrNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 md:col-span-6 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-24 sm:text-right">E-Way No.</Typography>
+                                                <TextField fullWidth size="small" placeholder="E-Way No." value={ewayNo} onChange={(e) => setEwayNo(e.target.value)} InputProps={{ sx: { fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' } }} />
+                                            </Box>
+                                            <Box className="col-span-12 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-4">
+                                                <Typography className="text-[13px] font-medium text-slate-500 sm:w-16">Delivery</Typography>
+                                                <Select fullWidth size="small" displayEmpty value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} sx={{ fontSize: '13px', bgcolor: 'white', borderRadius: '10px', height: '40px' }}>
+                                                    <MenuItem value="" disabled sx={{ fontSize: '13px' }}>Select Delivery Mode</MenuItem>
+                                                    <MenuItem value="Self" sx={{ fontSize: '13px' }}>Self</MenuItem><MenuItem value="Courier" sx={{ fontSize: '13px' }}>Courier</MenuItem>
+                                                </Select>
+                                            </Box>
                                         </Box>
-                                        <Box className="flex gap-4 items-center">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-28 shrink-0">Place of Supply*</Typography>
-                                            <TextField fullWidth size="small" value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                    </Box>
-                                </Paper>
+                                    </Paper>
+                                </Box>
                             </Box>
 
-                            {/* Purchase Invoice Detail Box */}
-                            <Box className="col-span-12 lg:col-span-7">
-                                <Paper className="p-5 rounded-xl border border-slate-200 h-full relative">
-                                    <IconButton className="absolute top-3 right-3 text-slate-300 hover:text-rose-500" size="small"><FiTrash2 size={16} /></IconButton>
-                                    <Typography className="text-xs font-black text-slate-400 uppercase tracking-wider mb-5">Purchase Invoice Detail</Typography>
-                                    <Box className="grid grid-cols-12 gap-x-6 gap-y-4">
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24">Invoice Type</Typography>
-                                            <Select fullWidth size="small" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                <MenuItem value="Regular">Regular</MenuItem>
-                                            </Select>
-                                        </Box>
-                                        <Box className="col-span-12" />
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24">Invoice No.*</Typography>
-                                            <TextField fullWidth size="small" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">Date*</Typography>
-                                            <TextField type="date" fullWidth size="small" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24">Challan No.</Typography>
-                                            <TextField fullWidth size="small" placeholder="Challan No." value={challanNo} onChange={(e) => setChallanNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">Challan Date</Typography>
-                                            <TextField type="date" fullWidth size="small" value={challanDate} onChange={(e) => setChallanDate(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24">L.R. No.</Typography>
-                                            <TextField fullWidth size="small" placeholder="L.R. No." value={lrNo} onChange={(e) => setLrNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 md:col-span-6 flex items-center gap-3">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-24 text-right">E-Way No.</Typography>
-                                            <TextField fullWidth size="small" placeholder="E-Way No." value={ewayNo} onChange={(e) => setEwayNo(e.target.value)} InputProps={{ sx: { fontSize: '11px', bgcolor: 'white' } }} />
-                                        </Box>
-                                        <Box className="col-span-12 flex items-center gap-3 mt-4">
-                                            <Typography className="text-[11px] font-medium text-slate-500 w-16">Delivery</Typography>
-                                            <Select fullWidth size="small" displayEmpty value={deliveryMode} onChange={(e) => setDeliveryMode(e.target.value)} sx={{ fontSize: '11px', bgcolor: 'white' }}>
-                                                <MenuItem value="" disabled>Select Delivery Mode</MenuItem>
-                                                <MenuItem value="Self">Self</MenuItem><MenuItem value="Courier">Courier</MenuItem>
-                                            </Select>
-                                        </Box>
+                            {/* Product Items Table */}
+                            <Paper className="rounded-xl border border-slate-200 overflow-hidden">
+                                <TableContainer>
+                                    <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                                        <TableHead className="bg-slate-50/50">
+                                            <TableRow>
+                                                <TableCell className="text-[10px] font-black py-2 border-r" width={40} align="center">SR.</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r">PRODUCT / OTHER CHARGES</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>QTY.</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={120}>UOM</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-right" width={120}>PRICE (RS)</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>DISCOUNT</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>SUB TOTAL</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 border-r text-center" width={180}>CGST + SGST</TableCell>
+                                                <TableCell className="text-[10px] font-black py-2 text-right" width={120}>TOTAL</TableCell>
+                                                <TableCell width={40}></TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {items.map((row, idx) => (
+                                                <React.Fragment key={row.id}>
+                                                    <TableRow hover>
+                                                        <TableCell className="border-r py-2 text-xs" align="center">{idx + 1}</TableCell>
+                                                        <TableCell className="border-r py-1 align-top">
+                                                            <Box className="flex flex-col gap-1">
+                                                                <Autocomplete
+                                                                    size="small"
+                                                                    fullWidth
+                                                                    options={[...products, { isNew: true, productName: "Add New Item" }]}
+                                                                    getOptionLabel={o => o.productName || ""}
+                                                                    value={row.productId}
+                                                                    onChange={(_, v) => {
+                                                                        if ((v as any)?.isNew) {
+                                                                            setActiveRowIdx(idx);
+                                                                            setIsProductModalOpen(true);
+                                                                            return;
+                                                                        }
+                                                                        handleItemChange(idx, "productId", v);
+                                                                    }}
+                                                                    renderOption={(props, option: any) => (
+                                                                        <Box component="li" {...props} sx={{ px: 2, py: 1 }} className={`flex flex-col items-start ${option.isNew ? 'border-t mt-1 bg-blue-50/50' : ''}`}>
+                                                                            {option.isNew ? (
+                                                                                <Typography className="font-black text-blue-600 flex items-center gap-1 text-xs">
+                                                                                    <FiPlus size={14} /> {option.productName}
+                                                                                </Typography>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Typography className="font-bold text-slate-800 text-xs">{option.productName}</Typography>
+                                                                                    <Box className="flex items-center gap-2">
+                                                                                        <Typography className="text-[10px] text-slate-400">
+                                                                                            SKU: {option.sku || option.barcode || 'N/A'}
+                                                                                        </Typography>
+                                                                                        <Typography className="text-[10px] text-blue-500 font-medium">
+                                                                                            Rate: Rs.{option.perUnitRate || 0}
+                                                                                        </Typography>
+                                                                                    </Box>
+                                                                                </>
+                                                                            )}
+                                                                        </Box>
+                                                                    )}
+                                                                    renderInput={(params) =>
+                                                                        <TextField
+                                                                            {...params}
+                                                                            placeholder="Type or click to select an item."
+                                                                            variant="standard"
+                                                                            size="small"
+                                                                            InputProps={{
+                                                                                ...params.InputProps,
+                                                                                disableUnderline: true,
+                                                                                sx: {
+                                                                                    fontSize: '12px',
+                                                                                    fontWeight: 600,
+                                                                                    '& .MuiAutocomplete-endAdornment': { display: 'none' }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    sx={{ '& .MuiAutocomplete-popupIndicator': { display: 'none' }, '& .MuiAutocomplete-clearIndicator': { display: 'none' } }}
+                                                                />
+                                                                {/* Integrated Description Field */}
+                                                                <TextField
+                                                                    fullWidth
+                                                                    variant="standard"
+                                                                    size="small"
+                                                                    placeholder="Add a description..."
+                                                                    value={row.note}
+                                                                    onChange={e => handleItemChange(idx, "note", e.target.value)}
+                                                                    InputProps={{
+                                                                        disableUnderline: true,
+                                                                        sx: {
+                                                                            fontSize: '11px',
+                                                                            color: '#64748b',
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </Box>
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1" align="center">
+                                                            <TextField
+                                                                type="number"
+                                                                variant="standard"
+                                                                size="small"
+                                                                value={row.qty}
+                                                                onChange={e => {
+                                                                    const newQty = Number(e.target.value);
+                                                                    if (newQty >= 0) {
+                                                                        handleItemChange(idx, "qty", newQty);
+                                                                    }
+                                                                }}
+                                                                InputProps={{
+                                                                    disableUnderline: true,
+                                                                    sx: {
+                                                                        fontSize: '12px',
+                                                                        textAlign: 'center',
+                                                                        '& input': { textAlign: 'center', padding: '0', height: '36px', boxSizing: 'border-box' }
+                                                                    }
+                                                                }}
+                                                                sx={{ '& .MuiInputBase-root': { height: '36px' } }}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1" align="center">
+                                                            <TextField
+                                                                select
+                                                                variant="standard"
+                                                                value={row.uom}
+                                                                onChange={e => handleItemChange(idx, "uom", e.target.value)}
+                                                                InputProps={{
+                                                                    disableUnderline: true,
+                                                                    sx: {
+                                                                        fontSize: '12px',
+                                                                        fontWeight: 600,
+                                                                        color: '#64748b',
+                                                                        height: '36px'
+                                                                    }
+                                                                }}
+                                                                sx={{ '& .MuiInputBase-root': { height: '36px' } }}
+                                                                SelectProps={{
+                                                                    MenuProps: {
+                                                                        PaperProps: {
+                                                                            sx: {
+                                                                                maxHeight: 300,
+                                                                                mt: 0.5,
+                                                                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                                                                                '& .MuiMenuItem-root': {
+                                                                                    fontSize: '11px',
+                                                                                    minHeight: '32px',
+                                                                                    px: 2,
+                                                                                    justifyContent: 'flex-start'
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        anchorOrigin: {
+                                                                            vertical: 'bottom',
+                                                                            horizontal: 'left'
+                                                                        },
+                                                                        transformOrigin: {
+                                                                            vertical: 'top',
+                                                                            horizontal: 'left'
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <MenuItem value="PKT">PKT</MenuItem>
+                                                                <MenuItem value="kg">kg</MenuItem>
+                                                                <MenuItem value="gm">gm</MenuItem>
+                                                                <MenuItem value="ltr">ltr</MenuItem>
+                                                                <MenuItem value="ml">ml</MenuItem>
+                                                                <MenuItem value="pcs">pcs</MenuItem>
+                                                                <MenuItem value="box">box</MenuItem>
+                                                                <MenuItem value="dozen">dozen</MenuItem>
+                                                                <MenuItem value="Unit">Unit</MenuItem>
+                                                                <MenuItem value="bag">bag</MenuItem>
+                                                                <MenuItem value="bottle">bottle</MenuItem>
+                                                                <MenuItem value="can">can</MenuItem>
+                                                                <MenuItem value="carton">carton</MenuItem>
+                                                                <MenuItem value="case">case</MenuItem>
+                                                                <MenuItem value="jar">jar</MenuItem>
+                                                                <MenuItem value="pack">pack</MenuItem>
+                                                                <MenuItem value="roll">roll</MenuItem>
+                                                                <MenuItem value="set">set</MenuItem>
+                                                                <MenuItem value="sheet">sheet</MenuItem>
+                                                                <MenuItem value="ton">ton</MenuItem>
+                                                            </TextField>
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1" align="right">
+                                                            <TextField
+                                                                type="number"
+                                                                variant="standard"
+                                                                size="small"
+                                                                value={row.price}
+                                                                onChange={e => handleItemChange(idx, "price", Number(e.target.value))}
+                                                                InputProps={{
+                                                                    disableUnderline: true,
+                                                                    sx: {
+                                                                        fontSize: '12px',
+                                                                        textAlign: 'right',
+                                                                        height: '36px',
+                                                                        '& input': { textAlign: 'right', padding: '0 8px', height: '36px', boxSizing: 'border-box' }
+                                                                    }
+                                                                }}
+                                                                sx={{ '& .MuiInputBase-root': { height: '36px' } }}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1" align="center">
+                                                            <TextField
+                                                                type="number"
+                                                                variant="standard"
+                                                                size="small"
+                                                                value={row.discount}
+                                                                onChange={e => handleItemChange(idx, "discount", Number(e.target.value))}
+                                                                InputProps={{
+                                                                    disableUnderline: true,
+                                                                    sx: {
+                                                                        fontSize: '12px',
+                                                                        textAlign: 'center',
+                                                                        height: '36px',
+                                                                        '& input': { textAlign: 'center', padding: '0 8px', height: '36px', boxSizing: 'border-box' }
+                                                                    }
+                                                                }}
+                                                                sx={{ '& .MuiInputBase-root': { height: '36px' } }}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1 text-center" sx={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                                                            {((row.qty * row.price) - (row.discount || 0)).toFixed(2)}
+                                                        </TableCell>
+                                                        <TableCell className="border-r py-1" align="center">
+                                                            <TextField
+                                                                select
+                                                                variant="standard"
+                                                                value={row.tax}
+                                                                onChange={e => handleItemChange(idx, "tax", Number(e.target.value))}
+                                                                InputProps={{
+                                                                    disableUnderline: true,
+                                                                    sx: {
+                                                                        fontSize: '12px',
+                                                                        fontWeight: 600,
+                                                                        color: '#64748b',
+                                                                        height: '36px'
+                                                                    }
+                                                                }}
+                                                                SelectProps={{
+                                                                    MenuProps: {
+                                                                        PaperProps: {
+                                                                            sx: {
+                                                                                maxHeight: 350,
+                                                                                mt: 0.5,
+                                                                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                                                                                '& .MuiMenuItem-root': {
+                                                                                    fontSize: '11px',
+                                                                                    minHeight: '32px',
+                                                                                    px: 2,
+                                                                                    justifyContent: 'flex-start'
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        anchorOrigin: {
+                                                                            vertical: 'bottom',
+                                                                            horizontal: 'left'
+                                                                        },
+                                                                        transformOrigin: {
+                                                                            vertical: 'top',
+                                                                            horizontal: 'left'
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <MenuItem value="">--</MenuItem>
+                                                                <MenuItem value={0}>0 + 0</MenuItem>
+                                                                <MenuItem value={0.1}>0.05 + 0.05</MenuItem>
+                                                                <MenuItem value={0.25}>0.125 + 0.125</MenuItem>
+                                                                <MenuItem value={0.5}>0.25 + 0.25</MenuItem>
+                                                                <MenuItem value={1}>0.5 + 0.5</MenuItem>
+                                                                <MenuItem value={1.5}>0.75 + 0.75</MenuItem>
+                                                                <MenuItem value={3}>1.5 + 1.5</MenuItem>
+                                                                <MenuItem value={5}>2.5 + 2.5</MenuItem>
+                                                                <MenuItem value={6}>3 + 3</MenuItem>
+                                                                <MenuItem value={7.5}>3.75 + 3.75</MenuItem>
+                                                                <MenuItem value={12}>6 + 6</MenuItem>
+                                                                <MenuItem value={18}>9 + 9</MenuItem>
+                                                                <MenuItem value={28}>14 + 14</MenuItem>
+                                                                <MenuItem value={40}>20 + 20</MenuItem>
+                                                            </TextField>
+                                                        </TableCell>
+                                                        <TableCell className="py-1 text-right font-black text-slate-700" sx={{ fontSize: '11px' }}>{row.total.toFixed(2)}</TableCell>
+                                                        <TableCell align="center"><IconButton size="small" onClick={() => setItems(items.filter((_, i) => i !== idx))}><FiTrash2 size={12} className="text-slate-300" /></IconButton></TableCell>
+                                                    </TableRow>
+                                                </React.Fragment>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <Box className="bg-[#fffde7] px-4 py-2 border-t flex justify-end gap-16 font-black text-slate-600 uppercase" sx={{ fontSize: '10px' }}>
+                                    <Typography sx={{ fontSize: '10px' }}>Total Inv. Val</Typography>
+                                    <Box className="flex gap-14">
+                                        <Typography sx={{ fontSize: '10px' }}>0</Typography>
+                                        <Typography sx={{ fontSize: '10px' }}>0</Typography>
+                                        <Typography sx={{ fontSize: '10px' }}>0</Typography>
+                                        <Typography sx={{ fontSize: '10px' }}>0</Typography>
+                                        <Typography sx={{ fontSize: '10px' }}>0</Typography>
+                                        <Typography sx={{ fontSize: '10px', color: '#101828' }}>{totals.total.toFixed(2)}</Typography>
                                     </Box>
-                                </Paper>
-                            </Box>
+                                    <Box sx={{ width: 10 }} />
+                                </Box>
+                                {/* Add New Row Button */}
+                                <Box className="p-3 bg-white border-t flex justify-start">
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<FiPlus />}
+                                        onClick={handleAddItem}
+                                        className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs font-bold normal-case"
+                                    >
+                                        Add New Row
+                                    </Button>
+                                </Box>
+                            </Paper>
                         </Box>
+                    </Box>
 
-                        {/* Product Items Table */}
-                        <Paper className="rounded-xl border border-slate-200 overflow-hidden">
-                            <Box className="p-3 bg-white flex justify-between items-center border-b">
-                                <Box className="flex gap-2">
-                                    <Button variant="contained" size="small" className="bg-[#00c2a8] text-[10px] normal-case" onClick={handleAddItem}>+ Add Product</Button>
-                                    <Button variant="contained" size="small" className="bg-[#00c2a8] text-[10px] normal-case">+ Add Additional Charges</Button>
-                                </Box>
-                                <Box className="flex items-center gap-3">
-                                    <Typography className="text-[11px] font-bold text-slate-500">Discount :</Typography>
-                                    <Box className="flex border rounded-md overflow-hidden h-7">
-                                        <TextField size="small" value={discountValue} onChange={e => setDiscountValue(Number(e.target.value))} variant="standard" InputProps={{ disableUnderline: true, sx: { width: 50, px: 1, fontSize: '11px' } }} />
-                                        <Box className="flex bg-slate-100 border-l">
-                                            <Box onClick={() => setDiscountType("Rs")} className={`px-2 flex items-center text-[10px] cursor-pointer ${discountType === "Rs" ? "bg-[#00c2a8] text-white" : "text-slate-400"}`}>Rs</Box>
-                                            <Box onClick={() => setDiscountType("%")} className={`px-2 flex items-center text-[10px] cursor-pointer ${discountType === "%" ? "bg-[#00c2a8] text-white" : "text-slate-400"}`}>%</Box>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                            </Box>
-                            <TableContainer>
-                                <Table size="small">
-                                    <TableHead className="bg-slate-50/50">
-                                        <TableRow>
-                                            <TableCell className="text-[10px] font-black py-2 border-r" width={30} align="center">SR.</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r">PRODUCT / OTHER CHARGES</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r" width={100}>BARCODE NO.</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r" width={100}>HSN/SAC CODE</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-center" width={50}>QTY.</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-center" width={50}>UOM</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-right" width={80}>PRICE (RS)</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-center" width={70}>DISCOUNT</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-center" width={100}>CGST + SGST</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 border-r text-center" width={60}>CESS</TableCell>
-                                            <TableCell className="text-[10px] font-black py-2 text-right" width={100}>TOTAL</TableCell>
-                                            <TableCell width={30}></TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {items.map((row, idx) => (
-                                            <React.Fragment key={idx}>
-                                                <TableRow hover>
-                                                    <TableCell className="border-r py-2 text-xs" align="center">{idx + 1}</TableCell>
-                                                    <TableCell className="border-r py-1">
-                                                        <Autocomplete size="small" options={products} getOptionLabel={o => o.productName || ""} value={row.productId}
-                                                            onChange={(_, v) => handleItemChange(idx, "productId", v)}
-                                                            renderInput={(params) => <TextField {...params} placeholder="Enter Product name" variant="standard" InputProps={{ ...params.InputProps, disableUnderline: true, sx: { fontSize: '11px' } }} />}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="border-r py-1"><TextField fullWidth size="small" variant="standard" placeholder="Barcode No." value={row.barcode} InputProps={{ disableUnderline: true, sx: { fontSize: '10px', color: 'slate.400' } }} /></TableCell>
-                                                    <TableCell className="border-r py-1"><TextField fullWidth size="small" variant="standard" placeholder="HSN/SAC" value={row.hsn} InputProps={{ disableUnderline: true, sx: { fontSize: '10px', color: 'slate.400' } }} /></TableCell>
-                                                    <TableCell className="border-r py-1" align="center"><TextField type="number" variant="standard" value={row.qty} onChange={e => handleItemChange(idx, "qty", Number(e.target.value))} InputProps={{ disableUnderline: true, sx: { fontSize: '11px', textAlign: 'center', '& input': { textAlign: 'center' } } }} /></TableCell>
-                                                    <TableCell className="border-r py-1 bg-slate-50/30 font-bold text-[#64748b]" align="center"><Typography sx={{ fontSize: '10px' }}>{row.uom}</Typography></TableCell>
-                                                    <TableCell className="border-r py-1" align="right"><TextField type="number" variant="standard" value={row.price} onChange={e => handleItemChange(idx, "price", Number(e.target.value))} InputProps={{ disableUnderline: true, sx: { fontSize: '11px', textAlign: 'right', '& input': { textAlign: 'right' } } }} /></TableCell>
-                                                    <TableCell className="border-r py-1 text-center font-bold text-slate-300" sx={{ fontSize: '11px' }}>0</TableCell>
-                                                    <TableCell className="border-r py-1 text-center font-bold text-slate-300" sx={{ fontSize: '11px' }}>0 + 0</TableCell>
-                                                    <TableCell className="border-r py-1 text-center font-bold text-slate-300" sx={{ fontSize: '11px' }}>0</TableCell>
-                                                    <TableCell className="py-1 text-right font-black text-slate-700" sx={{ fontSize: '11px' }}>{row.total.toFixed(2)}</TableCell>
-                                                    <TableCell align="center"><IconButton size="small" onClick={() => setItems(items.filter((_, i) => i !== idx))}><FiTrash2 size={12} className="text-slate-300" /></IconButton></TableCell>
-                                                </TableRow>
-                                                <TableRow sx={{ bgcolor: '#fffde750' }}>
-                                                    <TableCell className="border-r py-0.5" />
-                                                    <TableCell colSpan={10} className="py-0.5">
-                                                        <TextField fullWidth variant="standard" placeholder="Item Note..." value={row.note} onChange={e => handleItemChange(idx, "note", e.target.value)} InputProps={{ disableUnderline: true, sx: { fontSize: '10px', color: 'slate.500', px: 1 } }} />
-                                                    </TableCell>
-                                                    <TableCell className="py-0.5" />
-                                                </TableRow>
-                                            </React.Fragment>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                            <Box className="bg-[#fffde7] px-4 py-2 border-t flex justify-end gap-16 font-black text-slate-600 uppercase" sx={{ fontSize: '10px' }}>
-                                <Typography sx={{ fontSize: '10px' }}>Total Inv. Val</Typography>
-                                <Box className="flex gap-14">
-                                    <Typography sx={{ fontSize: '10px' }}>0</Typography>
-                                    <Typography sx={{ fontSize: '10px' }}>0</Typography>
-                                    <Typography sx={{ fontSize: '10px' }}>0</Typography>
-                                    <Typography sx={{ fontSize: '10px' }}>0</Typography>
-                                    <Typography sx={{ fontSize: '10px' }}>0</Typography>
-                                    <Typography sx={{ fontSize: '10px', color: '#101828' }}>{totals.total.toFixed(2)}</Typography>
-                                </Box>
-                                <Box sx={{ width: 10 }} />
-                            </Box>
-                        </Paper>
+                    <Box className="px-6 py-4 bg-white border-t flex justify-start gap-2">
+                        <Button
+                            variant="outlined"
+                            onClick={onClose}
+                            sx={{
+                                color: '#2563eb',
+                                borderColor: '#2563eb',
+                                textTransform: 'uppercase',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                px: 3,
+                                '&:hover': { borderColor: '#1d4ed8', bgcolor: '#eff6ff' }
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={handleSave}
+                            sx={{
+                                bgcolor: '#2563eb',
+                                color: '#fff',
+                                textTransform: 'uppercase',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                px: 3,
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: '#1d4ed8', boxShadow: 'none' }
+                            }}
+                        >
+                            Save
+                        </Button>
                     </Box>
                 </Box>
+            </Drawer>
 
-                <Box className="px-6 py-3 bg-white border-t flex gap-2">
-                    <Button variant="contained" className="bg-[#2463eb] text-xs font-bold px-5 py-1.5 normal-case rounded shadow-none" onClick={handleSave}>Save</Button>
-                    <Button variant="contained" className="bg-white text-slate-600 border border-slate-200 text-xs font-bold px-5 py-1.5 normal-case rounded shadow-none">Save and Send</Button>
-                    <Button variant="contained" className="bg-white text-slate-600 border border-slate-200 text-xs font-bold px-5 py-1.5 normal-case rounded shadow-none" onClick={onClose}>Cancel</Button>
+            {/* Quick Add Product Modal */}
+            <Drawer
+                anchor="right"
+                open={isProductModalOpen}
+                onClose={() => setIsProductModalOpen(false)}
+                PaperProps={{ sx: { width: '60vw', maxWidth: '800px' } }}
+            >
+                <Box className="h-full">
+                    <ProductDrawerForm
+                        open={isProductModalOpen}
+                        onClose={() => setIsProductModalOpen(false)}
+                        isEdit={false}
+                        initialData={{}}
+                        categories={categories}
+                        vendors={vendors}
+                        companies={companies}
+                        productNames={products.map(p => p.productName)}
+                        onSave={async (data) => {
+                            try {
+                                const newProduct = await dispatch(addProduct(data)).unwrap();
+                                toast.success("New product added!");
+                                dispatch(getProducts({ page: 1, limit: 1000 }));
+
+                                if (activeRowIdx !== null) {
+                                    handleItemChange(activeRowIdx, "productId", newProduct);
+                                }
+                                setIsProductModalOpen(false);
+                            } catch (err: any) {
+                                toast.error(err.message || "Failed to add product");
+                            }
+                        }}
+                        onAddCategory={() => { }}
+                        onAddVendor={() => { }}
+                        onAddBrand={() => { }}
+                        onFillFromSearch={() => { }}
+                    />
                 </Box>
-            </Box>
-        </Drawer>
+            </Drawer>
+            <VendorDialogForm
+                open={isVendorDialogOpen}
+                onClose={() => setIsVendorDialogOpen(false)}
+                onSave={async (data) => {
+                    try {
+                        const newVendor = await dispatch(addVendor(data)).unwrap();
+                        toast.success("New vendor added successfully!");
+                        dispatch(getVendorNameList());
+                        setSelectedVendor(newVendor);
+                        if (newVendor._id) {
+                            fetchVendorData(newVendor._id);
+                        }
+                        setIsVendorDialogOpen(false);
+                    } catch (err: any) {
+                        toast.error(err.message || "Failed to add vendor");
+                    }
+                }}
+            />
+        </>
     );
 };

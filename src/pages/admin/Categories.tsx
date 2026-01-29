@@ -1,8 +1,6 @@
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Collapse,
   Dialog,
   DialogActions,
@@ -22,8 +20,8 @@ import {
   Typography
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2, FiUpload } from "react-icons/fi";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FiChevronDown, FiChevronUp, FiDownload, FiEdit, FiPlus, FiRefreshCw, FiSearch, FiTrash2 } from "react-icons/fi";
 import { SmallSpinner } from "../../components/common/SmallSpinner";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import {
@@ -73,11 +71,9 @@ export default function ProductCategories() {
     fileInputRef.current?.click();
   };
 
-  // Import supports JSON array of categories. It will add categories (name only).
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Allow only XLSX
     if (!file.name.endsWith(".xlsx")) {
       alert("Only XLSX files are allowed");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -86,10 +82,9 @@ export default function ProductCategories() {
     setIoLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file); // 👈 key must match backend
+      formData.append("file", file);
       await dispatch(addCategoryBulkExcel(formData)).unwrap();
       alert("XLSX import completed successfully");
-      // Refresh list
       const fromDate = dateRange[0]
         ? dateRange[0].startOf("day").toISOString()
         : "";
@@ -114,8 +109,6 @@ export default function ProductCategories() {
     }
   };
 
-
-
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const uiCategories = useMemo<UICategory[]>(() => {
@@ -135,6 +128,7 @@ export default function ProductCategories() {
       }),
     }));
   }, [apiCategories]);
+
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [isSubCatModalOpen, setIsSubCatModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<UICategory | null>(null);
@@ -159,19 +153,8 @@ export default function ProductCategories() {
     dispatch(getCategories({ search: debouncedSearch || '', page, limit: rowsPerPage, fromDate, toDate }));
   }, [dispatch, debouncedSearch, page, rowsPerPage, dateRange]);
 
-  // const totalPages = allCategoriesData?.totalPages || 1;
-  // `total` is the total number of items across all pages (backend provided)
   const totalCount = allCategoriesData?.total ?? allCategoriesData?.count ?? 0;
-
-  // Keep local `page` in sync with backend's `currentPage` when the list updates.
-  // useEffect(() => {
-  //   const backendPage = allCategoriesData?.currentPage ?? null;
-  //   if (backendPage && backendPage !== page) {
-  //     setPage(backendPage);
-  //   }
-  //   // only run when backend pagination metadata changes
-  // }, [allCategoriesData?.currentPage, page]);
-  const displayedCategories = uiCategories; // server returns paginated list
+  const displayedCategories = uiCategories;
 
   const handleAddCategory = () => {
     setEditingItemId(null);
@@ -214,13 +197,11 @@ export default function ProductCategories() {
 
     setIsCatModalOpen(false);
     setCurrentName("");
-    // After add/update refresh current page (or reset to 1 when adding new)
     const newPage = editingItemId ? page : 1;
     const fromDate = dateRange[0] ? dateRange[0].startOf('day').toISOString() : '';
     const toDate = dateRange[1] ? dateRange[1].endOf('day').toISOString() : '';
     dispatch(getCategories({ search: debouncedSearch || '', page: newPage, limit: rowsPerPage, fromDate, toDate }));
   };
-
 
   const handleAddSubCategory = (cat: UICategory) => {
     setSelectedCategory(cat);
@@ -247,7 +228,6 @@ export default function ProductCategories() {
       }
     }
   };
-
 
   const handleDeleteSubCategory = async (catId: number, subId: number) => {
     if (window.confirm("Delete this sub-category?")) {
@@ -292,9 +272,7 @@ export default function ProductCategories() {
     dispatch(getCategories({ search: debouncedSearch || '', page, limit: rowsPerPage, fromDate, toDate }));
   };
 
-  /** ========= DOWNLOAD TEMPLATE ========= **/
   const handleDownloadTemplate = () => {
-    // Excel-compatible tabular text
     const content =
       "categoryName\tsubCategories\n" +
       "Hotels\tBed\n" +
@@ -307,30 +285,23 @@ export default function ProductCategories() {
 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
-
     a.href = url;
     a.download = "CategorySubCategoryTemplate.xlsx";
     a.click();
-
     window.URL.revokeObjectURL(url);
   };
 
-
-  // --- Render ---
-
   return (
     <AdminLayout>
-      <div>
-        
+      <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
         {error && (
-          <Typography color="error" className="mb-4">
+          <Typography color="error" className="m-4">
             {error}
           </Typography>
         )}
 
-
         {/* Combined Tool Bar */}
-        <Box className="flex flex-col md:flex-row items-center justify-between gap-4 p-4  border border-gray-100 shadow-sm">
+        <Box className="bg-white p-4 border-b border-gray-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
           {/* Filters Area */}
           <Box className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <TextField
@@ -341,12 +312,12 @@ export default function ProductCategories() {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              InputProps={{ 
+              InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
                     <FiSearch size={18} className="text-gray-400" />
                   </InputAdornment>
-                ) 
+                )
               }}
               className="w-full sm:w-64"
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "#fcfcfc" } }}
@@ -366,7 +337,7 @@ export default function ProductCategories() {
                   ]);
                   setPage(1);
                 }}
-                className="w-64"
+                className="w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
 
@@ -383,19 +354,19 @@ export default function ProductCategories() {
                   ]);
                   setPage(1);
                 }}
-                className="w-64"
+                className="w-40"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               />
             </Box>
 
-            <Button 
-              size="small" 
-              variant="text" 
-              startIcon={<FiRefreshCw />} 
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<FiRefreshCw />}
               onClick={() => { setSearchTerm(""); setDateRange([null, null]); setPage(1); }}
-              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3"
+              className="text-blue-600 normal-case font-medium hover:bg-blue-50 px-3 h-9"
             >
-              Reset
+            REFRESH
             </Button>
           </Box>
 
@@ -406,7 +377,7 @@ export default function ProductCategories() {
               startIcon={<FiDownload />}
               onClick={handleDownloadTemplate}
               size="small"
-              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-9"
             >
               Template
             </Button>
@@ -421,7 +392,7 @@ export default function ProductCategories() {
               size="small"
               startIcon={<FiDownload />}
               variant="outlined"
-              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="normal-case border-gray-300 text-gray-700 hover:bg-gray-50 h-9"
               disabled={loading || ioLoading}
               onClick={handleImportClick}
             >
@@ -431,177 +402,195 @@ export default function ProductCategories() {
               startIcon={<FiPlus />}
               variant="contained"
               size="small"
-              // className="!bg-blue-600 hover:!bg-blue-700 normal-case shadow-none"
               onClick={handleAddCategory}
               disabled={loading || ioLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white normal-case px-4 h-9 shadow-sm"
             >
               Add Category
             </Button>
           </Box>
         </Box>
 
-          {/* --- Table --- */}
-
-          <TableContainer component={Paper} className="shadow-md">
-            {loading ?
-              <SmallSpinner size={60} />
-              :
-              <Table>
-                <TableHead className="bg-gray-100">
-                  <TableRow>
-                    <TableCell style={{ width: '5%' }}>S/N</TableCell>
-                    <TableCell style={{ width: '45%' }}>Category Name</TableCell>
-                    <TableCell style={{ width: '30%' }}>Created At</TableCell>
-                    <TableCell align="right" style={{ width: '20%' }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayedCategories.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} align="center" className="text-gray-500 py-8">No categories match the current filters.</TableCell></TableRow>
-                  ) : (
-                    displayedCategories.map((cat: UICategory, index: number) => (
-                      <>
-                        <TableRow key={cat.id} className="hover:bg-blue-50/70 bg-blue-50">
-                          <TableCell>{(page - 1) * rowsPerPage + index + 1}</TableCell>
-                          <TableCell className="capitalize flex items-center gap-2 font-medium">
-                            <IconButton
-                              size="small"
-                              onClick={() => setExpandedId(expandedId === cat.id ? null : cat.id)}
-                              disabled={cat.subCategories.length === 0}
-                            >
-                              {expandedId === cat.id ? (
-                                <FiChevronUp size={16} />
-                              ) : (
-                                <FiChevronDown size={16} />
-                              )}
-                            </IconButton>
-                            {cat.name}
-                          </TableCell>
-                          <TableCell>{cat.createdAt}</TableCell>
-                          <TableCell align="right">
-                            <div className="flex justify-end gap-3">
-                              <FiEdit
-                                onClick={() => handleEditCategory(cat)}
-                                className="text-green-600 cursor-pointer hover:scale-110 transition-transform"
-                                size={18}
-                                style={{ pointerEvents: loading ? 'none' : undefined, opacity: loading ? 0.5 : undefined }}
-                              />
-                              <FiTrash2
-                                onClick={() => handleDeleteCategory(cat.id)}
-                                className="text-red-600 cursor-pointer hover:scale-110 transition-transform"
-                                size={18}
-                                style={{ pointerEvents: loading ? 'none' : undefined, opacity: loading ? 0.5 : undefined }}
-                              />
-                              <FiPlus
-                                onClick={() => handleAddSubCategory(cat)}
-                                className="text-blue-600 cursor-pointer hover:scale-110 transition-transform"
-                                size={18}
-                                title="Add Sub-Category"
-                                style={{ pointerEvents: loading ? 'none' : undefined, opacity: loading ? 0.5 : undefined }}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
-                            <Collapse in={expandedId === cat.id} timeout="auto" unmountOnExit>
-                              <Box margin={1}>
-                                <Typography variant="subtitle2" className="mb-2 text-gray-700">Sub-Categories of **{cat.name}**</Typography>
-                                <Table size="small">
-                                  <TableHead>
-                                    <TableRow className="bg-gray-50">
-                                      <TableCell style={{ width: '5%' }}>S/N</TableCell>
-                                      <TableCell style={{ width: '45%' }}>Sub-Category Name</TableCell>
-                                      <TableCell style={{ width: '30%' }}>Created At</TableCell>
-                                      <TableCell align="right" style={{ width: '20%' }}>Actions</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {cat.subCategories.length > 0 ? (
-                                      cat.subCategories.map((sub: UISubCategory, idx: number) => (
-                                        <TableRow key={sub.id} className="hover:bg-gray-100">
-                                          <TableCell>{idx + 1}</TableCell>
-                                          <TableCell className="capitalize">{sub.name}</TableCell>
-                                          <TableCell>{sub.createdAt}</TableCell>
-                                          <TableCell align="right">
-                                            <div className="flex justify-end gap-3">
-                                              <FiEdit
-                                                onClick={() => handleEditSubCategory(cat.id, sub)}
-                                                className="text-green-600 cursor-pointer hover:scale-110 transition-transform"
-                                                size={16}
-                                                style={{ pointerEvents: loading ? 'none' : undefined, opacity: loading ? 0.5 : undefined }}
-                                              />
-                                              <FiTrash2
-                                                onClick={() => handleDeleteSubCategory(cat.id, sub.id)}
-                                                className="text-red-600 cursor-pointer hover:scale-110 transition-transform"
-                                                size={16}
-                                                style={{ pointerEvents: loading ? 'none' : undefined, opacity: loading ? 0.5 : undefined }}
-                                              />
-                                            </div>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))
-                                    ) : (
-                                      <TableRow>
-                                        <TableCell colSpan={4}>
-                                          <Typography variant="body2" className="text-gray-500 text-center py-2">No sub-categories yet.</Typography>
-                                        </TableCell>
-                                      </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
+        {/* --- Table --- */}
+        <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
+          <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
+            <TableContainer className="flex-1 overflow-auto">
+              {loading ? (
+                <Box className="flex items-center justify-center p-20">
+                  <SmallSpinner size={60} />
+                </Box>
+              ) : (
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold" style={{ width: '5%' }}>S/N</TableCell>
+                      <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold" style={{ width: '45%' }}>Category Name</TableCell>
+                      <TableCell className="bg-gray-50/80 backdrop-blur-md z-10 font-bold" style={{ width: '30%' }}>Created At</TableCell>
+                      <TableCell align="right" className="bg-gray-50/80 backdrop-blur-md z-10 font-bold" style={{ width: '20%' }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {displayedCategories.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} align="center" className="text-gray-500 py-20">No categories match the current filters.</TableCell></TableRow>
+                    ) : (
+                      displayedCategories.map((cat: UICategory, index: number) => (
+                        <React.Fragment key={cat.id}>
+                          <TableRow className="hover:bg-blue-50/40 transition-colors">
+                            <TableCell className="py-3">{(page - 1) * rowsPerPage + index + 1}</TableCell>
+                            <TableCell className="py-3 capitalize flex items-center gap-2 font-medium">
+                              <IconButton
+                                size="small"
+                                onClick={() => setExpandedId(expandedId === cat.id ? null : cat.id)}
+                                disabled={cat.subCategories.length === 0}
+                                className="text-blue-600 hover:bg-blue-50"
+                              >
+                                {expandedId === cat.id ? (
+                                  <FiChevronUp size={16} />
+                                ) : (
+                                  <FiChevronDown size={16} />
+                                )}
+                              </IconButton>
+                              {cat.name}
+                            </TableCell>
+                            <TableCell className="py-3 text-gray-500">{cat.createdAt}</TableCell>
+                            <TableCell className="py-3" align="right">
+                              <Box className="flex justify-end gap-1">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditCategory(cat)}
+                                  className="text-blue-600 hover:bg-blue-50"
+                                  disabled={loading}
+                                >
+                                  <FiEdit size={16} />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteCategory(cat.id)}
+                                  className="text-red-500 hover:bg-red-50"
+                                  disabled={loading}
+                                >
+                                  <FiTrash2 size={16} />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleAddSubCategory(cat)}
+                                  className="text-green-600 hover:bg-green-50"
+                                  disabled={loading}
+                                  title="Add Sub-Category"
+                                >
+                                  <FiPlus size={16} />
+                                </IconButton>
                               </Box>
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      </>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            }
-            {/* Pagination (server-driven) */}
+                            </TableCell>
+                          </TableRow>
+
+                          <TableRow>
+                            <TableCell style={{ paddingBottom: 0, paddingTop: 0, borderBottom: expandedId === cat.id ? '1px solid #f3f4f6' : 'none' }} colSpan={4}>
+                              <Collapse in={expandedId === cat.id} timeout="auto" unmountOnExit>
+                                <Box className="m-4 bg-gray-50/50 rounded-lg border border-gray-100 p-4">
+                                  <Typography variant="subtitle2" className="mb-4 text-gray-800 font-bold flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                    Sub-Categories of {cat.name}
+                                  </Typography>
+                                  <Table size="small" className="bg-white rounded-lg overflow-hidden border border-gray-100">
+                                    <TableHead>
+                                      <TableRow className="bg-gray-50/50">
+                                        <TableCell style={{ width: '10%' }} className="font-bold text-gray-600">S/N</TableCell>
+                                        <TableCell style={{ width: '50%' }} className="font-bold text-gray-600">Sub-Category Name</TableCell>
+                                        <TableCell style={{ width: '25%' }} className="font-bold text-gray-600">Created At</TableCell>
+                                        <TableCell align="right" style={{ width: '15%' }} className="font-bold text-gray-600 pr-4">Actions</TableCell>
+                                      </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                      {cat.subCategories.length > 0 ? (
+                                        cat.subCategories.map((sub: UISubCategory, idx: number) => (
+                                          <TableRow key={sub.id} className="hover:bg-gray-50 transition-colors">
+                                            <TableCell className="py-2 text-gray-500">{idx + 1}</TableCell>
+                                            <TableCell className="py-2 capitalize text-gray-700">{sub.name}</TableCell>
+                                            <TableCell className="py-2 text-gray-500 text-xs">{sub.createdAt}</TableCell>
+                                            <TableCell className="py-2" align="right">
+                                              <Box className="flex justify-end gap-1 px-2">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleEditSubCategory(cat.id, sub)}
+                                                  className="text-blue-500 hover:bg-blue-50"
+                                                  disabled={loading}
+                                                >
+                                                  <FiEdit size={14} />
+                                                </IconButton>
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleDeleteSubCategory(cat.id, sub.id)}
+                                                  className="text-red-400 hover:bg-red-50"
+                                                  disabled={loading}
+                                                >
+                                                  <FiTrash2 size={14} />
+                                                </IconButton>
+                                              </Box>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))
+                                      ) : (
+                                        <TableRow>
+                                          <TableCell colSpan={4} align="center" className="py-4 text-gray-400 text-sm">No sub-categories yet.</TableCell>
+                                        </TableRow>
+                                      )}
+                                    </TableBody>
+                                  </Table>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </TableContainer>
+
             <TablePagination
               component="div"
               count={totalCount}
-              page={page - 1} // MUI uses 0-based index
+              page={page - 1}
               onPageChange={(_, newPage) => {
-                setPage(newPage + 1); // convert back to 1-based
+                setPage(newPage + 1);
               }}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={(e) => {
                 setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(1); // reset to first page
+                setPage(1);
               }}
               rowsPerPageOptions={[10, 25, 50, 100]}
+              className="border-t bg-gray-50 shrink-0"
             />
-          </TableContainer>
+          </Paper>
+        </Box>
 
-          {/* Category Modal */}
-          <Dialog open={isCatModalOpen} onClose={() => setIsCatModalOpen(false)}>
-            <DialogTitle>{editingItemId ? "Edit Category" : "Add New Category"}</DialogTitle>
-            <DialogContent>
-              <TextField autoFocus margin="dense" label="Category Name" fullWidth value={currentName} onChange={(e) => { setCurrentName(e.target.value); setCategoryError(""); }} error={!!categoryError} helperText={categoryError} />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setIsCatModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
-            </DialogActions>
-          </Dialog>
+        {/* Category Modal */}
+        <Dialog open={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+          <DialogTitle className="font-bold">{editingItemId ? "Edit Category" : "Add New Category"}</DialogTitle>
+          <DialogContent className="pt-2">
+            <TextField autoFocus margin="dense" label="Category Name" fullWidth value={currentName} onChange={(e) => { setCurrentName(e.target.value); setCategoryError(""); }} error={!!categoryError} helperText={categoryError} variant="outlined" sx={{ mt: 1 }} />
+          </DialogContent>
+          <DialogActions className="p-4">
+            <Button onClick={() => setIsCatModalOpen(false)} className="text-gray-500 normal-case">Cancel</Button>
+            <Button onClick={handleSaveCategory} variant="contained" className="bg-blue-600 hover:bg-blue-700 normal-case px-6" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
+          </DialogActions>
+        </Dialog>
 
-          {/* Sub-Category Modal */}
-          <Dialog open={isSubCatModalOpen} onClose={() => setIsSubCatModalOpen(false)}>
-            <DialogTitle>{editingItemId ? "Edit Sub-Category" : `Add Sub-Category to ${selectedCategory?.name || ""}`}</DialogTitle>
-            <DialogContent>
-              <TextField autoFocus margin="dense" label="Sub-Category Name" fullWidth value={currentName} onChange={(e) => setCurrentName(e.target.value)} />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setIsSubCatModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveSubCategory} variant="contained" className="!bg-green-600 hover:!bg-green-700" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
-            </DialogActions>
-          </Dialog>
-      </div>
+        {/* Sub-Category Modal */}
+        <Dialog open={isSubCatModalOpen} onClose={() => setIsSubCatModalOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+          <DialogTitle className="font-bold">{editingItemId ? "Edit Sub-Category" : `Add Sub-Category to ${selectedCategory?.name || ""}`}</DialogTitle>
+          <DialogContent className="pt-2">
+            <TextField autoFocus margin="dense" label="Sub-Category Name" fullWidth value={currentName} onChange={(e) => setCurrentName(e.target.value)} variant="outlined" sx={{ mt: 1 }} />
+          </DialogContent>
+          <DialogActions className="p-4">
+            <Button onClick={() => setIsSubCatModalOpen(false)} className="text-gray-500 normal-case">Cancel</Button>
+            <Button onClick={handleSaveSubCategory} variant="contained" className="bg-blue-600 hover:bg-blue-700 normal-case px-6" disabled={!currentName.trim() || loading}>{editingItemId ? "Update" : "Add"}</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </AdminLayout>
   );
 }

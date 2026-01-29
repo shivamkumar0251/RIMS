@@ -9,7 +9,9 @@ import type { ProductInterface } from './productSlice';
 
 export interface StoreStockPostData {
   productId: string;
-  qty: number
+  qty: number;
+  expiryDate?: string;
+  type?: string;
 }
 
 export interface StoreStock {
@@ -20,6 +22,7 @@ export interface StoreStock {
   rcvdStoreQty: number;
   transfersToKitchenStore: number;
   closingStock: number;
+  expiryDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,11 +57,11 @@ const initialState: StoreStockState = {
 // ---------------- Thunks ----------------
 export const getStoreStocks = createAsyncThunk<
   GetStoreStocksResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string,  categoryId?: string, vendorId?: string, companyId?:string, },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, categoryId?: string, vendorId?: string, companyId?: string, },
   { rejectValue: { message: string } }
 >(
   'storeStock/getStoreStocks',
-   async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '',  vendorId = '',  companyId = '', }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', categoryId = '', vendorId = '', companyId = '', }, thunkAPI) => {
     try {
       const url = `${API_ENDPOINTS.GET_STORE_STOCK}?search=${search}&categoryId=${categoryId}&vendorId=${vendorId}&companyId=${companyId}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}`;
 
@@ -128,7 +131,9 @@ export const updateStoreStock = createAsyncThunk<
       });
 
       if (response.status === 200) {
-        return response.data as StoreStock;
+        // Support both wrapped { data: ... } and direct formats
+        const responseData = response.data as any;
+        return (responseData.data || responseData) as StoreStock;
       }
 
       return thunkAPI.rejectWithValue({
@@ -216,7 +221,7 @@ const storeStockSlice = createSlice({
       .addCase(updateStoreStock.fulfilled, (state, action) => {
         state.loading = false;
         state.storeStocks = state.storeStocks.map((storeStock) =>
-          storeStock._id === action.payload._id ? action.payload : storeStock
+          storeStock._id === action.payload._id ? { ...storeStock, ...action.payload } : storeStock
         );
       })
       .addCase(updateStoreStock.rejected, (state, action) => {

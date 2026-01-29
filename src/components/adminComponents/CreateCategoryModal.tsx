@@ -47,34 +47,33 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ open, onClose
             fullWidth
             maxWidth="xs"
             PaperProps={{
-                sx: { borderRadius: '20px', p: 0, overflow: 'hidden' }
+                sx: { borderRadius: '12px', p: 0, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }
             }}
             BackdropProps={{
-                sx: { backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.2)' }
+                sx: { backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
             }}
         >
             <Box className="bg-white">
-                <Box className="bg-blue-50 px-6 py-4 flex items-center justify-between border-b border-blue-100">
+                <Box className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
                     <Box className="flex items-center gap-3">
-                        <Box className="bg-white p-2 rounded-full text-blue-600 shadow-sm border border-blue-100">
+                        <Box className="bg-blue-50 p-2 rounded-lg text-blue-600">
                             <FiFolderPlus size={20} />
                         </Box>
-                        <Typography variant="h6" className="font-bold text-black">Add New Category</Typography>
+                        <Box>
+                            <Typography variant="h6" className="font-bold text-gray-900 leading-tight">Add New Category</Typography>
+                            <Typography variant="caption" className="text-gray-500 font-medium">Organize your inventory efficiently</Typography>
+                        </Box>
                     </Box>
-                    <IconButton onClick={onClose} size="small" className="text-blue-400 hover:text-blue-700 hover:bg-blue-200" aria-label="close">
+                    <IconButton onClick={onClose} size="small" className="text-gray-400 hover:text-gray-600 hover:bg-gray-100" aria-label="close">
                         <FiX size={20} />
                     </IconButton>
                 </Box>
 
-                <DialogContent className="px-6 pb-6 pt-2">
-                    <Typography variant="body2" className="text-slate-500 pb-4 font-medium">
-                        Create a new category to organize your inventory efficiently.
-                    </Typography>
+                <DialogContent className="px-6 py-6">
 
                     <TextField
                         autoFocus
                         fullWidth
-                        size="small"
                         label="Category Name"
                         placeholder="e.g. Beverages, Bakery..."
                         value={name}
@@ -84,18 +83,15 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ open, onClose
                         }}
                         error={Boolean(error)}
                         helperText={error}
-                        className="mt-8"
                         variant="outlined"
                         sx={{
                             "& .MuiOutlinedInput-root": {
-                                borderRadius: "12px",
+                                borderRadius: "6px",
                                 backgroundColor: "#fff",
                                 "&.Mui-focused fieldset": {
-                                    borderColor: "#2563eb" // blue-600
+                                    borderColor: "#2563eb",
+                                    borderWidth: '2px'
                                 }
-                            },
-                            "& .MuiInputLabel-root.Mui-focused": {
-                                color: "#2563eb"
                             }
                         }}
                         onKeyPress={(e) => {
@@ -104,15 +100,16 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ open, onClose
                     />
                 </DialogContent>
 
-                <DialogActions className="p-6 pt-2 bg-slate-50 border-t border-slate-100">
-                    <Button variant="outlined" onClick={onClose} className="px-6 border-gray-300 text-gray-700">
-                        CANCEL
+                <DialogActions className="p-6 border-t border-gray-100 flex gap-3">
+                    <Button variant="text" onClick={onClose} className="px-6 text-gray-500 hover:bg-gray-100 font-bold normal-case">
+                        Cancel
                     </Button>
                     <Button
                         onClick={handleSave}
                         variant="contained"
                         disabled={loading}
-                        className="px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-sm"
+                        className="px-8 bg-blue-600 hover:bg-blue-700 font-bold normal-case shadow-none"
+                        disableElevation
                     >
                         {loading ? "Saving..." : "Create Category"}
                     </Button>

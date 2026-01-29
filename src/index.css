@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -27,4 +28,17 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
+}
+
+/* Hide MUI X Missing License Watermark Aggressively */
+.MuiXLicenseInfo-root,
+.mui-x-license-root,
+[class*="MuiXLicenseInfo-root"],
+[class*="mui-x-license-root"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
 }

@@ -20,7 +20,7 @@ export interface VendorOrder {
   products: VendorOrderProduct[];
   totalAmount: number;
   totalClosingAmount: number;
-  paymentStatus: string;
+  orderStatus: string;
   status: string; // Added status field (Draft / Sent / Delivered)
   totelOrderQty: number;
   orderDate: string;
@@ -62,13 +62,13 @@ const initialState: VendorOrderState = {
 // GET VENDOR ORDERS
 export const getVendorOrders = createAsyncThunk<
   GetVendorOrdersResponse,
-  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, paymentStatus?: string },
+  { search?: string; page?: number; limit?: number; fromDate?: string; toDate?: string, category?: string, vendor?: string, brand?: string, orderStatus?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/getVendorOrders',
-  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', paymentStatus = '' }, thunkAPI) => {
+  async ({ search = '', page = 1, limit = 5, fromDate = '', toDate = '', category = '', vendor = '', brand = '', orderStatus = '' }, thunkAPI) => {
     try {
-      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&paymentStatus=${paymentStatus}`;
+      const url = `${API_ENDPOINTS.GET_VENDOR_ORDERS_LIST}?search=${search}&category=${category}&vendor=${vendor}&brand=${brand}&page=${page}&limit=${limit}&fromDate=${fromDate}&toDate=${toDate}&orderStatus=${orderStatus}`;
 
       const response = await apiCaller({ url, method: 'GET' });
 
@@ -92,20 +92,20 @@ export const getVendorOrders = createAsyncThunk<
 // UPDATE VENDOR ORDER
 export const updateVendorOrder = createAsyncThunk<
   VendorOrder,
-  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; status?: string },
+  { vendorOrderId: string; products?: VendorDataUpdateProduct[]; orderStatus?: string },
   { rejectValue: { message: string } }
 >(
   'vendorOrder/updateVendorOrder',
-  async ({ vendorOrderId, products, status }, thunkAPI) => {
+  async ({ vendorOrderId, products, orderStatus }, thunkAPI) => {
     try {
       const response = await apiCaller({
         url: API_ENDPOINTS.UPDATE_VENDOR_ORDER(vendorOrderId),
         method: 'PUT',
-        data: { products, status },
+        data: { products, orderStatus },
       });
 
       if (response.status === 200) {
-        return response.data as VendorOrder;
+        return (response.data as { data: VendorOrder }).data;
       }
 
       return thunkAPI.rejectWithValue({
@@ -136,11 +136,42 @@ export const addVendorOrder = createAsyncThunk<
       });
 
       if (response.status === 201 || response.status === 200) {
-        return response.data as VendorOrder;
+        return (response.data as { data: VendorOrder }).data;
       }
 
       return thunkAPI.rejectWithValue({
         message: (response.data as { message?: string })?.message || 'Creation failed',
+      });
+    } catch (error) {
+      const err = error as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue({
+        message: err.response?.data?.message || 'Server error',
+      });
+    }
+  }
+);
+
+// EDIT VENDOR ORDER (General Update)
+export const editVendorOrder = createAsyncThunk<
+  VendorOrder,
+  { orderId: string; data: any },
+  { rejectValue: { message: string } }
+>(
+  'vendorOrder/editVendorOrder',
+  async ({ orderId, data }, thunkAPI) => {
+    try {
+      const response = await apiCaller({
+        url: API_ENDPOINTS.UPDATE_ORDERS(orderId), // Uses /order/:id
+        method: 'PUT',
+        data: data,
+      });
+
+      if (response.status === 200) {
+        return (response.data as { data: VendorOrder }).data;
+      }
+
+      return thunkAPI.rejectWithValue({
+        message: (response.data as { message?: string })?.message || 'Update failed',
       });
     } catch (error) {
       const err = error as AxiosError<{ message: string }>;
@@ -217,6 +248,22 @@ const vendorOrderSlice = createSlice({
       .addCase(updateVendorOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Update vendor order failed';
+      })
+
+      // EDIT (General)
+      .addCase(editVendorOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editVendorOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vendorOrders = state.vendorOrders.map((order: VendorOrder) =>
+          order._id === action.payload._id ? action.payload : order
+        );
+      })
+      .addCase(editVendorOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Edit vendor order failed';
       })
 
       // DELETE

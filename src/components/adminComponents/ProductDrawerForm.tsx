@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -29,6 +30,7 @@ interface ProductDrawerFormProps {
   onAddBrand: () => void;
   onFillFromSearch: (product: ProductInterface) => void;
   allowedProductTypes?: string[];
+  title?: string;
 }
 
 const COMMON_PACK_SIZES = [
@@ -100,6 +102,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
   onAddVendor,
   onAddBrand,
   allowedProductTypes,
+  title,
 }) => {
   const [form, setForm] = useState<Partial<ProductInterface>>(initialData);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -155,6 +158,9 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
 
     if (!form.unit) newErrors.unit = "Unit is required";
     if (!form.packSize) newErrors.packSize = "Pack Size is required";
+    const ven = form.vendorsId as any;
+    if (!ven || (typeof ven === "object" && !ven._id))
+      newErrors.vendorsId = "Vendor is required";
 
     if (form.isActive === undefined)
       newErrors.isActive = "Active Status is required";
@@ -198,16 +204,6 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
         }
       }
 
-      if (finalizedForm.vendorsId && !finalizedForm.vendorsId._id) {
-        delete finalizedForm.vendorsId;
-      }
-      if (finalizedForm.companyId && !finalizedForm.companyId._id) {
-        delete finalizedForm.companyId;
-      }
-      if (finalizedForm.categoryId && !finalizedForm.categoryId._id) {
-        delete finalizedForm.categoryId;
-      }
-
       await onSave(finalizedForm as ProductInterface);
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
@@ -231,108 +227,108 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: "#fdfdfd" }}>
       {/* Header */}
-      <Box className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20 shadow-sm">
+      <Box className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
         <div>
-          <Typography variant="h6" className="font-bold text-gray-800">
-            {isEdit ? "Edit Product" : "Add New Product"}
+          <Typography variant="h6" className="font-bold text-gray-900 leading-tight">
+            {title || (isEdit ? "Edit Product" : "Add New Product")}
           </Typography>
-          <Typography variant="caption" className="text-gray-500">
-            {isEdit ? "Update inventory details" : "Create a new inventory item"}
+          <Typography variant="caption" className="text-gray-500 font-medium">
+            {isEdit ? "Update product details" : `Create a new ${form.productType || 'item'} efficiently`}
           </Typography>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
-            variant="outlined"
+            variant="text"
             size="small"
             onClick={onAddCategory}
-            className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+            className="text-[10px] font-bold py-1.5 px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
           >
             + CATEGORY
           </Button>
           <Button
-            variant="outlined"
+            variant="text"
             size="small"
             onClick={onAddVendor}
-            className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+            className="text-[10px] font-bold py-1.5 px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
           >
             + VENDOR
           </Button>
           <Button
-            variant="outlined"
+            variant="text"
             size="small"
             onClick={onAddBrand}
-            className="text-xs py-1 px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+            className="text-[10px] font-bold py-1.5 px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
           >
             + BRAND
           </Button>
 
-          <IconButton onClick={onClose} size="small" className="ml-2 text-gray-400 hover:text-red-500">
-            <FiX size={24} />
+          <IconButton onClick={onClose} size="small" className="ml-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <FiX size={22} />
           </IconButton>
         </div>
       </Box>
 
       {/* Scrollable Form Content */}
-      <Box className="flex-1 overflow-y-auto p-4">
-        {/* ✅ Width Increased to 75% & More Compact */}
-        <Box className="w-full lg:w-3/4 space-y-4">
-          {/* Product Type */}
+      <Box className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar bg-slate-50/30">
+        <Box className="w-full space-y-8">
+          {/* Product Type Selection */}
           <div>
-            <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-1">
+            <Typography variant="caption" className="font-bold text-gray-400 uppercase tracking-widest block mb-2 px-1">
               SELECT PRODUCT TYPE <span className="text-red-500">*</span>
             </Typography>
 
-            <Box className="bg-white p-1 rounded-lg inline-flex w-full box-border border border-gray-200 shadow-sm">
+            <Box className="bg-white p-1.5 rounded-xl inline-flex w-full box-border border border-gray-200 shadow-sm">
               {allowedProductTypes && allowedProductTypes.length > 0 ? (
                 allowedProductTypes.map((type) => (
                   <Box
                     key={type}
                     onClick={() => handleProductTypeChange(type)}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === type
-                      ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
-                      : "text-gray-500 hover:bg-gray-100"
+                    className={`flex items-center justify-center gap-2 px-8 py-2.5 rounded-lg cursor-pointer transition-all flex-1 ${form.productType === type
+                      ? "bg-blue-600 text-white shadow-md active:scale-95"
+                      : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <FiBox size={18} />
-                    <span className="font-bold text-xs tracking-wide uppercase">{type}</span>
+                    <span className="font-bold text-[10px] tracking-widest uppercase">{type}</span>
                   </Box>
                 ))
               ) : (
                 <>
                   <Box
                     onClick={() => handleProductTypeChange("Inventory Item")}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Inventory Item"
-                      ? "bg-[#6200ea] text-white shadow-md transform scale-[1.02]"
-                      : "text-gray-500 hover:bg-gray-100"
+                    className={`flex items-center justify-center gap-2 px-8 py-2.5 rounded-lg cursor-pointer transition-all flex-1 ${form.productType === "Inventory Item"
+                      ? "bg-blue-600 text-white shadow-md active:scale-95"
+                      : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <FiBox size={18} />
-                    <span className="font-bold text-xs tracking-wide">INVENTORY ITEM</span>
+                    <span className="font-bold text-[10px] tracking-widest">INVENTORY ITEM</span>
                   </Box>
 
                   <Box
                     onClick={() => handleProductTypeChange("Packaging Item")}
-                    className={`flex items-center justify-center gap-2 px-8 py-2 rounded-md cursor-pointer transition-all flex-1 ${form.productType === "Packaging Item"
-                      ? "bg-[#ef6c00] text-white shadow-md transform scale-[1.02]"
-                      : "text-gray-500 hover:bg-gray-100"
+                    className={`flex items-center justify-center gap-2 px-8 py-2.5 rounded-lg cursor-pointer transition-all flex-1 ${form.productType === "Packaging Item"
+                      ? "bg-orange-500 text-white shadow-md active:scale-95"
+                      : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <FiPackage size={18} />
-                    <span className="font-bold text-xs tracking-wide">PACKAGING ITEM</span>
+                    <span className="font-bold text-[10px] tracking-widest">PACKAGING ITEM</span>
                   </Box>
                 </>
               )}
             </Box>
           </div>
 
-          {/* Common Details - Blue Theme */}
-          <Box className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
-            <Typography variant="caption" className="font-bold text-blue-900 uppercase tracking-wider block mb-3 border-b border-blue-200 pb-2">
-              COMMON DETAILS (REQUIRED)
+          {/* 1. Common Details Card */}
+          <Box className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
+            <Typography variant="subtitle2" className="font-bold text-gray-900 tracking-tight block mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+              COMMON DETAILS
             </Typography>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-6">
               <TextField
                 fullWidth
                 size="small"
@@ -341,8 +337,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 onChange={(e) => handleInputChange("productName", e.target.value)}
                 error={Boolean(errors.productName)}
                 helperText={errors.productName}
-                className="bg-white"
-                variant="outlined"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
               />
 
               <TextField
@@ -351,20 +346,16 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                 label="Product Description"
                 value={form.productDescription || ""}
                 onChange={(e) => handleInputChange("productDescription", e.target.value)}
-                className="bg-white"
-                variant="outlined"
                 multiline
-                minRows={1}
+                minRows={2}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
               />
 
               <Autocomplete
                 fullWidth
                 freeSolo
                 options={categories}
-                getOptionLabel={(option) => {
-                  if (typeof option === "string") return option;
-                  return option.categoryName || "";
-                }}
+                getOptionLabel={(option) => (typeof option === "string" ? option : option.categoryName || "")}
                 value={form.categoryId || null}
                 onChange={(_, val) => handleInputChange("categoryId", val)}
                 renderInput={(params) => (
@@ -374,12 +365,12 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                     label="Category *"
                     error={Boolean(errors.categoryId)}
                     helperText={errors.categoryId}
-                    className="bg-white"
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                   />
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Autocomplete
                   fullWidth
                   freeSolo
@@ -393,7 +384,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                       label="Unit *"
                       error={Boolean(errors.unit)}
                       helperText={errors.unit}
-                      className="bg-white"
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                     />
                   )}
                 />
@@ -410,7 +401,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                       label="Pack Size *"
                       error={Boolean(errors.packSize)}
                       helperText={errors.packSize}
-                      className="bg-white"
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                     />
                   )}
                 />
@@ -424,7 +415,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   label="Active Status *"
                   value={form.isActive === undefined ? "true" : String(form.isActive)}
                   onChange={(e) => handleInputChange("isActive", e.target.value === "true")}
-                  className="bg-white"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 >
                   <MenuItem value="true">Active</MenuItem>
                   <MenuItem value="false">Inactive</MenuItem>
@@ -433,14 +424,15 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
             </div>
           </Box>
 
-          {/* Additional Details - Gray Theme */}
-          <Box className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-            <Typography variant="caption" className="font-bold text-gray-700 uppercase tracking-wider block mb-3 border-b border-gray-200 pb-2">
-              ADDITIONAL DETAILS (OPTIONAL)
+          {/* 2. Additional Details Card */}
+          <Box className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
+            <Typography variant="subtitle2" className="font-bold text-gray-900 tracking-tight block mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+              ADDITIONAL DETAILS
             </Typography>
 
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Autocomplete
                   fullWidth
                   freeSolo
@@ -448,25 +440,35 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.brandName || "")}
                   value={form.companyId || null}
                   onChange={(_, val) => handleInputChange("companyId", val)}
-                  renderInput={(params) => <TextField {...params} size="small" label="Brand" className="bg-white" />}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      label="Brand"
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
+                    />
+                  )}
                 />
 
                 <Autocomplete
                   options={vendors}
                   getOptionLabel={(v) => v.vendor_name || ""}
-                  value={
-                    vendors.find(
-                      (v) =>
-                        v._id ===
-                        (typeof form.vendorsId === "object" ? form.vendorsId?._id : form.vendorsId)
-                    ) || null
-                  }
-                  onChange={(_, val) => handleInputChange("vendorsId", val ? val._id : "")}
-                  renderInput={(params) => <TextField {...params} size="small" label="Vendor" className="bg-white" />}
+                  value={vendors.find((v) => v._id === (typeof form.vendorsId === "object" ? form.vendorsId?._id : form.vendorsId)) || null}
+                  onChange={(_, val) => handleInputChange("vendorsId", val)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      label="Vendor *"
+                      error={Boolean(errors.vendorsId)}
+                      helperText={errors.vendorsId}
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
+                    />
+                  )}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <TextField
                   fullWidth
                   size="small"
@@ -474,8 +476,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   type="number"
                   value={form.quantity ?? ""}
                   onChange={(e) => handleInputChange("quantity", e.target.value)}
-                  sx={numberInputStyle}
-                  className="bg-white"
+                  sx={{ ...numberInputStyle, "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
 
                 <TextField
@@ -486,8 +487,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   value={form.perUnitRate ?? ""}
                   onChange={(e) => handleInputChange("perUnitRate", e.target.value)}
                   InputProps={{ startAdornment: <span className="text-gray-400 mr-2">₹</span> }}
-                  sx={numberInputStyle}
-                  className="bg-white"
+                  sx={{ ...numberInputStyle, "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
 
                 <TextField
@@ -498,12 +498,11 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   value={form.gstPct ?? ""}
                   onChange={(e) => handleInputChange("gstPct", e.target.value)}
                   InputProps={{ endAdornment: <span className="text-gray-400 ml-1">%</span> }}
-                  sx={numberInputStyle}
-                  className="bg-white"
+                  sx={{ ...numberInputStyle, "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <TextField
                   fullWidth
                   size="small"
@@ -513,8 +512,8 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                     readOnly: true,
                     startAdornment: <span className="text-gray-400 mr-2">₹</span>,
                   }}
-                  helperText="Automatic"
-                  className="bg-gray-100"
+                  helperText={<span className="text-[10px] text-blue-500 font-medium italic">Calculated automatically</span>}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px", bgcolor: "#f8fafc" } }}
                 />
 
                 <TextField
@@ -524,13 +523,11 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   type="number"
                   value={form.stockAlert ?? ""}
                   onChange={(e) => handleInputChange("stockAlert", e.target.value)}
-                  sx={numberInputStyle}
-                  className="bg-white"
+                  sx={{ ...numberInputStyle, "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
               </div>
 
-              {/* Warranty Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <TextField
                   fullWidth
                   size="small"
@@ -539,7 +536,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   InputLabelProps={{ shrink: true }}
                   value={form.warrantyStart || ""}
                   onChange={(e) => handleInputChange("warrantyStart", e.target.value)}
-                  className="bg-white"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
                 <TextField
                   fullWidth
@@ -549,21 +546,35 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   InputLabelProps={{ shrink: true }}
                   value={form.warrantyEnd || ""}
                   onChange={(e) => handleInputChange("warrantyEnd", e.target.value)}
-                  className="bg-white"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Expiry Date"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={form.expiryDate || ""}
+                  onChange={(e) => handleInputChange("expiryDate", e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px" } }}
                 />
               </div>
             </div>
           </Box>
 
-          {/* Packaging Specifics - Yellow Theme */}
+          {/* 3. Packaging Specific Card */}
           {form.productType === "Packaging Item" && (
-            <Box className="bg-[#fffde7] p-4 rounded-xl border border-yellow-200 shadow-sm animate-fade-in">
-              <Typography className="font-bold text-yellow-900 text-xs uppercase tracking-wider mb-3 border-b border-yellow-200 pb-2">
-                PACKAGING SPECIFICS (REQUIRED)
+            <Box className="bg-orange-50/50 p-6 rounded-xl border border-orange-100 shadow-sm animate-fade-in">
+              <Typography variant="subtitle2" className="font-bold text-orange-900 tracking-tight block mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-orange-500 rounded-full"></span>
+                PACKAGING SPECIFICS
               </Typography>
 
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Autocomplete
                     freeSolo
                     options={COMMON_SHAPES}
@@ -576,7 +587,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                         label="Shape *"
                         placeholder="Box, Roll..."
                         error={Boolean(errors.shape)}
-                        className="bg-white"
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px", bgcolor: "#fff" } }}
                       />
                     )}
                   />
@@ -593,7 +604,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                         label="Color *"
                         placeholder="Brown, White..."
                         error={Boolean(errors.colour)}
-                        className="bg-white"
+                        sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px", bgcolor: "#fff" } }}
                       />
                     )}
                   />
@@ -606,7 +617,7 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
                   label="Print Status"
                   value={form.printStatus || ""}
                   onChange={(e) => handleInputChange("printStatus", e.target.value)}
-                  className="bg-white"
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "6px", bgcolor: "#fff" } }}
                 >
                   <MenuItem value="Printed">Printed</MenuItem>
                   <MenuItem value="Non Print">Non Print</MenuItem>
@@ -615,36 +626,43 @@ export const ProductDrawerForm: React.FC<ProductDrawerFormProps> = ({
             </Box>
           )}
 
-          {/* Product Image */}
-          <div>
-            <Typography variant="caption" className="font-bold text-gray-500 uppercase tracking-wider block mb-2">
+          {/* 4. Product Image Section */}
+          {/* <div>
+            <Typography variant="caption" className="font-bold text-gray-400 uppercase tracking-widest block mb-2 px-1">
               PRODUCT IMAGE
             </Typography>
 
-            <Box className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
-              <Box className="p-3 bg-blue-50 rounded-full group-hover:scale-110 transition-transform">
-                <FiBox className="text-blue-500" size={24} />
+            <Box className="border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-white hover:bg-slate-50 transition-all cursor-pointer group hover:border-blue-400">
+              <Box className="p-4 bg-blue-50 rounded-full group-hover:scale-110 transition-transform text-blue-600">
+                <FiPackage size={28} />
               </Box>
-              <span className="text-sm font-medium text-gray-600">Click to upload image</span>
-              <span className="text-xs text-gray-400">SVG, PNG, JPG (Max 5MB)</span>
+              <div className="text-center">
+                <Typography className="text-sm font-bold text-gray-700">Click to upload product image</Typography>
+                <Typography variant="caption" className="text-gray-400">Support for SVG, PNG, JPG (Max 5MB)</Typography>
+              </div>
             </Box>
-          </div>
+          </div> */}
         </Box>
       </Box>
 
       {/* Sticky Footer */}
-      <Box className="px-6 py-4 border-t border-gray-200 bg-white flex justify-start gap-3 sticky bottom-0 z-20">
-        <Button variant="outlined" onClick={onClose} className="px-6 border-gray-300 text-gray-700">
-          CANCEL
+      <Box className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 sticky bottom-0 z-20">
+        <Button
+          variant="text"
+          onClick={onClose}
+          className="px-6 text-gray-500 hover:bg-gray-50 font-bold normal-case"
+        >
+          Cancel
         </Button>
 
         <Button
           variant="contained"
           onClick={handleSubmit}
           disabled={isSaving}
-          className="px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-sm"
+          className="px-10 bg-blue-600 hover:bg-blue-700 font-bold normal-case shadow-none"
+          disableElevation
         >
-          {isSaving ? "CREATING..." : isEdit ? "UPDATE PRODUCT" : "CREATE PRODUCT"}
+          {isSaving ? "Saving..." : isEdit ? "Update Product" : "Create Product"}
         </Button>
       </Box>
     </Box>

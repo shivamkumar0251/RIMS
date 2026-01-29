@@ -11,7 +11,7 @@ try { xlsx = require('xlsx'); } catch (e) { xlsx = null; }
 
 const toObjectId = (id) => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : undefined;
 const safeEnum = (value, allowed, defaultValue) => allowed.includes(value) ? value : defaultValue;
-const PRODUCT_TYPE = ["Inventory Item", "Packaging Item"]
+const PRODUCT_TYPE = ["Inventory Item", "Packaging Item", "Equipment", "Crockery", "Furniture"]
 
 const taxVal = (r, t) => {
   const rate = Number(r) || 0;
@@ -78,12 +78,14 @@ exports.createSingleProduct = async (req, res) => {
 
     const created = await Products.create({
       franchiseId,
-      categoryId: toObjectId(productData.categoryId?._id),
-      vendorsId: toObjectId(productData.vendorsId?._id),
-      companyId: toObjectId(productData.companyId?._id),
+      categoryId: toObjectId(productData.categoryId?._id || productData.categoryId),
+      vendorsId: toObjectId(productData.vendorsId?._id || productData.vendorsId),
+      companyId: toObjectId(productData.companyId?._id || productData.companyId),
       productName: productData.productName,
+      productDescription: productData.productDescription,
       packSize: productData.packSize,
       unit: productData.unit,
+      quantity: productData.quantity,
       shape: productData.shape,
       colour: productData.colour,
       printStatus: productData.printStatus,
@@ -92,10 +94,18 @@ exports.createSingleProduct = async (req, res) => {
       taxableValue: taxVal(productData.perUnitRate, productData.gstPct),
       perUnitRate: productData.perUnitRate,
       productType: safeEnum(productData.productType, PRODUCT_TYPE, "Inventory Item"),
+      isActive: productData.isActive,
       expiryDate: productData.expiryDate,
+      warrantyStart: productData.warrantyStart,
+      warrantyEnd: productData.warrantyEnd,
       stockAlert: productData.stockAlert,
     });
-    return res.status(201).json({ success: true, message: 'Product added', data: created });
+    const populated = await Products.findById(created._id)
+      .populate('categoryId', 'categoryName')
+      .populate('vendorsId', 'vendor_name')
+      .populate('companyId', 'brandName');
+
+    return res.status(201).json({ success: true, message: 'Product added', data: populated });
   } catch (err) {
     console.error('createSingleProduct error:', err);
     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
@@ -139,8 +149,10 @@ exports.createBulkFromExcel = async (req, res) => {
           vendorsId: r.VendorsName || "",
           companyId: r.CompanyName || "",
           productName: r.ProductName || "",
+          productDescription: r.ProductDescription || "",
           packSize: r.PackSize || "",
           unit: r.Unit || "",
+          quantity: Number(r.Quantity) || 0,
           shape: r.Shape || "",
           colour: r.Colour || "",
           productImage,
@@ -149,7 +161,10 @@ exports.createBulkFromExcel = async (req, res) => {
           taxableValue: taxVal(r.PerUnitRate, r.GstPercentage) || 0,
           perUnitRate: Number(r.PerUnitRate) || 0,
           productType: safeEnum(r.ProductType, PRODUCT_TYPE, "Inventory Item"),
+          isActive: r.IsActive !== undefined ? (String(r.IsActive).toLowerCase() === 'true') : true,
           expiryDate: r.ExpiryDate || "",
+          warrantyStart: r.WarrantyStart || "",
+          warrantyEnd: r.WarrantyEnd || "",
           stockAlert: Number(r.StockAlert) || 0,
         };
       })
@@ -161,9 +176,9 @@ exports.createBulkFromExcel = async (req, res) => {
       const s = String(val).trim();
       if (isObjectId(s)) return s;
       try {
-        const found = await model.findOne({ 
-          [nameField]: { $regex: new RegExp(`^${s}$`, "i") }, 
-          franchiseId 
+        const found = await model.findOne({
+          [nameField]: { $regex: new RegExp(`^${s}$`, "i") },
+          franchiseId
         });
         return found ? String(found._id) : null;
       } catch (e) {
@@ -234,31 +249,61 @@ exports.getProducts = async (req, res) => {
     // const body = req.body
     const body = req.baseUrl
 
-    // category: accept id or name
+    // category: accept id(s) or name(s)
     if (category) {
-      if (isObjectId(category)) query.categoryId = category;
-      else {
-        const cat = await Categorys.findOne({ categoryName: category, franchiseId });
-        if (cat) query.categoryId = cat._id; else return res.status(200).json({ success: true, data: [], total: 0 });
+      const catParts = String(category).split(',').map(v => v.trim()).filter(Boolean);
+      const catIds = [];
+      const catNames = [];
+      catParts.forEach(p => {
+        if (isObjectId(p)) catIds.push(new mongoose.Types.ObjectId(p));
+        else catNames.push(p);
+      });
+
+      if (catNames.length > 0) {
+        const found = await Categorys.find({ categoryName: { $in: catNames }, franchiseId }).select('_id');
+        found.forEach(f => catIds.push(f._id));
       }
+
+      if (catIds.length > 0) query.categoryId = { $in: catIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
-    // vendor
+    // vendor: accept id(s) or name(s)
     if (vendor) {
-      if (isObjectId(vendor)) query.vendorsId = vendor;
-      else {
-        const v = await Vendors.findOne({ vendor_name: vendor, franchiseId });
-        if (v) query.vendorsId = v._id; else return res.status(200).json({ success: true, data: [], total: 0 });
+      const venParts = String(vendor).split(',').map(v => v.trim()).filter(Boolean);
+      const venIds = [];
+      const venNames = [];
+      venParts.forEach(p => {
+        if (isObjectId(p)) venIds.push(new mongoose.Types.ObjectId(p));
+        else venNames.push(p);
+      });
+
+      if (venNames.length > 0) {
+        const found = await Vendors.find({ vendor_name: { $in: venNames }, franchiseId }).select('_id');
+        found.forEach(f => venIds.push(f._id));
       }
+
+      if (venIds.length > 0) query.vendorsId = { $in: venIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
-    // company
+    // company: accept id(s) or name(s)
     if (company) {
-      if (isObjectId(company)) query.companyId = company;
-      else {
-        const c = await CompanyBrands.findOne({ brandName: company, franchiseId });
-        if (c) query.companyId = c._id; else return res.status(200).json({ success: true, data: [], total: 0 });
+      const compParts = String(company).split(',').map(v => v.trim()).filter(Boolean);
+      const compIds = [];
+      const compNames = [];
+      compParts.forEach(p => {
+        if (isObjectId(p)) compIds.push(new mongoose.Types.ObjectId(p));
+        else compNames.push(p);
+      });
+
+      if (compNames.length > 0) {
+        const found = await CompanyBrands.find({ brandName: { $in: compNames }, franchiseId }).select('_id');
+        found.forEach(f => compIds.push(f._id));
       }
+
+      if (compIds.length > 0) query.companyId = { $in: compIds };
+      else return res.status(200).json({ success: true, data: [], total: 0 });
     }
 
     // search on productName
@@ -267,8 +312,11 @@ exports.getProducts = async (req, res) => {
     }
 
     if (productType) {
-      query.productType = safeEnum(productType, PRODUCT_TYPE, "Inventory Items")
-      // query.productType = productType
+      const types = productType.split(',').map(t => t.trim());
+      const validTypes = types.filter(t => PRODUCT_TYPE.includes(t));
+      if (validTypes.length > 0) {
+        query.productType = { $in: validTypes };
+      }
     }
 
     // date range filtering on createdAt
@@ -324,12 +372,14 @@ exports.updateProducts = async (req, res) => {
 
     const payload = {
       franchiseId,
-      categoryId: toObjectId(productData.categoryId?._id),
-      vendorsId: toObjectId(productData.vendorsId?._id),
-      companyId: toObjectId(productData.companyId?._id),
+      categoryId: toObjectId(productData.categoryId?._id || productData.categoryId),
+      vendorsId: toObjectId(productData.vendorsId?._id || productData.vendorsId),
+      companyId: toObjectId(productData.companyId?._id || productData.companyId),
       productName: productData.productName,
+      productDescription: productData.productDescription,
       packSize: productData.packSize,
       unit: productData.unit,
+      quantity: productData.quantity,
       shape: productData.shape,
       colour: productData.colour,
       printStatus: productData.printStatus,
@@ -337,12 +387,19 @@ exports.updateProducts = async (req, res) => {
       gstPct: productData.gstPct,
       taxableValue: taxVal(productData.perUnitRate, productData.gstPct),
       perUnitRate: productData.perUnitRate,
-      productType: safeEnum(productData.productType, PRODUCT_TYPE, "Inventory Items"),
+      productType: safeEnum(productData.productType, PRODUCT_TYPE, "Inventory Item"),
+      isActive: productData.isActive,
       expiryDate: productData.expiryDate,
+      warrantyStart: productData.warrantyStart,
+      warrantyEnd: productData.warrantyEnd,
       stockAlert: productData.stockAlert,
     }
 
-    const updated = await Products.findOneAndUpdate({ _id: id, franchiseId }, payload, { new: true, runValidators: true });
+    const updated = await Products.findOneAndUpdate({ _id: id, franchiseId }, payload, { new: true, runValidators: true })
+      .populate('categoryId', 'categoryName')
+      .populate('vendorsId', 'vendor_name')
+      .populate('companyId', 'brandName');
+
     return res.status(200).json({ success: true, data: updated });
   } catch (err) {
     console.error('updateProducts error:', err);
