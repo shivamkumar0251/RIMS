@@ -150,7 +150,6 @@ const KitchenIssue: React.FC = () => {
         })),
         timestamp: new Date().toISOString(),
       };
-      console.log("Transaction logged:", transactionLog);
       // TODO: Add API call to log transaction if transaction log API exists
 
       alert(`Successfully issued ${itemsToIssue.length} item(s) to kitchen`);

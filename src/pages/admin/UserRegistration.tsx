@@ -54,7 +54,6 @@ export default function UserRegistration() {
   };
 
   const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
     alert("✅ Registration successful!");
   };
 
