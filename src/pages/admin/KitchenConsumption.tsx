@@ -158,9 +158,6 @@ const KitchenConsumption: React.FC = () => {
         setIsProcessing(true);
 
         try {
-            console.log("Starting consumption process...");
-            console.log("Items to consume:", validItemsToConsume);
-
             // 1. Add to Consumables (The backend now automatically deducts from Kitchen Stock)
             const consumablePayload: ConsumableStockPostData[] = validItemsToConsume.map((item) => ({
                 productId: item.productId,
@@ -168,7 +165,6 @@ const KitchenConsumption: React.FC = () => {
                 transfersToWastage: item.purpose === "Wastage" ? item.consumedQty : 0
             }));
 
-            console.log("Adding to consumables...", consumablePayload);
             await dispatch(addConsumableStock(consumablePayload)).unwrap();
 
             // Log transaction
@@ -183,7 +179,6 @@ const KitchenConsumption: React.FC = () => {
                 })),
                 timestamp: new Date().toISOString(),
             };
-            console.log("Transaction logged:", transactionLog);
 
             toast.success(`Successfully logged consumption for ${validItemsToConsume.length} item(s)`);
 
