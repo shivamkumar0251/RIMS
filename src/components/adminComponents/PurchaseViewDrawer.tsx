@@ -401,25 +401,67 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                     sx={{ 
                         flex: 1, 
                         overflowY: 'auto', 
-                        overflowX: 'hidden',
+                        overflowX: 'auto', // Allow horizontal scroll for mobile
                         bgcolor: '#f8fafc',
                         py: 3,
-                        px: { xs: 2, sm: 3 }
+                        px: { xs: 2, sm: 3 },
+                        display: 'flex',       // Center the invoice
+                        justifyContent: 'center',
+                        alignItems: 'flex-start' 
                     }}
                 >
+                    <style>
+                        {`
+                            @media print {
+                                body * {
+                                    visibility: hidden;
+                                }
+                                #invoice-content, #invoice-content * {
+                                    visibility: visible;
+                                }
+                                #invoice-content {
+                                    position: absolute;
+                                    left: 0;
+                                    top: 0;
+                                    width: 210mm !important;
+                                    max-width: 100% !important;
+                                    height: auto !important;
+                                    margin: 0 !important;
+                                    padding: 20px !important;
+                                    box-shadow: none !important;
+                                    background-color: white !important;
+                                    print-color-adjust: exact;
+                                    -webkit-print-color-adjust: exact;
+                                }
+                                /* Hide scrollbars and other UI */
+                                ::-webkit-scrollbar {
+                                    display: none;
+                                }
+                            }
+                        `}
+                    </style>
                     <Paper 
+                        id="invoice-content"
                         elevation={2} 
-                        className="bg-white mx-auto relative text-slate-900"
+                        className="bg-white relative text-slate-900"
                         sx={{ 
                             maxWidth: '210mm',
-                            width: '100%',
+                            width: '210mm',         // Fixed print width
+                            minWidth: '210mm',      // Ensure it doesn't shrink below A4 width on mobile (forces scroll)
                             height: 'fit-content',
                             p: { xs: 3, sm: 4, md: 5 },
+                            flexShrink: 0,          // Prevent shrinking in flex container
                             '@media print': { 
                                 boxShadow: 'none', 
                                 p: 4,
-                                minHeight: '297mm'
-                            }
+                                minHeight: '297mm',
+                                width: '210mm',
+                            },
+                             // Mobile Scale down if preferred? No, User wants "responsive", normally scroll is better for detailed invoice
+                             // But let's check if they want it scaled. "mobile responsive" usually means "looks good on mobile".
+                             // Scrolling a large invoice is standard. 
+                             // However, we can add a transform scale for very small screens if user asks specifically.
+                             // For now, overflowX: auto is the safest "responsive" fix for data tables.
                         }}
                     >
                         {/* 1. Header Section */}
