@@ -68,7 +68,7 @@ const SetupStockComponent: React.FC = () => {
     const [brandSearch, setBrandSearch] = useState("");
 
     // ---------------- Inline Edit State ----------------
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingState, setEditingState] = useState<{ id: string, type: 'expiry' | 'warranty' } | null>(null);
     const [editDate, setEditDate] = useState("");
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -128,23 +128,23 @@ const SetupStockComponent: React.FC = () => {
         [brands, brandSearch]
     );
 
-    const handleStartEdit = (id: string, currentVal: string) => {
-        setEditingId(id);
-        setEditDate(currentVal || "");
+    const handleStartEdit = (id: string, currentVal: string, type: 'expiry' | 'warranty') => {
+        setEditingState({ id, type });
+        setEditDate(currentVal ? dayjs(currentVal).format("YYYY-MM-DD") : "");
     };
 
     const handleCancelEdit = () => {
-        setEditingId(null);
+        setEditingState(null);
         setEditDate("");
     };
 
-    const handleSaveExpiry = async (id: string) => {
-        if (isUpdating) return;
+    const handleSaveDate = async () => {
+        if (isUpdating || !editingState) return;
         setIsUpdating(true);
         try {
             await dispatch(updateSetupStock({
-                setupStockId: id,
-                setupStockData: { expiryDate: editDate }
+                setupStockId: editingState.id,
+                setupStockData: { [editingState.type === 'expiry' ? 'expiryDate' : 'warrantyDate']: editDate }
             })).unwrap();
 
             // Force refetch
@@ -158,10 +158,10 @@ const SetupStockComponent: React.FC = () => {
                 toDate
             }));
 
-            toast.success("Expiry date updated successfully");
-            setEditingId(null);
+            toast.success(`${editingState.type === 'expiry' ? 'Expiry' : 'Warranty'} date updated successfully`);
+            setEditingState(null);
         } catch (err: any) {
-            toast.error(err.message || "Failed to update expiry date");
+            toast.error(err.message || "Failed to update date");
         } finally {
             setIsUpdating(false);
         }
@@ -317,7 +317,8 @@ const SetupStockComponent: React.FC = () => {
                                         <TableCell className="font-bold">Unit</TableCell>
                                         <TableCell className="font-bold text-center">Qty</TableCell>
                                         <TableCell className="font-bold text-center">Status</TableCell>
-                                        <TableCell className="font-bold">Expiry Date</TableCell>
+                                        <TableCell className="font-bold">Expiry</TableCell>
+                                        <TableCell className="font-bold">Warranty</TableCell>
                                     </TableRow>
                                 </TableHead>
 
@@ -337,8 +338,6 @@ const SetupStockComponent: React.FC = () => {
                                         </TableRow>
                                     ) : (
                                         setupStocks.map((row) => {
-                                            const combinedExpiry = row.expiryDate || row.productId?.expiryDate;
-
                                             return (
                                                 <TableRow key={row._id} hover>
                                                     <TableCell>
@@ -354,7 +353,7 @@ const SetupStockComponent: React.FC = () => {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Box className="flex items-center gap-2 group/cell min-h-[40px]">
-                                                            {editingId === row._id ? (
+                                                            {editingState?.id === row._id && editingState?.type === 'expiry' ? (
                                                                 <Box className="flex items-center gap-1">
                                                                     <TextField
                                                                         type="date"
@@ -366,7 +365,7 @@ const SetupStockComponent: React.FC = () => {
                                                                     />
                                                                     <IconButton
                                                                         size="small"
-                                                                        onClick={() => handleSaveExpiry(row._id)}
+                                                                        onClick={handleSaveDate}
                                                                         disabled={isUpdating}
                                                                         className="text-green-600 hover:bg-green-50"
                                                                     >
@@ -382,10 +381,54 @@ const SetupStockComponent: React.FC = () => {
                                                                 </Box>
                                                             ) : (
                                                                 <Box
-                                                                    onClick={() => handleStartEdit(row._id, combinedExpiry || "")}
+                                                                    onClick={() => handleStartEdit(row._id, row.expiryDate || "", 'expiry')}
                                                                     className="flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-1 px-2 rounded-md min-h-[40px] flex flex-col justify-center"
                                                                 >
-                                                                    <ExpiryBadge expiryDate={combinedExpiry} />
+                                                                    <ExpiryBadge expiryDate={row.expiryDate} />
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Box className="flex items-center gap-2 group/cell min-h-[40px]">
+                                                            {editingState?.id === row._id && editingState?.type === 'warranty' ? (
+                                                                <Box className="flex items-center gap-1">
+                                                                    <TextField
+                                                                        type="date"
+                                                                        size="small"
+                                                                        variant="outlined"
+                                                                        value={editDate}
+                                                                        onChange={(e) => setEditDate(e.target.value)}
+                                                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '12px' }, width: 130 }}
+                                                                    />
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={handleSaveDate}
+                                                                        disabled={isUpdating}
+                                                                        className="text-green-600 hover:bg-green-50"
+                                                                    >
+                                                                        <FiCheck size={16} />
+                                                                    </IconButton>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={handleCancelEdit}
+                                                                        className="text-red-500 hover:bg-red-50"
+                                                                    >
+                                                                        <FiX size={16} />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            ) : (
+                                                                <Box
+                                                                    onClick={() => handleStartEdit(row._id, row.warrantyDate || "", 'warranty')}
+                                                                    className="flex-1 cursor-pointer hover:bg-slate-50 transition-colors py-1 px-2 rounded-md min-h-[40px] flex flex-col justify-center"
+                                                                >
+                                                                    {row.warrantyDate ? (
+                                                                        <Typography variant="caption" className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                                                            Ends: {dayjs(row.warrantyDate).format("DD MMM YYYY")}
+                                                                        </Typography>
+                                                                    ) : (
+                                                                        <Typography variant="caption" className="text-gray-400 italic">None</Typography>
+                                                                    )}
                                                                 </Box>
                                                             )}
                                                         </Box>

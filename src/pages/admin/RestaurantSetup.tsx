@@ -187,6 +187,7 @@ export default function RestaurantSetup() {
     try {
       await dispatch(deleteProduct(id)).unwrap();
       toast.success("Product deleted successfully");
+      refreshProducts();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete item");
     }

@@ -418,34 +418,52 @@ exports.deleteProducts = async (req, res) => {
       try { const parts = url.split('/'); const last = parts[parts.length - 1]; return last.split('.')[0]; } catch (e) { return null }
     };
 
+    // --- SINGLE DELETE ---
     if (id) {
       const product = await Products.findOne({ _id: id, franchiseId });
-      if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
 
+      // 1. Delete Image from Cloudinary (async, don't block critical DB delete if this fails)
       const imageUrl = product.productImage || product.image || null;
       const publicId = getPublicIdFromUrl(imageUrl);
       if (publicId && cloudinary && typeof cloudinary.cloudinaryImageDelete === 'function') {
-        try { await cloudinary.cloudinaryImageDelete(publicId); } catch (e) { console.error('cloudinary delete', e) }
+        // We catch error so image deletion failure doesn't prevent product deletion
+        try { await cloudinary.cloudinaryImageDelete(publicId); } catch (e) { console.error('cloudinary delete warn:', e.message) }
       }
 
-      const deleted = await Products.findOneAndDelete({ _id: id, franchiseId });
-      return res.status(200).json({ success: true, message: 'Product deleted', data: deleted });
+      // 2. Delete from DB
+      const result = await Products.deleteOne({ _id: id, franchiseId });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ success: false, message: 'Product could not be deleted (not found or permission issue)' });
+      }
+
+      return res.status(200).json({ success: true, message: 'Product deleted successfully', data: { _id: id } });
     }
 
+    // --- BULK DELETE ---
     const ids = Array.isArray(req.body.ids) ? req.body.ids : null;
-    if (!ids) return res.status(400).json({ success: false, message: 'No ids provided' });
-
-    const productsToDelete = await Products.find({ _id: { $in: ids }, franchiseId });
-    for (const prod of productsToDelete) {
-      const imageUrl = prod.productImage || prod.image || null;
-      const publicId = getPublicIdFromUrl(imageUrl);
-      if (publicId && cloudinary && typeof cloudinary.cloudinaryImageDelete === 'function') {
-        try { await cloudinary.cloudinaryImageDelete(publicId); } catch (e) { console.error('cloudinary delete', e) }
-      }
+    if (!ids || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No ids provided' });
     }
+
+    // Optional: Delete images for bulk items
+    try {
+      const productsToDelete = await Products.find({ _id: { $in: ids }, franchiseId });
+      for (const prod of productsToDelete) {
+        const imageUrl = prod.productImage || prod.image || null;
+        const publicId = getPublicIdFromUrl(imageUrl);
+        if (publicId && cloudinary && typeof cloudinary.cloudinaryImageDelete === 'function') {
+          try { await cloudinary.cloudinaryImageDelete(publicId); } catch (e) { console.error('cloudinary delete warn:', e.message) }
+        }
+      }
+    } catch (e) { console.error("Bulk image cleanup error", e); }
 
     const result = await Products.deleteMany({ _id: { $in: ids }, franchiseId });
     return res.status(200).json({ success: true, message: 'Bulk delete finished', deletedCount: result.deletedCount });
+
   } catch (err) {
     console.error('deleteProducts error:', err);
     return res.status(500).json({ success: false, message: 'Server Error', error: err.message });
