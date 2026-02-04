@@ -19,10 +19,11 @@ import {
   ListItemText,
   CircularProgress,
   Autocomplete,
+  InputAdornment,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { FiSearch, FiFilter } from "react-icons/fi";
+import { FiSearch, FiFilter, FiPlus, FiCheck } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
 import { useSearchParams } from "react-router-dom";
@@ -278,9 +279,14 @@ export default function OrderManagementPage(): JSX.Element {
 
   // Generic Action Handler
   const handleOrderAction = async (type: "whatsapp" | "pdf" | "excel" | "csv") => {
-    // 1. Identify selected vendor
+    // 2. Identify selected vendor
     // Use the filter 'vendorId' if set, otherwise use the auto-detected single vendor from selection
-    const targetVendorId = vendorId || singleSelectedVendorId;
+    // If multiple vendors, default to the first one found
+    let targetVendorId = vendorId || singleSelectedVendorId;
+    if (!targetVendorId && selectedVendorIds.length > 0) {
+      targetVendorId = selectedVendorIds[0] as string;
+    }
+
     const currentVendor = vendorsData.find(v => v._id === targetVendorId);
 
     if (!currentVendor) {
@@ -288,12 +294,19 @@ export default function OrderManagementPage(): JSX.Element {
       return;
     }
 
+    // Filter products to match the target vendor
+    const validProducts = ordersList.filter(p => selected.includes(p._id) && (qtyMap[p._id] || 0) > 0);
+    const selectedProducts = validProducts.filter(p => p.vendorsId?._id === targetVendorId);
+
     if (isMultipleVendorsSelected) {
-      alert("Please select products from only one vendor.");
-      return;
+      const excludedCount = validProducts.length - selectedProducts.length;
+      if (excludedCount > 0) {
+        if (!confirm(`Multiple vendors detected.\n\nCreating order for "${currentVendor.vendor_name}" only.\n(${excludedCount} items from other vendors will be ignored).\n\nContinue?`)) {
+          return;
+        }
+      }
     }
 
-    const selectedProducts = ordersList.filter(p => selected.includes(p._id) && (qtyMap[p._id] || 0) > 0);
     if (selectedProducts.length === 0) return;
 
     // 2. Prepare Payload
@@ -530,74 +543,228 @@ export default function OrderManagementPage(): JSX.Element {
 
           <Box className="flex items-center gap-3">
             {mode === 'vendor' && (
-              <Autocomplete
-                size="small"
-                options={vendorsData}
-                getOptionLabel={(option) => option.vendor_name || ""}
-                value={vendorsData.find(v => v._id === vendorId) || null}
-                onChange={(_, newValue) => {
-                  const newVal = newValue?._id || "";
-                  setVendorId(newVal);
-                  const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVal) {
-                    setSearchParams({ ...currentParams, vendorId: newVal });
-                  } else {
-                    delete currentParams.vendorId;
-                    delete currentParams.id;
-                    setSearchParams(currentParams);
-                  }
-                }}
-                renderInput={(params) => <TextField {...params} label="Select Vendor" placeholder="Choose a vendor..." />}
-                sx={{ width: 280 }}
-              />
+              <>
+                <style>
+                  {`
+                    @keyframes border-glow {
+                      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                      50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.3); border-color: #60a5fa; transform: scale(1.02); }
+                      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                    }
+                  `}
+                </style>
+                <Autocomplete
+                  size="small"
+                  options={vendorsData}
+                  getOptionLabel={(option) => option.vendor_name || ""}
+                  value={vendorsData.find(v => v._id === vendorId) || null}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  onChange={(_, newValue) => {
+                    const newVal = newValue?._id || "";
+                    setVendorId(newVal);
+                    const currentParams = Object.fromEntries(searchParams.entries());
+                    if (newVal) {
+                      setSearchParams({ ...currentParams, vendorId: newVal });
+                    } else {
+                      delete currentParams.vendorId;
+                      delete currentParams.id;
+                      setSearchParams(currentParams);
+                    }
+                  }}
+                  PaperComponent={({ children }) => (
+                    <Paper className="shadow-2xl rounded-xl border border-blue-100 mt-2 overflow-hidden">
+                      {children}
+                    </Paper>
+                  )}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props} key={option._id} className={`${props.className} !px-0 !py-0 border-b border-gray-50 last:border-0`}>
+                      <Box className={`w-full py-2.5 px-4 flex flex-col gap-0.5 transition-all duration-200 cursor-pointer ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <div className="flex items-center justify-between">
+                          <Typography className={`font-semibold text-[14px] ${selected ? 'text-blue-700' : 'text-gray-800'}`}>
+                            {option.vendor_name}
+                          </Typography>
+                          {selected && <FiCheck className="text-blue-600" />}
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+
+                          {option.vendor_city && (
+                            <span className="flex items-center gap-1 opacity-80">
+                              📍 {option.vendor_city}
+                            </span>
+                          )}
+                        </div>
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={!vendorId ? "Select Vendor First 👈" : "Select Vendor"}
+                      placeholder="Choose a vendor..."
+                      InputProps={{
+                        ...params.InputProps,
+                        sx: {
+                          borderRadius: '12px',
+                          bgcolor: 'white',
+                          transition: 'all 0.3s ease-in-out',
+                          ...(!vendorId && {
+                            animation: 'border-glow 2s infinite ease-in-out',
+                            '& fieldset': {
+                              borderColor: '#3b82f6 !important',
+                              borderWidth: '2px !important'
+                            }
+                          })
+                        }
+                      }}
+                    />
+                  )}
+                  sx={{ width: 300 }}
+                />
+              </>
             )}
 
             {mode === 'category' && (
-              <Autocomplete
-                multiple
-                size="small"
-                options={categories}
-                getOptionLabel={(option) => option.categoryName || ""}
-                value={categories.filter(c => categoryId.includes(c._id))}
-                onChange={(_, newValue) => {
-                  const newVals = newValue.map(v => v._id);
-                  setCategoryId(newVals);
-                  const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVals.length > 0) {
-                    setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
-                  } else {
-                    delete currentParams.categoryId;
-                    delete currentParams.id;
-                    setSearchParams(currentParams);
-                  }
-                }}
-                renderInput={(params) => <TextField {...params} label="Select Category" placeholder="Choose categories..." />}
-                sx={{ width: 320 }}
-              />
+              <>
+                <style>
+                  {`
+                    @keyframes border-glow {
+                      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                      50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.3); border-color: #60a5fa; transform: scale(1.02); }
+                      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                    }
+                  `}
+                </style>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={categories}
+                  getOptionLabel={(option) => option.categoryName || ""}
+                  value={categories.filter(c => categoryId.includes(c._id))}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  onChange={(_, newValue) => {
+                    const newVals = newValue.map(v => v._id);
+                    setCategoryId(newVals);
+                    const currentParams = Object.fromEntries(searchParams.entries());
+                    if (newVals.length > 0) {
+                      setSearchParams({ ...currentParams, categoryId: newVals.join(',') });
+                    } else {
+                      delete currentParams.categoryId;
+                      delete currentParams.id;
+                      setSearchParams(currentParams);
+                    }
+                  }}
+                  PaperComponent={({ children }) => (
+                    <Paper className="shadow-2xl rounded-xl border border-blue-100 mt-2 overflow-hidden">
+                      {children}
+                    </Paper>
+                  )}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props} key={option._id} className={`${props.className} !px-0 !py-0 border-b border-gray-50 last:border-0`}>
+                      <Box className={`w-full py-2.5 px-4 flex items-center justify-between transition-all duration-200 cursor-pointer ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <Typography className={`font-semibold text-[14px] ${selected ? 'text-blue-700' : 'text-gray-800'}`}>
+                          {option.categoryName}
+                        </Typography>
+                        {selected && <FiCheck className="text-blue-600 text-md" />}
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={categoryId.length === 0 ? "Select Category First 👈" : "Select Category"}
+                      placeholder="Choose categories..."
+                      InputProps={{
+                        ...params.InputProps,
+                        sx: {
+                          borderRadius: '12px',
+                          bgcolor: 'white',
+                          transition: 'all 0.3s ease-in-out',
+                          ...(categoryId.length === 0 && {
+                            animation: 'border-glow 2s infinite ease-in-out',
+                            '& fieldset': {
+                              borderColor: '#3b82f6 !important',
+                              borderWidth: '2px !important'
+                            }
+                          })
+                        }
+                      }}
+                    />
+                  )}
+                  sx={{ width: 320 }}
+                />
+              </>
             )}
 
             {mode === 'brand' && (
-              <Autocomplete
-                multiple
-                size="small"
-                options={companies}
-                getOptionLabel={(option) => option.brandName || ""}
-                value={companies.filter(c => companyId.includes(c._id))}
-                onChange={(_, newValue) => {
-                  const newVals = newValue.map(v => v._id);
-                  setCompanyId(newVals);
-                  const currentParams = Object.fromEntries(searchParams.entries());
-                  if (newVals.length > 0) {
-                    setSearchParams({ ...currentParams, companyId: newVals.join(',') });
-                  } else {
-                    delete currentParams.companyId;
-                    delete currentParams.id;
-                    setSearchParams(currentParams);
-                  }
-                }}
-                renderInput={(params) => <TextField {...params} label="Select Brand" placeholder="Choose brands..." />}
-                sx={{ width: 320 }}
-              />
+              <>
+                <style>
+                  {`
+                    @keyframes border-glow {
+                      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                      50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.3); border-color: #60a5fa; transform: scale(1.02); }
+                      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; transform: scale(1); }
+                    }
+                  `}
+                </style>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={companies}
+                  getOptionLabel={(option) => option.brandName || ""}
+                  value={companies.filter(c => companyId.includes(c._id))}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  onChange={(_, newValue) => {
+                    const newVals = newValue.map(v => v._id);
+                    setCompanyId(newVals);
+                    const currentParams = Object.fromEntries(searchParams.entries());
+                    if (newVals.length > 0) {
+                      setSearchParams({ ...currentParams, companyId: newVals.join(',') });
+                    } else {
+                      delete currentParams.companyId;
+                      delete currentParams.id;
+                      setSearchParams(currentParams);
+                    }
+                  }}
+                  PaperComponent={({ children }) => (
+                    <Paper className="shadow-2xl rounded-xl border border-blue-100 mt-2 overflow-hidden">
+                      {children}
+                    </Paper>
+                  )}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props} key={option._id} className={`${props.className} !px-0 !py-0 border-b border-gray-50 last:border-0`}>
+                      <Box className={`w-full py-2.5 px-4 flex items-center justify-between transition-all duration-200 cursor-pointer ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <Typography className={`font-semibold text-[14px] ${selected ? 'text-blue-700' : 'text-gray-800'}`}>
+                          {option.brandName}
+                        </Typography>
+                        {selected && <FiCheck className="text-blue-600 text-md" />}
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={companyId.length === 0 ? "Select Brand First 👈" : "Select Brand"}
+                      placeholder="Choose brands..."
+                      InputProps={{
+                        ...params.InputProps,
+                        sx: {
+                          borderRadius: '12px',
+                          bgcolor: 'white',
+                          transition: 'all 0.3s ease-in-out',
+                          ...(companyId.length === 0 && {
+                            animation: 'border-glow 2s infinite ease-in-out',
+                            '& fieldset': {
+                              borderColor: '#3b82f6 !important',
+                              borderWidth: '2px !important'
+                            }
+                          })
+                        }
+                      }}
+                    />
+                  )}
+                  sx={{ width: 320 }}
+                />
+              </>
             )}
 
             {shouldShowTable && (
@@ -606,16 +773,11 @@ export default function OrderManagementPage(): JSX.Element {
                   variant="contained"
                   size="medium"
                   onClick={() => setCreateOrderOpen(true)}
-                  disabled={selected.length === 0 || isMultipleVendorsSelected}
+                  disabled={selected.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 normal-case"
                 >
                   Create Order
                 </Button>
-                {isMultipleVendorsSelected && (
-                  <Typography variant="caption" color="error" className="font-medium">
-                    Multiple vendors selected
-                  </Typography>
-                )}
               </Box>
             )}
           </Box>
@@ -624,98 +786,172 @@ export default function OrderManagementPage(): JSX.Element {
         {/* Main Content Area */}
         <Box className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3">
           {!shouldShowTable ? (
-            <Paper className="flex-1 flex items-center justify-center shadow-md rounded-xl border border-gray-100 bg-white">
-              <Box className="text-center py-20 px-6">
-                <Box className="mb-4">
-                  <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <Paper className="flex-1 flex items-center justify-center shadow-md rounded-xl border border-gray-100 bg-white relative overflow-hidden">
+              {/* Background Decoration */}
+              <Box className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+
+              <Box className="text-center py-20 px-6 relative z-10 max-w-lg mx-auto">
+                <Box className="mb-6 relative inline-block">
+                  <div className="absolute inset-0 bg-blue-100 rounded-full scale-110 animate-pulse" />
+                  <svg className="relative mx-auto h-20 w-20 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                   </svg>
                 </Box>
-                <Typography variant="h6" className="text-gray-700 font-semibold mb-2">
+
+                <Typography variant="h4" className="text-gray-800 font-bold mb-3 tracking-tight">
                   {!mode && 'Select an Order Type'}
                   {mode === 'vendor' && !vendorId && 'Select a Vendor'}
                   {mode === 'category' && categoryId.length === 0 && 'Select a Category'}
                   {mode === 'brand' && companyId.length === 0 && 'Select a Brand'}
                 </Typography>
-                <Typography variant="body2" className="text-gray-500 max-w-md mx-auto">
-                  {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to get started.'}
-                  {mode === 'vendor' && !vendorId && 'Please select a vendor from the dropdown above to view available products.'}
-                  {mode === 'category' && categoryId.length === 0 && 'Please select a category from the dropdown above to view available products.'}
-                  {mode === 'brand' && companyId.length === 0 && 'Please select a brand from the dropdown above to view available products.'}
-                </Typography>
+
+                <Box className="w-full relative flex flex-col items-center justify-center">
+                  <Typography variant="body1" className="text-gray-500 text-lg leading-relaxed font-medium max-w-sm mx-auto">
+                    {!mode && 'Choose "By Vendor", "By Category", or "By Brand" from the sidebar to start creating orders.'}
+                    {mode === 'vendor' && !vendorId && 'Select a vendor from the dropdown above to manage products and orders.'}
+                    {mode === 'category' && categoryId.length === 0 && 'Select a category above to filter the product list.'}
+                    {mode === 'brand' && companyId.length === 0 && 'Select a brand above to see available items.'}
+                  </Typography>
+
+
+                </Box>
               </Box>
             </Paper>
           ) : (
             <Paper className="flex-1 flex flex-col shadow-md rounded-xl overflow-hidden border border-gray-100 bg-white">
 
-              <Autocomplete
-                size="small"
-                options={products}
-                value={null} // always clear after select
-                isOptionEqualToValue={(o, v) => o._id === v?._id}
-                getOptionLabel={(p: any) =>
-                  [
-                    p.productName,
-                    p.unit,
-                    p.packSize,
-                    p.categoryId?.categoryName,
-                    p.vendorsId?.vendor_name,
-                    p.companyId?.brandName,
-                  ]
-                    .filter(Boolean)
-                    .join(" | ")
-                }
+              <Box className="p-4 bg-white/80 backdrop-blur-md border-b border-gray-100 z-20 flex items-center justify-between gap-6">
+                <Box className="flex-1 max-w-2xl relative">
+                  <Autocomplete
+                    size="small"
+                    options={products}
+                    value={null} // always clear after select
+                    isOptionEqualToValue={(o, v) => o._id === v?._id}
+                    getOptionLabel={(p: any) => p.productName || ""}
+                    renderOption={(props, option: any) => (
+                      <li {...props} key={option._id} className={`${props.className} border-b border-gray-50 last:border-0`}>
+                        <Box className="flex flex-col w-full py-1.5 px-1">
+                          <div className="flex justify-between items-start">
+                            <Typography className="font-semibold text-sm text-gray-800 leading-tight">
+                              {option.productName}
+                            </Typography>
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">
+                              {option.unit} {option.packSize ? `(${option.packSize})` : ''}
+                            </span>
+                          </div>
 
-                // 🔥 SEARCH TRIGGER
-                onInputChange={(_, value, reason) => {
-                  if (reason === "input") {
-                    setOtherProductSearch(value);
-                  }
-                }}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-gray-500">
+                            {option.companyId?.brandName && (
+                              <span className="flex items-center gap-1 bg-gray-100 px-1.5 rounded">
+                                <span className="opacity-60">Brand:</span> {option.companyId?.brandName}
+                              </span>
+                            )}
+                            {option.categoryId?.categoryName && (
+                              <span className="flex items-center gap-1 bg-gray-100 px-1.5 rounded">
+                                <span className="opacity-60">Cat:</span> {option.categoryId?.categoryName}
+                              </span>
+                            )}
+                          </div>
 
-                onChange={async (_, product) => {
-                  if (!product || !vendorId) return;
+                          {option.vendorsId?.vendor_name && (
+                            <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                              <span className="text-gray-400">Curr. Vendor:</span>
+                              <span className="font-medium text-gray-700 bg-orange-50 text-orange-700 px-1.5 rounded border border-orange-100">
+                                {option.vendorsId?.vendor_name}
+                              </span>
+                            </div>
+                          )}
+                        </Box>
+                      </li>
+                    )}
 
-                  try {
-                    await dispatch(
-                      updateProduct({
-                        productId: product._id,
-                        productData: {
-                          vendorsId: { _id: vendorId },
-                        } as any,
-                      })
-                    ).unwrap();
+                    // 🔥 SEARCH TRIGGER
+                    onInputChange={(_, value, reason) => {
+                      if (reason === "input") {
+                        setOtherProductSearch(value);
+                      }
+                    }}
 
-                    dispatch(
-                      getOrdersProduct({
-                        search,
-                        page: page + 1,
-                        limit: rowsPerPage,
-                        category: categoryId.join(","),
-                        vendor: vendorId,
-                        brand: companyId.join(","),
-                        productType: "",
-                        fromDate,
-                        toDate,
-                      })
-                    );
+                    onChange={async (_, product) => {
+                      if (!product || !vendorId) return;
 
-                    // 🔥 clear search after select
-                    setOtherProductSearch("");
+                      try {
+                        await dispatch(
+                          updateProduct({
+                            productId: product._id,
+                            productData: {
+                              vendorsId: { _id: vendorId },
+                            } as any,
+                          })
+                        ).unwrap();
 
-                  } catch (err) {
-                    console.error("Failed to update product vendor", err);
-                  }
-                }}
+                        dispatch(
+                          getOrdersProduct({
+                            search,
+                            page: page + 1,
+                            limit: rowsPerPage,
+                            category: categoryId.join(","),
+                            vendor: vendorId,
+                            brand: companyId.join(","),
+                            productType: "",
+                            fromDate,
+                            toDate,
+                          })
+                        );
 
-                sx={{ width: 520 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Add Product to Vendor"
+                        // 🔥 clear search after select
+                        setOtherProductSearch("");
+
+                      } catch (err) {
+                        console.error("Failed to update product vendor", err);
+                      }
+                    }}
+
+                    sx={{
+                      width: "100%",
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                        bgcolor: "#f8fafc",
+                        borderColor: "transparent",
+                        transition: "all 0.2s",
+                        paddingLeft: "12px",
+                        "&:hover": {
+                          bgcolor: "#f1f5f9",
+                          borderColor: "#e2e8f0"
+                        },
+                        "&.Mui-focused": {
+                          bgcolor: "#fff",
+                          boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+                          borderColor: "#3b82f6"
+                        }
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Search products"
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <>
+                              <InputAdornment position="start" className="pl-1">
+                                <FiPlus className="text-blue-600 text-[18px]" />
+                              </InputAdornment>
+                              {params.InputProps.startAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
                   />
-                )}
-              />
+                </Box>
+
+                <Box className="hidden xl:block">
+                  <Typography variant="caption" className="text-gray-400 font-medium italic tracking-wide">
+                    * Start typing to search products from other vendors to move them here.
+                  </Typography>
+                </Box>
+              </Box>
 
 
               <TableContainer className="flex-1"

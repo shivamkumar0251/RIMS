@@ -226,7 +226,6 @@ export default function RestaurantSetup() {
   };
 
 
-
   return (
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
