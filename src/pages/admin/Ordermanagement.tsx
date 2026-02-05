@@ -998,124 +998,134 @@ export default function OrderManagementPage(): JSX.Element {
                           </Box>
                         </Popover>
                       </TableCell>
-                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
-                        <Box className="flex items-center gap-2">
-                          Category
-                          <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
-                            <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
-                          </IconButton>
-                        </Box>
-                        <Popover
-                          open={Boolean(catAnchor)}
-                          anchorEl={catAnchor}
-                          onClose={() => setCatAnchor(null)}
-                          PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                        >
-                          <Box className="p-2 border-b bg-gray-50">
-                            <TextField
-                              placeholder="Search Category..."
-                              size="small"
-                              fullWidth
-                              variant="outlined"
-                              value={catSearch}
-                              onChange={(e) => setCatSearch(e.target.value)}
-                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                            />
+                      {/* // category */}
+                      {mode !== 'category' && (
+                        <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                          <Box className="flex items-center gap-2">
+                            Category
+                            <IconButton size="small" onClick={(e) => setCatAnchor(e.currentTarget)}>
+                              <FiFilter size={14} className={categoryId.length > 0 ? "text-blue-600" : "text-gray-400"} />
+                            </IconButton>
                           </Box>
-                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                            <ListItemButton onClick={() => setCategoryId([])} selected={categoryId.length === 0}>
-                              <Checkbox size="small" checked={categoryId.length === 0} indeterminate={categoryId.length > 0 && categoryId.length < categories.length} />
-                              <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                            {filteredCats.map((c) => {
-                              const isSelected = categoryId.includes(c._id);
-                              return (
-                                <ListItemButton key={c._id} onClick={() => setCategoryId(prev => isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id])} selected={isSelected}>
-                                  <Checkbox size="small" checked={isSelected} />
-                                  <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
-                                </ListItemButton>
-                              );
-                            })}
-                          </List>
-                        </Popover>
-                      </TableCell>
-                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
-                        <Box className="flex items-center gap-2">
-                          Vendor
-                          <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
-                            <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
-                          </IconButton>
-                        </Box>
-                        <Popover
-                          open={Boolean(vendorAnchor)}
-                          anchorEl={vendorAnchor}
-                          onClose={() => setVendorAnchor(null)}
-                          PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                        >
-                          <Box className="p-2 border-b bg-gray-50">
-                            <TextField
-                              placeholder="Search Vendor..."
-                              size="small"
-                              fullWidth
-                              variant="outlined"
-                              value={vendorSearch}
-                              onChange={(e) => setVendorSearch(e.target.value)}
-                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                            />
-                          </Box>
-                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                            <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
-                              <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                            {filteredVendors.map((v) => (
-                              <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
-                                <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '12px' }} />
+                          <Popover
+                            open={Boolean(catAnchor)}
+                            anchorEl={catAnchor}
+                            onClose={() => setCatAnchor(null)}
+                            PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                          >
+                            <Box className="p-2 border-b bg-gray-50">
+                              <TextField
+                                placeholder="Search Category..."
+                                size="small"
+                                fullWidth
+                                variant="outlined"
+                                value={catSearch}
+                                onChange={(e) => setCatSearch(e.target.value)}
+                                InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
+                              />
+                            </Box>
+                            <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                              <ListItemButton onClick={() => setCategoryId([])} selected={categoryId.length === 0}>
+                                <Checkbox size="small" checked={categoryId.length === 0} indeterminate={categoryId.length > 0 && categoryId.length < categories.length} />
+                                <ListItemText primary="All Categories" primaryTypographyProps={{ fontSize: '12px' }} />
                               </ListItemButton>
-                            ))}
-                          </List>
-                        </Popover>
-                      </TableCell>
-                      <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
-                        <Box className="flex items-center gap-2">
-                          Brand
-                          <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
-                            <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
-                          </IconButton>
-                        </Box>
-                        <Popover
-                          open={Boolean(brandAnchor)}
-                          anchorEl={brandAnchor}
-                          onClose={() => setBrandAnchor(null)}
-                          PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
-                        >
-                          <Box className="p-2 border-b bg-gray-50">
-                            <TextField
-                              placeholder="Search Company..."
-                              size="small"
-                              fullWidth
-                              variant="outlined"
-                              value={brandSearch}
-                              onChange={(e) => setBrandSearch(e.target.value)}
-                              InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
-                            />
+                              {filteredCats.map((c) => {
+                                const isSelected = categoryId.includes(c._id);
+                                return (
+                                  <ListItemButton key={c._id} onClick={() => setCategoryId(prev => isSelected ? prev.filter(id => id !== c._id) : [...prev, c._id])} selected={isSelected}>
+                                    <Checkbox size="small" checked={isSelected} />
+                                    <ListItemText primary={c.categoryName} primaryTypographyProps={{ fontSize: '12px' }} />
+                                  </ListItemButton>
+                                );
+                              })}
+                            </List>
+                          </Popover>
+                        </TableCell>
+                      )}
+                      {/* // vendor */}
+                      {mode !== 'vendor' && (
+                        <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                          <Box className="flex items-center gap-2">
+                            Vendor
+                            <IconButton size="small" onClick={(e) => setVendorAnchor(e.currentTarget)}>
+                              <FiFilter size={14} className={vendorId ? "text-blue-600" : "text-gray-400"} />
+                            </IconButton>
                           </Box>
-                          <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
-                            <ListItemButton onClick={() => setCompanyId([])} selected={companyId.length === 0}>
-                              <Checkbox size="small" checked={companyId.length === 0} indeterminate={companyId.length > 0 && companyId.length < companies.length} />
-                              <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
-                            </ListItemButton>
-                            {filteredBrands.map((b) => {
-                              const isSelected = companyId.includes(b._id);
-                              return (
-                                <ListItemButton key={b._id} onClick={() => setCompanyId(prev => isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id])} selected={isSelected}>
-                                  <Checkbox size="small" checked={isSelected} />
-                                  <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                          <Popover
+                            open={Boolean(vendorAnchor)}
+                            anchorEl={vendorAnchor}
+                            onClose={() => setVendorAnchor(null)}
+                            PaperProps={{ sx: { minWidth: 260, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                          >
+                            <Box className="p-2 border-b bg-gray-50">
+                              <TextField
+                                placeholder="Search Vendor..."
+                                size="small"
+                                fullWidth
+                                variant="outlined"
+                                value={vendorSearch}
+                                onChange={(e) => setVendorSearch(e.target.value)}
+                                InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
+                              />
+                            </Box>
+                            <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                              <ListItemButton onClick={() => { setVendorId(""); setVendorAnchor(null); }} selected={!vendorId}>
+                                <ListItemText primary="All Vendors" primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                              {filteredVendors.map((v) => (
+                                <ListItemButton key={v._id} onClick={() => { setVendorId(v._id); setVendorAnchor(null); }} selected={vendorId === v._id}>
+                                  <ListItemText primary={v.vendor_name} primaryTypographyProps={{ fontSize: '12px' }} />
                                 </ListItemButton>
-                              );
-                            })}
-                          </List>
-                        </Popover>
-                      </TableCell>
+                              ))}
+                            </List>
+                          </Popover>
+                        </TableCell>
+                      )}
+                      {/* // brand */}
+                      {mode !== 'brand' && (
+                        <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">
+                          <Box className="flex items-center gap-2">
+                            Brand
+                            <IconButton size="small" onClick={(e) => setBrandAnchor(e.currentTarget)}>
+                              <FiFilter size={14} className={companyId.length > 0 ? "text-blue-600" : "text-gray-400"} />
+                            </IconButton>
+                          </Box>
+                          <Popover
+                            open={Boolean(brandAnchor)}
+                            anchorEl={brandAnchor}
+                            onClose={() => setBrandAnchor(null)}
+                            PaperProps={{ sx: { minWidth: 240, shadow: 4, borderRadius: 2, overflow: 'hidden', mt: 1 } }}
+                          >
+                            <Box className="p-2 border-b bg-gray-50">
+                              <TextField
+                                placeholder="Search Company..."
+                                size="small"
+                                fullWidth
+                                variant="outlined"
+                                value={brandSearch}
+                                onChange={(e) => setBrandSearch(e.target.value)}
+                                InputProps={{ startAdornment: <FiSearch size={14} className="text-gray-400 mr-2" />, sx: { bgcolor: 'white' } }}
+                              />
+                            </Box>
+                            <List sx={{ maxHeight: 300, overflow: 'auto', py: 0 }}>
+                              <ListItemButton onClick={() => setCompanyId([])} selected={companyId.length === 0}>
+                                <Checkbox size="small" checked={companyId.length === 0} indeterminate={companyId.length > 0 && companyId.length < companies.length} />
+                                <ListItemText primary="All Brands" primaryTypographyProps={{ fontSize: '12px' }} />
+                              </ListItemButton>
+                              {filteredBrands.map((b) => {
+                                const isSelected = companyId.includes(b._id);
+                                return (
+                                  <ListItemButton key={b._id} onClick={() => setCompanyId(prev => isSelected ? prev.filter(id => id !== b._id) : [...prev, b._id])} selected={isSelected}>
+                                    <Checkbox size="small" checked={isSelected} />
+                                    <ListItemText primary={b.brandName} primaryTypographyProps={{ fontSize: '12px' }} />
+                                  </ListItemButton>
+                                );
+                              })}
+                            </List>
+                          </Popover>
+                        </TableCell>
+                      )}
+
                       <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Unit</TableCell>
                       <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Pack Size</TableCell>
                       <TableCell className="font-bold text-gray-700 bg-gray-50/80 backdrop-blur-md z-10">Order Qty</TableCell>
@@ -1134,11 +1144,45 @@ export default function OrderManagementPage(): JSX.Element {
                             <Checkbox color="primary" checked={selected.includes(p._id)} onChange={() => toggleRow(p._id)} />
                           </TableCell>
                           <TableCell className="font-medium text-gray-800">{p.productName}</TableCell>
-                          <TableCell className="text-gray-600">{p.categoryId?.categoryName || "-"}</TableCell>
-                          <TableCell className="text-gray-600">{p.vendorsId?.vendor_name || "-"}</TableCell>
-                          <TableCell className="text-gray-500 italic">{p.companyId?.brandName || "-"}</TableCell>
-                          <TableCell className="text-gray-600">{p.unit}</TableCell>
-                          <TableCell className="text-gray-600">{p.packSize || "-"}</TableCell>
+                          {mode !== 'category' && (
+                            <TableCell className="text-gray-600">{p.categoryId?.categoryName || "-"}</TableCell>
+                          )}
+                          {mode !== 'vendor' && (
+                            <TableCell className="text-gray-600">{p.vendorsId?.vendor_name || "-"}</TableCell>
+                          )}
+                          {mode !== 'brand' && (
+                            <TableCell className="text-gray-500 italic">{p.companyId?.brandName || "-"}</TableCell>
+                          )}
+                          <TableCell className="text-gray-600">
+                            <TextField
+                              size="small"
+                              type="string"
+                              className="w-24"
+                              defaultValue={p.unit || "-"}
+                              // onChange={(e) => {
+                              //   const val = parseInt(e.target.value);
+                              //   setQtyMap((prev) => ({ ...prev, [p._id]: isNaN(val) ? 1 : val }));
+                              //   if (!selected.includes(p._id)) toggleRow(p._id);
+                              // }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            <TextField
+                              size="small"
+                              type="string"
+                              className="w-24"
+                              defaultValue={p.packSize || "-"}
+                              // onChange={(e) => {
+                              //   const val = parseInt(e.target.value);
+                              //   setQtyMap((prev) => ({ ...prev, [p._id]: isNaN(val) ? 1 : val }));
+                              //   if (!selected.includes(p._id)) toggleRow(p._id);
+                              // }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="0"
+                            />
+                          </TableCell>
                           <TableCell>
                             <TextField
                               size="small"
