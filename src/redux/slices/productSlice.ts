@@ -315,9 +315,12 @@ const productSlice = createSlice({
       })
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = state.products.filter(
-          (p) => p._id !== action.payload.productId
-        );
+        const id = action.payload.productId;
+        state.products = state.products.filter((p) => p._id !== id);
+        if (state.allProductsData) {
+          state.allProductsData.data = state.allProductsData.data.filter((p) => p._id !== id);
+          state.allProductsData.total = Math.max(0, state.allProductsData.total - 1);
+        }
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.loading = false;

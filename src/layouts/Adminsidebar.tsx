@@ -12,6 +12,20 @@ import {
   FaSignOutAlt,
   FaTh,
   FaChartBar,
+  FaCalendarDay,
+  FaStore,
+  FaUserTie,
+  FaLayerGroup,
+  FaTag,
+  FaClipboardList,
+  FaList,
+  FaStar,
+  FaTruck,
+  FaFileInvoiceDollar,
+  FaUtensils,
+  FaTint,
+  FaChartLine,
+  FaGlobeAmericas,
 } from "react-icons/fa";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
@@ -36,10 +50,107 @@ interface MenuItemBase {
 }
 
 interface MenuItemWithChildren extends MenuItemBase {
-  children: (string | { name: string; to: string; type?: "group" | "link"; subChildren?: { name: string; to: string }[] })[];
+  children: (string | { name: string; to: string; icon?: JSX.Element; type?: "group" | "link"; subChildren?: { name: string; to: string }[] })[];
 }
 
 type MenuItem = MenuItemBase | MenuItemWithChildren;
+
+const menuItems: MenuItem[] = [
+  { icon: <FaHome size={18} />, name: "Dashboard", to: "/admin-dashboard" },
+  {
+    icon: <FaShoppingBag size={18} />,
+    name: "Products",
+    to: "/admin/products",
+    children: [
+      { name: "Daily Product", to: "/admin/products", icon: <FaCalendarDay size={14} /> },
+      { name: "Restaurant Setup", to: "/admin/restaurant-setup", icon: <FaStore size={14} /> },
+    ],
+  },
+  {
+    icon: <FaBorderAll size={18} />,
+    name: "Order Management",
+    to: "/admin/orders",
+    children: [
+      {
+        name: "By Vendor",
+        to: "/admin/orders?mode=vendor",
+        icon: <FaTruck size={14} />
+      },
+      {
+        name: "By Category",
+        to: "/admin/orders?mode=category",
+        icon: <FaLayerGroup size={14} />
+      },
+      {
+        name: "By Brand",
+        to: "/admin/orders?mode=brand",
+        icon: <FaTag size={14} />
+      }
+    ]
+  },
+  {
+    icon: <PiOvenDuotone size={18} />,
+    name: "Order History",
+    to: "/admin/vendorsOrder",
+  },
+  {
+    icon: <BiSolidPurchaseTag size={18} />,
+    name: "Purchase",
+    to: "/admin/purchase",
+    children: [
+      { name: "Purchase List", to: "/admin/purchase", icon: <FaClipboardList size={14} /> },
+    ],
+  },
+  { icon: <FaBoxes size={18} />, name: "Store Stock", to: "/storeStock" },
+  {
+    icon: <FiSend size={18} />,
+    name: "Kitchen Issue",
+    to: "/admin/kitchen-issue",
+  },
+  {
+    icon: <FaShoppingCart size={18} />,
+    name: "Kitchen Store",
+    to: "/admin/kitchenStock",
+  },
+  {
+    icon: <PiOvenDuotone size={18} />,
+    name: "Kitchen Consumption",
+    to: "/admin/kitchen-consumption",
+  },
+  {
+    icon: <SiMaterialdesignicons size={18} />,
+    name: "Consumables",
+    to: "/admin/consumables",
+  },
+  {
+    icon: <FaBoxes size={18} />,
+    name: "Setup Store",
+    to: "/admin/setup-store",
+  },
+  {
+    icon: <FaTh size={18} />,
+    name: "Master Lists",
+    to: "/admin/masters",
+    children: [
+      { name: "Categories List", to: "/admin/categories", icon: <FaLayerGroup size={14} /> },
+      { name: "Brand List", to: "/admin/company", icon: <FaTag size={14} /> },
+      { name: "Vendor List", to: "/admin/vendorList", icon: <FaTruck size={14} /> },
+    ],
+  },
+  {
+    icon: <FaChartBar size={18} />,
+    name: "Reports",
+    to: "/admin/reports",
+    children: [
+      { name: "Purchase Report", to: "/admin/reports/purchase", icon: <FaFileInvoiceDollar size={14} /> },
+      { name: "Stock Report", to: "/admin/reports/stock", icon: <FaBoxes size={14} /> },
+      { name: "Consumption Report", to: "/admin/reports/consumption", icon: <FaUtensils size={14} /> },
+      { name: "Consumables Report", to: "/admin/reports/consumables", icon: <FaTint size={14} /> },
+      { name: "Sales Report", to: "/admin/reports/sales", icon: <FaChartLine size={14} /> },
+      { name: "Purchase Origin Report", to: "/admin/reports/purchase-origin", icon: <FaGlobeAmericas size={14} /> },
+    ],
+  },
+];
 
 export const AdminSidebar: React.FC<SidebarProps> = ({
   isOpen,
@@ -70,99 +181,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
         }
       }
     });
-  }, [location.pathname]); // Re-run when path changes
-
+  }, [location.pathname]);
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
-
-  const menuItems: MenuItem[] = [
-    { icon: <FaHome size={18} />, name: "Dashboard", to: "/admin-dashboard" },
-    {
-      icon: <FaShoppingBag size={18} />,
-      name: "Products",
-      to: "/admin/products",
-      children: [
-        { name: "Daily Product", to: "/admin/products" },
-        { name: "Restaurant Setup", to: "/admin/restaurant-setup" },
-      ],
-    },
-    {
-      icon: <FaBorderAll size={18} />,
-      name: "Order Management",
-      to: "/admin/orders",
-      children: [
-        {
-          name: "By Vendor",
-          to: "/admin/orders?mode=vendor",
-        },
-        {
-          name: "By Category",
-          to: "/admin/orders?mode=category",
-        },
-        {
-          name: "By Brand",
-          to: "/admin/orders?mode=brand",
-        }
-      ]
-    },
-    {
-      icon: <PiOvenDuotone size={18} />,
-      name: "Order History",
-      to: "/admin/vendorsOrder",
-    },
-    { icon: <BiSolidPurchaseTag size={18} />, name: "Purchase", to: "/admin/purchase" },
-    { icon: <FaBoxes size={18} />, name: "Store Stock", to: "/storeStock" },
-    {
-      icon: <FiSend size={18} />,
-      name: "Kitchen Issue",
-      to: "/admin/kitchen-issue",
-    },
-    {
-      icon: <FaShoppingCart size={18} />,
-      name: "Kitchen Store",
-      to: "/admin/kitchenStock",
-    },
-    {
-      icon: <PiOvenDuotone size={18} />,
-      name: "Kitchen Consumption",
-      to: "/admin/kitchen-consumption",
-    },
-    {
-      icon: <SiMaterialdesignicons size={18} />,
-      name: "Consumables",
-      to: "/admin/consumables",
-    },
-    {
-      icon: <FaBoxes size={18} />,
-      name: "Setup Store",
-      to: "/admin/setup-store",
-    },
-    {
-      icon: <FaTh size={18} />,
-      name: "Master Lists",
-      to: "/admin/masters",
-      children: [
-        { name: "Categories List", to: "/admin/categories" },
-        { name: "Brand List", to: "/admin/company" },
-        { name: "Vendor List", to: "/admin/vendorList" },
-      ],
-    },
-    {
-      icon: <FaChartBar size={18} />,
-      name: "Reports",
-      to: "/admin/reports",
-      children: [
-        { name: "Purchase Report", to: "/admin/reports/purchase" },
-        { name: "Stock Report", to: "/admin/reports/stock" },
-        { name: "Consumption Report", to: "/admin/reports/consumption" },
-        { name: "Consumables Report", to: "/admin/reports/consumables" },
-        { name: "Sales Report", to: "/admin/reports/sales" },
-        { name: "Purchase Origin Report", to: "/admin/reports/purchase-origin" },
-      ],
-    },
-  ];
 
   const handleLogout = () => {
     dispatch(logout()).then(() => {
@@ -181,7 +204,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
       className={`bg-[#0d1529] text-gray-300 ${collapsed ? "w-20" : "w-64"
         } h-screen flex flex-col justify-between overflow-hidden
           fixed inset-y-0 left-0 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:fixed md:translate-x-0 transition-all duration-300 ease-in-out z-50 border-r border-[#1e293b]`}
+        } md:fixed md:translate-x-0 transition-all duration-200 ease-in-out z-50 border-r border-[#1e293b]`}
     >
       {/* FULL HEIGHT CONTAINER */}
       <div className="flex flex-col h-full">
@@ -221,37 +244,60 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
                   return (
                     <li key={index}>
-                      <button
-                        onClick={() => toggleExpand(item.name)}
-                        className={`group flex items-center w-full py-2.5 px-4 rounded-md transition-all duration-200 select-none
+                      <div
+                        className={`group flex items-center w-full py-2.5 px-4 rounded-md transition-all duration-100 select-none cursor-pointer
                           ${isActive
                             ? "bg-[#1e293b] text-blue-400"
                             : "text-gray-400 hover:bg-[#1e293b] hover:text-white"}`}
                       >
-                        {/* Icon Column */}
-                        <div className="w-6 flex items-center justify-center shrink-0 ml-0 mr-3">
-                          {item.icon}
+                        {/* Main Clickable Area: Icon & Text */}
+                        <div
+                          className="flex-1 flex items-center"
+                          onClick={() => {
+                            if (["Purchase", "Products", "Order Management"].includes(item.name)) {
+                              navigate(item.to);
+                              // Force expand, never collapse on main click
+                              setExpanded(item.name);
+                            } else {
+                              toggleExpand(item.name);
+                            }
+                          }}
+                        >
+                          {/* Icon Column */}
+                          <div className="w-6 flex items-center justify-center shrink-0 ml-0 mr-3">
+                            {item.icon}
+                          </div>
+
+                          {/* Text Column */}
+                          {!collapsed && (
+                            <span className="font-medium text-sm flex-1 text-left truncate">{item.name}</span>
+                          )}
                         </div>
 
-                        {/* Text Column */}
+                        {/* Chevron Column (Toggle Only) */}
                         {!collapsed && (
-                          <span className="font-medium text-sm flex-1 text-left truncate">{item.name}</span>
-                        )}
-
-                        {/* Chevron Column (Moved to Right) */}
-                        {!collapsed && (
-                          <div className="w-4 flex items-center justify-center shrink-0 ml-auto">
-                            {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                          <div
+                            className="w-4 flex items-center justify-center shrink-0 ml-auto p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpand(item.name);
+                            }}
+                          >
+                            <FaChevronRight
+                              size={10}
+                              className={`transition-transform duration-150 ${isExpanded ? "rotate-90" : "rotate-0"}`}
+                            />
                           </div>
                         )}
-                      </button>
+                      </div>
 
                       {/* Submenu */}
                       {!collapsed && isExpanded && (
-                        <ul className="mt-1 space-y-0.5">
+                        <ul className="mt-1 relative ml-[1.7rem] border-l border-gray-800 space-y-1 py-1 transition-all duration-200">
                           {item.children.map((sub, subIndex) => {
                             let subName = "";
                             let subPath = "";
+                            let subIcon: JSX.Element | undefined;
                             let isGroup = false;
 
                             if (typeof sub === 'string') {
@@ -260,29 +306,38 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
                             } else {
                               subName = sub.name;
                               subPath = sub.to;
+                              subIcon = sub.icon;
                               isGroup = sub.type === "group";
                             }
 
                             const isSubActive = location.pathname === subPath.split('?')[0] &&
                               (subPath.includes('?') ? location.search.includes(subPath.split('?')[1]) : true);
 
-                            if (isGroup) return null; // Simplified 
+                            if (isGroup) return null;
 
                             return (
-                              <li key={subIndex}>
+                              <li key={subIndex} className="relative group/item">
                                 <Link
                                   to={subPath}
-                                  className={`group flex items-center justify-between w-full py-2 pl-[3.5rem] pr-3 text-[13px] rounded-md transition-all duration-200
+                                  className={`flex items-center justify-between w-full py-2 pl-4 pr-3 text-[13px] rounded-r-md transition-all duration-150
                                   ${isSubActive
-                                      ? "bg-blue-600 text-white font-medium"
-                                      : "text-gray-400 hover:text-white hover:bg-[#1e293b]"
+                                      ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-2 border-blue-500 text-blue-400 font-medium"
+                                      : "text-gray-500 hover:text-gray-200 border-l-2 border-transparent hover:border-gray-600 hover:bg-white/5"
                                     }`}
                                 >
-                                  <span>{subName}</span>
-                                  {!["Order Management", "Master Lists", "Reports"].includes(item.name) && (
+                                  <div className="flex items-center gap-3">
+                                    {subIcon ? (
+                                      <span className={`text-[14px] transition-all duration-150 ${isSubActive ? 'text-blue-500' : 'text-gray-600 group-hover/item:text-gray-400'}`}>{subIcon}</span>
+                                    ) : (
+                                      <span className={`w-1.5 h-1.5 rounded-full transition-all duration-150 ${isSubActive ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'bg-gray-700 group-hover/item:bg-gray-400'}`}></span>
+                                    )}
+                                    <span>{subName}</span>
+                                  </div>
+
+                                  {!["Reports", "Order Management"].includes(item.name) && (
                                     <FiPlus
-                                      className={`transition-all duration-200 hover:text-blue-200 cursor-pointer ${isSubActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                      size={16}
+                                      className={`transition-all duration-150 hover:text-blue-400 hover:scale-110 cursor-pointer ${isSubActive ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}
+                                      size={14}
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -351,7 +406,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => collapsed ? null : setIsProfileOpen(!isProfileOpen)}
-              className={`group flex items-center w-full px-4 py-2 rounded-md hover:bg-[#1e293b] transition-all duration-300`}
+              className={`group flex items-center w-full px-4 py-2 rounded-md hover:bg-[#1e293b] transition-all duration-200`}
             >
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs shrink-0 ring-2 ring-[#0d1529] group-hover:ring-blue-500 transition-all">
                 {getInitials("Admin")}

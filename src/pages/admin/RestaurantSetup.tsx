@@ -1,36 +1,36 @@
+import React, { useState } from "react";
 import {
   Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  Paper,
   Tab,
+  Tabs,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
-  Tabs,
+  Button,
+  TablePagination,
+  IconButton,
+  Typography,
   TextField,
-  Typography
+  InputAdornment,
 } from "@mui/material";
-import React, { useState } from "react";
-import { toast } from "react-hot-toast";
-import { FiEdit, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import Swal from 'sweetalert2';
-import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
-import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
-import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
+
+import { FiPlus, FiEdit, FiTrash2, FiSearch } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
-import VendorModal from "../../layouts/VendorModal";
-import { addCategory, getCategories, selectCategories } from "../../redux/slices/categorySlice";
-import { addCompany, getCompanies, selectCompanies } from "../../redux/slices/companySlice";
-import { addProduct, deleteProduct, getProducts, selectProductState, updateProduct, type ProductInterface } from "../../redux/slices/productSlice";
-import { addVendor, getVendorNameList, selectVendorNames } from "../../redux/slices/vendorSlice";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../redux/store/storeHooks";
+import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawerForm";
+import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
+import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
+import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
+import { addProduct, updateProduct, getProducts, deleteProduct, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
+import { toast } from "react-toastify";
+import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
+import VendorModal from "../../layouts/VendorModal";
 
 
 
@@ -110,6 +110,7 @@ export default function RestaurantSetup() {
 
 
   const currentCategory = categories[value] as string;
+
   // Action Handling
   const action = searchParams.get("action");
   const isAddMode = action === "add";
@@ -127,50 +128,6 @@ export default function RestaurantSetup() {
     setIsEdit(true);
     navigate("?action=add");
   };
-
-  // const handleDeleteProduct = async (id: string) => {
-  //   if (!confirm("Delete this product?")) return;
-  //   try {
-  //     await dispatch(deleteProduct(id)).unwrap();
-  //     toast.success("Product deleted successfully");
-  //     refreshProducts();
-  //   } catch (err: any) {
-  //     toast.error(err.message || "Failed to delete product");
-  //   }
-  // };
-
-  const handleDeleteProduct = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d32f2f",
-      cancelButtonColor: "#9e9e9e",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-    });
-    if (!result.isConfirmed) return;
-    try {
-      await dispatch(deleteProduct(id)).unwrap();
-      await Swal.fire({
-        title: "Deleted!",
-        text: "Product deleted successfully.",
-        icon: "success",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-      refreshProducts();
-    } catch (err: any) {
-      Swal.fire({
-        title: "Error",
-        text: err?.message || "Failed to delete product",
-        icon: "error",
-      });
-    }
-  };
-
 
   const handleSaveProduct = async (productData: ProductInterface) => {
     try {
@@ -225,7 +182,16 @@ export default function RestaurantSetup() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-
+  const handleDeleteProduct = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await dispatch(deleteProduct(id)).unwrap();
+      toast.success("Product deleted successfully");
+      refreshProducts();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete item");
+    }
+  };
 
   return (
     <AdminLayout>
