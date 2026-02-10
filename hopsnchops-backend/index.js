@@ -21,6 +21,7 @@ const consumableStockRoutes = require('./src/routes/consumableRoutes.js')
 const orderRoutes = require('./src/routes/orderRoutes.js')
 const dashboardRoutes = require('./src/routes/dashboardRoutes.js')
 const reportRoutes = require('./src/routes/reportRoutes.js')
+const setupStockRoutes = require('./src/routes/setupStockRoutes.js')
 const { swaggerSpec, swaggerUi } = require("./src/swagger/swagger.js");
 
 const app = express();
@@ -71,6 +72,7 @@ app.use('/v1/outlet', outlet)
 app.use('/v1/franchise', franchise)
 app.use('/v1/dashboard', dashboardRoutes)
 app.use('/v1/reports', reportRoutes)
+app.use('/v1/setupStock', setupStockRoutes)
 
 // app.use('/v1/vendors', storeStokeRoutes)
 // Start server

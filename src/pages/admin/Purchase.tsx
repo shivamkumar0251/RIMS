@@ -200,6 +200,10 @@ const Purchase: React.FC = () => {
           }));
           await dispatch(addKitchenStock(kitchenPayload)).unwrap();
         } else if (target === 'Setup') {
+          if (validItems.length === 0) {
+            toast.error("No valid items to move to Setup Store");
+            return;
+          }
           const setupPayload = validItems.map(item => ({
             productId: item.productId._id,
             qty: item.receivedQty,
