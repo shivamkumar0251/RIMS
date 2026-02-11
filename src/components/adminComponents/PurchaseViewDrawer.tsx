@@ -90,7 +90,7 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
     };
 
     const handleShare = (platform: string) => {
-        const text = `Invoice ${order?.orderNumber} from RIMS Restaurant`;
+        const text = `Invoice ${order?.orderNumber} from Hops N Chops`;
         const url = window.location.href;
         
         if (platform === 'whatsapp') {
@@ -99,6 +99,13 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
             window.open(`mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}`, '_self');
         }
     };
+
+    const pagesToRender = useMemo(() => {
+        if (copyType.duplicate) return ['duplicate', 'duplicate'];
+        if (copyType.transport) return ['transport'];
+        if (copyType.office) return ['office'];
+        return ['original'];
+    }, [copyType]);
 
     const handleExcelExport = async () => {
         if (!invoiceData) return;
@@ -158,17 +165,18 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
         // Let's keep text centered but ensure row height.
         sheet.getRow(1).height = 80; // Make first row taller for logo
 
-        sheet.getCell('A1').value = 'RIMS RESTAURANT';
+        sheet.getCell('A1').value = 'Hops N Chops';
         sheet.getCell('A1').font = { name: 'Arial', bold: true, size: 20 };
         sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
 
         sheet.mergeCells('A2:K2');
-        sheet.getCell('A2').value = '123 Business Avenue, Food Plaza, Sector 45, Gurugram, India';
+        sheet.getCell('A2').value = '1st Floor Ward No. 16, Sidhpur, Kangra, Himachal Pradesh (02) - 176057';
         sheet.getCell('A2').alignment = alignCenter;
 
         sheet.mergeCells('A3:K3');
-        sheet.getCell('A3').value = 'GSTIN: 07AAPFH1234A1Z5 | License: FSSAI-1234567890';
+        sheet.getCell('A3').value = 'GSTIN: 02AAPFH1816A1Z0 | License: FSSAI-10923015000050';
         sheet.getCell('A3').alignment = alignCenter;
+
 
         sheet.addRow([]);
 
@@ -398,16 +406,18 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
 
                 {/* Content - Invoice Replica - Scrollable */}
                 <Box 
+                    id="invoice-print-area"
                     sx={{ 
                         flex: 1, 
                         overflowY: 'auto', 
-                        overflowX: 'auto', // Allow horizontal scroll for mobile
+                        overflowX: 'auto', 
                         bgcolor: '#f8fafc',
                         py: 3,
                         px: { xs: 2, sm: 3 },
-                        display: 'flex',       // Center the invoice
-                        justifyContent: 'center',
-                        alignItems: 'flex-start' 
+                        display: 'flex',       
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4
                     }}
                 >
                     <style>
@@ -416,285 +426,295 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
                                 body * {
                                     visibility: hidden;
                                 }
-                                #invoice-content, #invoice-content * {
+                                #invoice-print-area, #invoice-print-area * {
                                     visibility: visible;
                                 }
-                                #invoice-content {
+                                #invoice-print-area {
                                     position: absolute;
                                     left: 0;
                                     top: 0;
-                                    width: 210mm !important;
-                                    max-width: 100% !important;
-                                    height: auto !important;
+                                    width: 100% !important;
                                     margin: 0 !important;
-                                    padding: 20px !important;
+                                    padding: 0 !important;
+                                    display: block !important;
+                                }
+                                .invoice-page {
+                                    width: 210mm !important;
+                                    height: 297mm !important;
+                                    margin: 0 auto !important;
+                                    padding: 15mm !important;
                                     box-shadow: none !important;
-                                    background-color: white !important;
+                                    page-break-after: always !important;
                                     print-color-adjust: exact;
                                     -webkit-print-color-adjust: exact;
                                 }
-                                /* Hide scrollbars and other UI */
-                                ::-webkit-scrollbar {
-                                    display: none;
+                                .invoice-page:last-child {
+                                    page-break-after: auto !important;
+                                }
+                                @page {
+                                    size: A4;
+                                    margin: 0;
                                 }
                             }
                         `}
                     </style>
-                    <Paper 
-                        id="invoice-content"
-                        elevation={2} 
-                        className="bg-white relative text-slate-900"
-                        sx={{ 
-                            maxWidth: '210mm',
-                            width: '210mm',         // Fixed print width
-                            minWidth: '210mm',      // Ensure it doesn't shrink below A4 width on mobile (forces scroll)
-                            height: 'fit-content',
-                            p: { xs: 3, sm: 4, md: 5 },
-                            flexShrink: 0,          // Prevent shrinking in flex container
-                            '@media print': { 
-                                boxShadow: 'none', 
-                                p: 4,
-                                minHeight: '297mm',
-                                width: '210mm',
-                            },
-                             // Mobile Scale down if preferred? No, User wants "responsive", normally scroll is better for detailed invoice
-                             // But let's check if they want it scaled. "mobile responsive" usually means "looks good on mobile".
-                             // Scrolling a large invoice is standard. 
-                             // However, we can add a transform scale for very small screens if user asks specifically.
-                             // For now, overflowX: auto is the safest "responsive" fix for data tables.
-                        }}
-                    >
-                        {/* 1. Header Section */}
-                        <Box className="flex justify-between items-start mb-4">
-                            <Box className="flex items-center gap-4">
-                                {/* Logo - Circular Gray like reference */}
-                                <Box className="w-14 h-14 bg-slate-200 rounded-full flex items-center justify-center shadow-md">
-                                    <img 
-                                        src="/logo.png" 
-                                        alt="Logo" 
-                                        className="w-10 h-10 object-contain rounded-full"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.style.display = 'none';
-                                            target.parentElement!.innerHTML = '<svg class="w-8 h-8 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 10a1 1 0 112 0 1 1 0 01-2 0zm1-4a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1z"/></svg>';
-                                        }}
-                                    />
+                    {pagesToRender.map((type, idx) => (
+                        <Paper 
+                            key={`${type}-${idx}`}
+                            elevation={2} 
+                            className="invoice-page bg-white relative text-slate-900"
+                            sx={{ 
+                                maxWidth: '210mm',
+                                width: '210mm',         
+                                minWidth: '210mm',      
+                                height: 'fit-content',
+                                p: { xs: 3, sm: 4, md: 5 },
+                                flexShrink: 0,          
+                                '@media print': { 
+                                    boxShadow: 'none', 
+                                    p: 4,
+                                    width: '210mm',
+                                },
+                            }}
+                        >
+                            {/* 1. Header Section */}
+                            <Box className="flex justify-between items-start mb-4">
+                                <Box className="flex items-center gap-4">
+                                    {/* Logo - Circular Gray like reference */}
+                                    <Box className="w-14 h-14 bg-slate-200 rounded-full flex items-center justify-center shadow-md">
+                                        <img 
+                                            src="/logo.png" 
+                                            alt="Logo" 
+                                            className="w-10 h-10 object-contain rounded-full"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                target.parentElement!.innerHTML = '<svg class="w-8 h-8 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 10a1 1 0 112 0 1 1 0 01-2 0zm1-4a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1z"/></svg>';
+                                            }}
+                                        />
+                                    </Box>
+                                    <Box>
+                                        <Typography className="font-black text-2xl text-slate-900 tracking-tight">Hops N Chops</Typography>
+                                        <Typography className="text-xs font-medium text-slate-500">1st Floor Ward No. 16, Sidhpur</Typography>
+                                        <Typography className="text-xs font-medium text-slate-500">Kangra, Himachal Pradesh (02) - 176057</Typography>
+                                        <Typography className="text-xs font-medium text-slate-500">FSSAI-10923015000050</Typography>
+                                    </Box>
                                 </Box>
-                                <Box>
-                                    <Typography className="font-black text-2xl text-slate-900 tracking-tight">RIMS RESTAURANT</Typography>
-                                    <Typography className="text-xs font-medium text-slate-500">123 Business Avenue, Food Plaza</Typography>
-                                    <Typography className="text-xs font-medium text-slate-500">Sector 45, Gurugram, India</Typography>
-                                    <Typography className="text-xs font-medium text-slate-500">License: FSSAI-1234567890</Typography>
-                                </Box>
-                            </Box>
-                            <Box className="text-right">
-                                <Typography className="font-bold text-sm text-slate-800">RIMS RESTAURANT</Typography>
-                                <Typography className="text-xs text-slate-600">Phone: +91 98765 43210</Typography>
-                                <Typography className="text-xs text-slate-600">Email: info@rims.com</Typography>
-                                <Typography className="text-xs text-slate-600">Website: www.rimsrestaurant.com</Typography>
-                            </Box>
-                        </Box>
-
-                        {/* 2. Main Grid Container with Blue Borders */}
-                        <Box className="border border-blue-500">
-                            {/* Blue Header Info Bar */}
-                            <Box className="grid grid-cols-2 border-b border-blue-500" sx={{ mt: 1 }}>
-                                <Box className="p-2 border-r border-blue-500">
-                                    <Typography className="font-bold text-sm text-slate-800">GSTIN : <span className="font-medium">07AAPFH1234A1Z5</span></Typography>
-                                </Box>
-                                <Box className="p-2 bg-white flex justify-center items-center">
-                                    <Typography className="font-black text-lg text-blue-600 uppercase tracking-wider">PURCHASE INVOICE</Typography>
-                                    <span className="ml-auto text-[10px] font-bold text-slate-400">
-                                        {copyType.original && 'ORIGINAL FOR RECIPIENT'}
-                                        {!copyType.original && copyType.duplicate && 'DUPLICATE FOR TRANSPORTER'}
-                                        {!copyType.original && !copyType.duplicate && copyType.transport && 'TRIPLICATE FOR SUPPLIER'}
-                                        {!copyType.original && !copyType.duplicate && !copyType.transport && copyType.office && 'OFFICE COPY'}
-                                        {!copyType.original && !copyType.duplicate && !copyType.transport && !copyType.office && 'COPY'}
-                                    </span>
+                                <Box className="text-right">
+                                    <Typography className="font-bold text-sm text-slate-800 uppercase">Hops N Chops</Typography>
+                                    <Typography className="text-xs text-slate-600">Phone: 9459285964</Typography>
+                                    <Typography className="text-xs text-slate-600">Email: kunalr244@gmail.com</Typography>
+                                    <Typography className="text-xs text-slate-600">Website: hopsnchops.com</Typography>
                                 </Box>
                             </Box>
 
-                            {/* Details Grid */}
-                            <Box className="grid grid-cols-2 border-b border-blue-500 text-xs">
-                                {/* Vendor Details (Left) */}
-                                <Box className="p-0 border-r border-blue-500">
-                                    <Box className="bg-slate-50 border-b border-blue-200 px-2 py-1 font-bold text-slate-700 text-center">Vendor Detail</Box>
-                                    <Box className="p-2 space-y-0.5">
-                                        <Box className="flex">
-                                            <span className="font-bold w-20">M/S:</span>
-                                            <span className="uppercase font-semibold">{invoiceData.vendor.vendor_name || 'N/A'}</span>
+                            {/* 2. Main Grid Container with Blue Borders */}
+                            <Box className="border border-blue-500">
+                                {/* Blue Header Info Bar */}
+                                <Box className="grid grid-cols-2 border-b border-blue-500" sx={{ mt: 1 }}>
+                                    <Box className="p-2 border-r border-blue-500">
+                                        <Typography className="font-bold text-sm text-slate-800">GSTIN : <span className="font-medium">02AAPFH1816A1Z0</span></Typography>
+                                    </Box>
+                                    <Box className="p-2 bg-white flex justify-center items-center">
+                                        <Typography className="font-black text-lg text-blue-600 uppercase tracking-wider">PURCHASE INVOICE</Typography>
+                                        <span className="ml-auto text-[10px] font-bold text-slate-400">
+                                            {type === 'original' && 'ORIGINAL FOR RECIPIENT'}
+                                            {type === 'duplicate' && 'DUPLICATE FOR TRANSPORTER'}
+                                            {type === 'transport' && 'TRIPLICATE FOR SUPPLIER'}
+                                            {type === 'office' && 'OFFICE COPY'}
+                                        </span>
+                                    </Box>
+                                </Box>
+
+                                {/* Details Grid */}
+                                <Box className="grid grid-cols-2 border-b border-blue-500 text-xs">
+                                    {/* Vendor Details (Left) */}
+                                    <Box className="p-0 border-r border-blue-500">
+                                        <Box className="bg-slate-50 border-b border-blue-200 px-2 py-1 font-bold text-slate-700 text-center">Vendor Detail</Box>
+                                        <Box className="p-2 space-y-0.5">
+                                            <Box className="flex">
+                                                <span className="font-bold w-20">M/S:</span>
+                                                <span className="uppercase font-semibold">{invoiceData.vendor.vendor_name || 'N/A'}</span>
+                                            </Box>
+                                            <Box className="flex">
+                                                <span className="font-bold w-20">Address:</span>
+                                                <span>{invoiceData.vendor.vendor_address || 'N/A'}</span>
+                                            </Box>
+                                            <Box className="flex">
+                                                <span className="font-bold w-20">Phone:</span>
+                                                <span>{invoiceData.vendor.vendor_mobileNo || 'N/A'}</span>
+                                            </Box>
+                                            <Box className="flex">
+                                                <span className="font-bold w-20">GSTIN:</span>
+                                                <span>{invoiceData.vendor.vendor_gstNumber || 'N/A'}</span>
+                                            </Box>
+                                            <Box className="flex">
+                                                <span className="font-bold w-20 text-[10px]">Place of Supply:</span>
+                                                <span>{invoiceData.vendor.vendor_state || invoiceData.vendor.vendor_country || 'N/A'}</span>
+                                            </Box>
                                         </Box>
-                                        <Box className="flex">
-                                            <span className="font-bold w-20">Address:</span>
-                                            <span>{invoiceData.vendor.vendor_address || 'N/A'}</span>
-                                        </Box>
-                                        <Box className="flex">
-                                            <span className="font-bold w-20">Phone:</span>
-                                            <span>{invoiceData.vendor.vendor_mobileNo || 'N/A'}</span>
-                                        </Box>
-                                        <Box className="flex">
-                                            <span className="font-bold w-20">GSTIN:</span>
-                                            <span>{invoiceData.vendor.vendor_gstNumber || 'N/A'}</span>
-                                        </Box>
-                                        <Box className="flex">
-                                            <span className="font-bold w-20">State:</span>
-                                            <span>{invoiceData.vendor.vendor_state || invoiceData.vendor.vendor_country || 'N/A'}</span>
+                                    </Box>
+
+                                    {/* Invoice Details (Right) */}
+                                    <Box className="p-0">
+                                        <Box className="grid grid-cols-2 h-full">
+                                            <Box className="p-2 border-r border-blue-200 space-y-1.5">
+                                                <Box>
+                                                    <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice No.</span>
+                                                    <span className="font-bold text-sm">{invoiceData.invoiceNo}</span>
+                                                </Box>
+                                                <Box>
+                                                    <span className="font-bold block text-[10px] text-slate-500 uppercase">Reverse Charge</span>
+                                                    <span className="font-medium">{invoiceData.reverseCharge}</span>
+                                                </Box>
+                                            </Box>
+                                            <Box className="p-2 space-y-1.5">
+                                                <Box>
+                                                    <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice Date</span>
+                                                    <span className="font-bold text-sm">{invoiceData.invoiceDate}</span>
+                                                </Box>
+                                            </Box>
                                         </Box>
                                     </Box>
                                 </Box>
 
-                                {/* Invoice Details (Right) */}
-                                <Box className="p-0">
-                                    <Box className="grid grid-cols-2 h-full">
-                                        <Box className="p-2 border-r border-blue-200 space-y-1.5">
-                                            <Box>
-                                                <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice No.</span>
-                                                <span className="font-bold text-sm">{invoiceData.invoiceNo}</span>
-                                            </Box>
-                                            <Box>
-                                                <span className="font-bold block text-[10px] text-slate-500 uppercase">Reverse Charge</span>
-                                                <span className="font-medium">{invoiceData.reverseCharge}</span>
-                                            </Box>
-                                        </Box>
-                                        <Box className="p-2 space-y-1.5">
-                                            <Box>
-                                                <span className="font-bold block text-[10px] text-slate-500 uppercase">Invoice Date</span>
-                                                <span className="font-bold text-sm">{invoiceData.invoiceDate}</span>
-                                            </Box>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                            </Box>
-
-                            {/* 3. Items Table */}
-                            <Box className="border-b border-blue-500">
-                                <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #3b82f6', borderBottom: 'none', padding: '4px 8px', fontSize: '10px' }, '& .MuiTableCell-root:last-child': { borderRight: 'none' } }}>
-                                    <TableHead>
-                                        <TableRow className="bg-blue-50 border-b border-blue-500">
-                                            <TableCell width="40px" className="font-bold text-center text-blue-900">Sr.</TableCell>
-                                            <TableCell className="font-bold text-blue-900">Name of Product / Service</TableCell>
-                                            <TableCell width="60px" className="font-bold text-center text-blue-900">HSN/SAC</TableCell>
-                                            <TableCell width="60px" className="font-bold text-center text-blue-900">Qty</TableCell>
-                                            <TableCell width="80px" className="font-bold text-right text-blue-900">Rate</TableCell>
-                                            <TableCell width="90px" className="font-bold text-right text-blue-900">Taxable Val</TableCell>
-                                            <TableCell width="80px" className="font-bold text-center text-blue-900 p-0">
-                                                <Box className="border-b border-blue-300 pb-1">CGST</Box>
-                                                <Box className="grid grid-cols-2 pt-1">
-                                                    <span className="border-r border-blue-300">%</span>
-                                                    <span>Amt</span>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell width="80px" className="font-bold text-center text-blue-900 p-0">
-                                                <Box className="border-b border-blue-300 pb-1">SGST</Box>
-                                                <Box className="grid grid-cols-2 pt-1">
-                                                    <span className="border-r border-blue-300">%</span>
-                                                    <span>Amt</span>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell width="90px" className="font-bold text-right text-blue-900">Total</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {invoiceData.items.map((item: any, idx: number) => (
-                                            <TableRow key={idx} sx={{ height: '30px' }}>
-                                                <TableCell className="text-center">{item.srNo}</TableCell>
-                                                <TableCell className="font-medium text-slate-800">{item.name}</TableCell>
-                                                <TableCell className="text-center">{item.hsn}</TableCell>
-                                                <TableCell className="text-center font-bold">{item.qty} {item.uom}</TableCell>
-                                                <TableCell className="text-right">{item.rate?.toFixed(2)}</TableCell>
-                                                <TableCell className="text-right font-medium">{item.taxableValue?.toFixed(2)}</TableCell>
-                                                <TableCell className="p-0">
-                                                    <Box className="grid grid-cols-2 h-full items-center">
-                                                        <span className="text-center border-r border-blue-200 h-full flex items-center justify-center text-[9px]">{item.cgstPct}%</span>
-                                                        <span className="text-right px-1">{item.cgstAmt?.toFixed(2)}</span>
+                                {/* 3. Items Table */}
+                                <Box className="border-b border-blue-500">
+                                    <Table size="small" sx={{ '& .MuiTableCell-root': { borderRight: '1px solid #3b82f6', borderBottom: 'none', padding: '4px 8px', fontSize: '10px' }, '& .MuiTableCell-root:last-child': { borderRight: 'none' } }}>
+                                        <TableHead>
+                                            <TableRow className="bg-blue-50 border-b border-blue-500">
+                                                <TableCell width="40px" className="font-bold text-center text-blue-900">Sr.</TableCell>
+                                                <TableCell className="font-bold text-blue-900">Name of Product / Service</TableCell>
+                                                <TableCell width="60px" className="font-bold text-center text-blue-900">HSN/SAC</TableCell>
+                                                <TableCell width="60px" className="font-bold text-center text-blue-900">Qty</TableCell>
+                                                <TableCell width="80px" className="font-bold text-right text-blue-900">Rate</TableCell>
+                                                <TableCell width="90px" className="font-bold text-right text-blue-900">Taxable Val</TableCell>
+                                                <TableCell width="80px" className="font-bold text-center text-blue-900 p-0">
+                                                    <Box className="border-b border-blue-300 pb-1">CGST</Box>
+                                                    <Box className="grid grid-cols-2 pt-1">
+                                                        <span className="border-r border-blue-300">%</span>
+                                                        <span>Amt</span>
                                                     </Box>
                                                 </TableCell>
-                                                <TableCell className="p-0">
-                                                    <Box className="grid grid-cols-2 h-full items-center">
-                                                        <span className="text-center border-r border-blue-200 h-full flex items-center justify-center text-[9px]">{item.sgstPct}%</span>
-                                                        <span className="text-right px-1">{item.sgstAmt?.toFixed(2)}</span>
+                                                <TableCell width="80px" className="font-bold text-center text-blue-900 p-0">
+                                                    <Box className="border-b border-blue-300 pb-1">SGST</Box>
+                                                    <Box className="grid grid-cols-2 pt-1">
+                                                        <span className="border-r border-blue-300">%</span>
+                                                        <span>Amt</span>
                                                     </Box>
                                                 </TableCell>
-                                                <TableCell className="text-right font-bold text-slate-900">{item.total?.toFixed(2)}</TableCell>
+                                                <TableCell width="90px" className="font-bold text-right text-blue-900">Total</TableCell>
                                             </TableRow>
-                                        ))}
-                                        {/* Filler rows to maintain height if needed, OR just a min-height container for the table body */}
-                                        {Array.from({ length: Math.max(0, 10 - invoiceData.items.length) }).map((_, i) => (
-                                            <TableRow key={`fill-${i}`} sx={{ height: '30px' }}>
-                                               <TableCell className="text-center">&nbsp;</TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                               <TableCell className="p-0"><Box className="grid grid-cols-2 h-full"><span className="border-r border-blue-200"></span><span></span></Box></TableCell>
-                                               <TableCell className="p-0"><Box className="grid grid-cols-2 h-full"><span className="border-r border-blue-200"></span><span></span></Box></TableCell>
-                                               <TableCell>&nbsp;</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-
-                            {/* 4. Totals & Signature Section */}
-                            <Box className="grid grid-cols-12 min-h-[150px]">
-                                {/* Left Side: Amount in Words & Terms */}
-                                <Box className="col-span-8 border-r border-blue-500 flex flex-col justify-between">
-                                    <Box className="border-b border-blue-500 p-1.5 text-xs">
-                                        <Typography className="font-bold text-slate-700">Total in words</Typography>
-                                        <Typography className="font-medium italic mt-1 text-slate-900">{invoiceData.amountInWords}</Typography>
-                                    </Box>
-                                    <Box className="p-2.5 flex-1">
-                                        <Typography className="font-bold text-xs text-slate-700 mb-1">Terms & Condition</Typography>
-                                        <ul className="list-disc list-inside text-[10px] text-slate-500 space-y-0.5">
-                                            <li>Goods once sold will not be taken back.</li>
-                                            <li>Interest @18% p.a. will be charged if payment is delayed.</li>
-                                            <li>Subject to Gurugram Jurisdiction only.</li>
-                                        </ul>
-                                    </Box>
+                                        </TableHead>
+                                        <TableBody>
+                                            {invoiceData.items.map((item: any, idx: number) => (
+                                                <TableRow key={idx} sx={{ height: '30px' }}>
+                                                    <TableCell className="text-center">{item.srNo}</TableCell>
+                                                    <TableCell className="font-medium text-slate-800">{item.name}</TableCell>
+                                                    <TableCell className="text-center">{item.hsn}</TableCell>
+                                                    <TableCell className="text-center font-bold">{item.qty} {item.uom}</TableCell>
+                                                    <TableCell className="text-right">{item.rate?.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-medium">{item.taxableValue?.toFixed(2)}</TableCell>
+                                                    <TableCell className="p-0">
+                                                        <Box className="grid grid-cols-2 h-full items-center">
+                                                            <span className="text-center border-r border-blue-200 h-full flex items-center justify-center text-[9px]">{item.cgstPct}%</span>
+                                                            <span className="text-right px-1">{item.cgstAmt?.toFixed(2)}</span>
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell className="p-0">
+                                                        <Box className="grid grid-cols-2 h-full items-center">
+                                                            <span className="text-center border-r border-blue-200 h-full flex items-center justify-center text-[9px]">{item.sgstPct}%</span>
+                                                            <span className="text-right px-1">{item.sgstAmt?.toFixed(2)}</span>
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold text-slate-900">{item.total?.toFixed(2)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {/* Filler rows to maintain height if needed, OR just a min-height container for the table body */}
+                                            {Array.from({ length: Math.max(0, 10 - invoiceData.items.length) }).map((_, i) => (
+                                                <TableRow key={`fill-${i}`} sx={{ height: '30px' }}>
+                                                   <TableCell className="text-center">&nbsp;</TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                   <TableCell className="p-0"><Box className="grid grid-cols-2 h-full"><span className="border-r border-blue-200"></span><span></span></Box></TableCell>
+                                                   <TableCell className="p-0"><Box className="grid grid-cols-2 h-full"><span className="border-r border-blue-200"></span><span></span></Box></TableCell>
+                                                   <TableCell>&nbsp;</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
                                 </Box>
 
-                                {/* Right Side: Numeric Totals & Signature */}
-                                <Box className="col-span-4 text-xs flex flex-col">
-                                    <Box className="flex justify-between p-1.5 border-b border-blue-200">
-                                        <span className="font-bold text-slate-600">Taxable Amount</span>
-                                        <span className="font-bold">{invoiceData.subTotal.toFixed(2)}</span>
+                                {/* 4. Totals & Signature Section */}
+                                <Box className="grid grid-cols-12 min-h-[150px]">
+                                    {/* Left Side: Amount in Words & Terms */}
+                                    <Box className="col-span-8 border-r border-blue-500 flex flex-col justify-between">
+                                        <Box className="border-b border-blue-500 p-1.5 text-xs">
+                                            <Typography className="font-bold text-slate-700">Total in words</Typography>
+                                            <Typography className="font-medium italic mt-1 text-slate-900">{invoiceData.amountInWords}</Typography>
+                                        </Box>
+                                        <Box className="p-2.5 flex-1">
+                                            <Typography className="font-bold text-xs text-slate-700 mb-1">Terms & Condition</Typography>
+                                            <ul className="list-disc list-inside text-[10px] text-slate-500 space-y-0.5">
+                                                <li>Goods once sold will not be taken back.</li>
+                                                <li>Interest @18% p.a. will be charged if payment is delayed.</li>
+                                                <li>Subject to Sidhpur Jurisdiction only.</li>
+                                            </ul>
+                                        </Box>
                                     </Box>
-                                    <Box className="flex justify-between p-1.5 border-b border-blue-200">
-                                        <span className="font-bold text-slate-600">Add: CGST</span>
-                                        <span>{(invoiceData.totalTax / 2).toFixed(2)}</span>
-                                    </Box>
-                                    <Box className="flex justify-between p-1.5 border-b border-blue-200">
-                                        <span className="font-bold text-slate-600">Add: SGST</span>
-                                        <span>{(invoiceData.totalTax / 2).toFixed(2)}</span>
-                                    </Box>
-                                    <Box className="flex justify-between p-1.5 border-b border-blue-500 bg-blue-50">
-                                        <span className="font-black text-slate-800">Total Amount After Tax</span>
-                                        <span className="font-black text-slate-900">₹{invoiceData.totalAmount.toFixed(2)}</span>
-                                    </Box>
-                                    <Box className="p-1 text-[10px] text-right text-slate-400 italic mb-auto">
-                                        (E & O.E.)
-                                    </Box>
-                                    
-                                    <Box className="mt-4 p-1.5 text-center border-t border-blue-200">
-                                        <Typography className="text-[9px] text-slate-500 mb-2 font-bold">Certified that the particulars given above are true and correct.</Typography>
-                                        <Typography className="font-black text-xs text-slate-800 uppercase mb-2">For RIMS RESTAURANT</Typography>
+
+                                    {/* Right Side: Numeric Totals & Signature */}
+                                    <Box className="col-span-4 text-xs flex flex-col">
+                                        <Box className="flex justify-between p-1.5 border-b border-blue-200">
+                                            <span className="font-bold text-slate-600">Taxable Amount</span>
+                                            <span className="font-bold">{invoiceData.subTotal.toFixed(2)}</span>
+                                        </Box>
+                                        <Box className="flex justify-between p-1.5 border-b border-blue-200">
+                                            <span className="font-bold text-slate-600">Add: CGST</span>
+                                            <span>{(invoiceData.totalTax / 2).toFixed(2)}</span>
+                                        </Box>
+                                        <Box className="flex justify-between p-1.5 border-b border-blue-200">
+                                            <span className="font-bold text-slate-600">Add: SGST</span>
+                                            <span>{(invoiceData.totalTax / 2).toFixed(2)}</span>
+                                        </Box>
+                                        <Box className="flex justify-between p-1.5 border-b border-blue-200">
+                                            <span className="font-bold text-slate-600">Total Tax</span>
+                                            <span className="font-bold">{invoiceData.totalTax.toFixed(2)}</span>
+                                        </Box>
+                                        <Box className="flex justify-between p-1.5 border-b border-blue-500 bg-blue-50">
+                                            <span className="font-black text-slate-800">Total Amount After Tax</span>
+                                            <span className="font-black text-slate-900">₹{invoiceData.totalAmount.toFixed(2)}</span>
+                                        </Box>
+                                        <Box className="p-1 text-[10px] text-right text-slate-400 italic mb-auto">
+                                            (E & O.E.)
+                                        </Box>
                                         
-                                        {/* Signature Placeholder */}
-                                        {/* <img src="/signature-placeholder.png" alt="Sig" className="h-10 mx-auto" /> */}
-                                        <Box className="h-6 mb-1"></Box>
+                                        <Box className="mt-4 p-1.5 text-center border-t border-blue-200">
+                                            <Typography className="text-[9px] text-slate-500 mb-2 font-bold">Certified that the particulars given above are true and correct.</Typography>
+                                            <Typography className="font-black text-xs text-slate-800 uppercase mb-0">For Hops N Chops</Typography>
+                                            
+                                            {/* Signature Placeholder like in image */}
+                                            <Box className="mt-2 flex flex-col items-center">
+                                                <Typography className="text-[10px] font-black text-slate-700 italic">HOPS N CHOPS</Typography>
+                                                <Typography className="text-[10px] font-black text-indigo-400 italic text-xl -mt-2 -rotate-12 select-none opacity-50">KewalRam</Typography>
+                                                <Typography className="text-[10px] font-black text-slate-700 mt-1 uppercase">Partner</Typography>
+                                            </Box>
 
-                                        <Typography className="text-[10px] font-bold text-slate-600">Authorized Signatory</Typography>
+                                            <Typography className="text-[10px] font-bold text-slate-600 border-t border-slate-300 mt-2 pt-1 inline-block px-4">Authorized Signatory</Typography>
+                                        </Box>
                                     </Box>
                                 </Box>
                             </Box>
-                        </Box>
-                        
-                        {/* Footer / Branding Line */}
-                        <Box className="mt-3 text-center pb-2">
-                            <Typography className="text-[10px] text-slate-400 uppercase tracking-widest">Thank you for your business</Typography>
-                        </Box>
-                    </Paper>
+                            
+                            {/* Footer / Branding Line */}
+                            <Box className="mt-3 text-center pb-2">
+                                <Typography className="text-[10px] text-slate-400 uppercase tracking-widest">Thank you for your business</Typography>
+                            </Box>
+                        </Paper>
+                    ))}
                 </Box>
 
                 {/* Sticky Footer for Actions - Fixed at bottom */}

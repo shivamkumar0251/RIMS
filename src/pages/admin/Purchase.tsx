@@ -591,7 +591,7 @@ const Purchase: React.FC = () => {
                             key={row._id}
                             hover
                             selected={isRowChecked}
-                            className={`cursor-pointer group ${['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase()) ? 'bg-slate-50/30' : ''}`}
+                            className={`group ${['movetostore', 'movetokitchen'].includes(row.orderStatus?.toLowerCase()) ? 'bg-slate-50/30' : ''}`}
                             sx={{ '&.Mui-selected': { backgroundColor: '#eef2ff !important' } }}
                           >
                             <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
@@ -608,13 +608,13 @@ const Purchase: React.FC = () => {
                                 sx={{ color: '#6366f1', '&.Mui-checked': { color: '#6366f1' } }}
                               />
                             </TableCell>
-                            <TableCell className="py-4 text-slate-600 font-medium" onClick={() => setViewOrder(row)}>{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
-                            <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4" onClick={() => setViewOrder(row)}>{row.orderNumber}</TableCell>
-                            <TableCell className="py-4 font-bold text-slate-800" onClick={() => setViewOrder(row)}>{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
-                            <TableCell className="py-4" onClick={() => setViewOrder(row)}>
+                            <TableCell className="py-4 text-slate-600 font-medium">{dayjs(row.orderDate).format('DD MMM YYYY')}</TableCell>
+                            <TableCell className="py-4 font-black text-indigo-600 group-hover:underline underline-offset-4">{row.orderNumber}</TableCell>
+                            <TableCell className="py-4 font-bold text-slate-800">{(row.products?.[0] as any)?.productId?.vendorsId?.vendor_name || 'Vendor Name'}</TableCell>
+                            <TableCell className="py-4">
                               <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border-2 ${getStatusColor(row.orderStatus)}`}>{row.orderStatus === 'Sent' ? 'Draft' : row.orderStatus}</span>
                             </TableCell>
-                            <TableCell align="right" className="py-4 font-black text-slate-900" onClick={() => setViewOrder(row)}>₹{row.totalAmount?.toLocaleString()}</TableCell>
+                            <TableCell align="right" className="py-4 font-black text-slate-900">₹{row.totalAmount?.toLocaleString()}</TableCell>
                             <TableCell align="center" className="py-4" onClick={(e) => e.stopPropagation()}>
                               <Box className="flex items-center justify-end gap-2 pr-4">
                                 <Button
