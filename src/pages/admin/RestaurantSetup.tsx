@@ -17,6 +17,13 @@ import {
   TextField,
   InputAdornment,
 } from "@mui/material";
+<<<<<<< HEAD
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import { FiEdit, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Swal from 'sweetalert2';
+=======
 
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
@@ -29,6 +36,7 @@ import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/sli
 import { addProduct, updateProduct, getProducts, deleteProduct, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
 import { toast } from "react-toastify";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+>>>>>>> ff77496ac08e9ce775f516e54590730a635bce41
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
 import VendorModal from "../../layouts/VendorModal";
 
@@ -182,6 +190,8 @@ export default function RestaurantSetup() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+<<<<<<< HEAD
+=======
   const handleDeleteProduct = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
     try {
@@ -192,6 +202,7 @@ export default function RestaurantSetup() {
       toast.error(err.message || "Failed to delete item");
     }
   };
+>>>>>>> ff77496ac08e9ce775f516e54590730a635bce41
 
   return (
     <AdminLayout>

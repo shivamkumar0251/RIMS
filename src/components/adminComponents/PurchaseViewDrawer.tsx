@@ -62,6 +62,67 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
         office: false
     });
 
+    const invoiceData = useMemo(() => {
+        if (!order) return null;
+
+        const products = order.products || [];
+        let subTotal = 0;
+        let totalVal = 0;
+        let totalTax = 0;
+
+        const items = products.map((p: any, index: number) => {
+            const qty = p.orderQty || 0;
+            const rate = p.rate || p.price || p.productId?.perUnitRate || 0;
+            const discount = p.discount || 0;
+            const baseAmount = (qty * rate) - discount;
+            
+            // Tax Calculation
+            const gstPct = p.gstPct || p.productId?.gstPct || 0;
+            const taxAmount = (baseAmount * gstPct) / 100;
+            const cgstPct = gstPct / 2;
+            const sgstPct = gstPct / 2;
+            const cgstAmt = taxAmount / 2;
+            const sgstAmt = taxAmount / 2;
+            const total = baseAmount + taxAmount;
+
+            subTotal += baseAmount;
+            totalTax += taxAmount;
+            totalVal += total;
+
+            return {
+                srNo: index + 1,
+                name: p.productId?.productName || 'Unknown Product',
+                hsn: p.productId?.hsnCode || '-',
+                qty,
+                uom: p.productId?.unit || 'Unit',
+                rate,
+                discount,
+                taxableValue: baseAmount,
+                cgstPct,
+                cgstAmt,
+                sgstPct,
+                sgstAmt,
+                total
+            };
+        });
+
+        // Use order total if available (for small variances), else calculated
+        const finalTotal = order.totalAmount || totalVal;
+
+        return {
+            vendor: order.products?.[0]?.productId?.vendorsId || {},
+            invoiceNo: order.orderNumber || '-',
+            // Try to find invoice specific fields or fallback to order fields
+            invoiceDate: order.orderDate ? dayjs(order.orderDate).format('DD-MM-YYYY') : '-',
+            reverseCharge: order.revCharge || 'No',
+            items,
+            subTotal,
+            totalTax,
+            totalAmount: finalTotal,
+            amountInWords: numberToWords(finalTotal).toUpperCase() + ' ONLY'
+        };
+    }, [order]);
+
     const handleCopyTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, checked } = event.target;
         if (checked) {
@@ -298,66 +359,7 @@ export const PurchaseViewDrawer: React.FC<PurchaseViewDrawerProps> = ({ open, on
         saveAs(blob, `Purchase_Invoice_${invoiceData.invoiceNo}.xlsx`);
     };
 
-    const invoiceData = useMemo(() => {
-        if (!order) return null;
 
-        const products = order.products || [];
-        let subTotal = 0;
-        let totalVal = 0;
-        let totalTax = 0;
-
-        const items = products.map((p: any, index: number) => {
-            const qty = p.orderQty || 0;
-            const rate = p.rate || p.price || p.productId?.perUnitRate || 0;
-            const discount = p.discount || 0;
-            const baseAmount = (qty * rate) - discount;
-            
-            // Tax Calculation
-            const gstPct = p.gstPct || p.productId?.gstPct || 0;
-            const taxAmount = (baseAmount * gstPct) / 100;
-            const cgstPct = gstPct / 2;
-            const sgstPct = gstPct / 2;
-            const cgstAmt = taxAmount / 2;
-            const sgstAmt = taxAmount / 2;
-            const total = baseAmount + taxAmount;
-
-            subTotal += baseAmount;
-            totalTax += taxAmount;
-            totalVal += total;
-
-            return {
-                srNo: index + 1,
-                name: p.productId?.productName || 'Unknown Product',
-                hsn: p.productId?.hsnCode || '-',
-                qty,
-                uom: p.productId?.unit || 'Unit',
-                rate,
-                discount,
-                taxableValue: baseAmount,
-                cgstPct,
-                cgstAmt,
-                sgstPct,
-                sgstAmt,
-                total
-            };
-        });
-
-        // Use order total if available (for small variances), else calculated
-        const finalTotal = order.totalAmount || totalVal;
-
-        return {
-            vendor: order.products?.[0]?.productId?.vendorsId || {},
-            invoiceNo: order.orderNumber || '-',
-            // Try to find invoice specific fields or fallback to order fields
-            invoiceDate: order.orderDate ? dayjs(order.orderDate).format('DD-MM-YYYY') : '-',
-            reverseCharge: order.revCharge || 'No',
-            items,
-            subTotal,
-            totalTax,
-            totalAmount: finalTotal,
-            amountInWords: numberToWords(finalTotal).toUpperCase() + ' ONLY'
-        };
-    }, [order]);
 
     if (!order || !invoiceData) return null;
 
