@@ -22,6 +22,7 @@ export interface SetupStock {
     rcvdQty: number;
     closingStock: number;
     expiryDate?: string;
+    warrantyDate?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -85,7 +86,7 @@ export const getSetupStocks = createAsyncThunk<
 
 // ADD SETUP STOCK
 export const addSetupStock = createAsyncThunk<
-    SetupStock,
+    any, // Returns bulk response object
     SetupStockPostData[],
     { rejectValue: { message: string } }
 >(
@@ -99,7 +100,7 @@ export const addSetupStock = createAsyncThunk<
             });
 
             if (response.status === 201 || response.status === 200) {
-                return response?.data as SetupStock;
+                return response.data;
             }
 
             return thunkAPI.rejectWithValue({
