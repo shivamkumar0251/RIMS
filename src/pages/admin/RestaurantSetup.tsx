@@ -17,6 +17,13 @@ import {
   TextField,
   InputAdornment,
 } from "@mui/material";
+<<<<<<< HEAD
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import { FiEdit, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Swal from 'sweetalert2';
+=======
 
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from "react-icons/fi";
 import { AdminLayout } from "../../layouts/AdminLayout";
@@ -26,9 +33,10 @@ import { ProductDrawerForm } from "../../components/adminComponents/ProductDrawe
 import { getCategories, selectCategories, addCategory } from "../../redux/slices/categorySlice";
 import { getCompanies, selectCompanies, addCompany } from "../../redux/slices/companySlice";
 import { getVendorNameList, selectVendorNames, addVendor } from "../../redux/slices/vendorSlice";
-import { addProduct, updateProduct, getProducts, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
-import { toast } from "react-hot-toast";
+import { addProduct, updateProduct, getProducts, deleteProduct, selectProductState, type ProductInterface } from "../../redux/slices/productSlice";
+import { toast } from "react-toastify";
 import CreateCategoryModal from "../../components/adminComponents/CreateCategoryModal";
+>>>>>>> ff77496ac08e9ce775f516e54590730a635bce41
 import CreateBrandModal from "../../components/adminComponents/CreateBrandModal";
 import VendorModal from "../../layouts/VendorModal";
 
@@ -182,6 +190,20 @@ export default function RestaurantSetup() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+<<<<<<< HEAD
+=======
+  const handleDeleteProduct = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await dispatch(deleteProduct(id)).unwrap();
+      toast.success("Product deleted successfully");
+      refreshProducts();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete item");
+    }
+  };
+>>>>>>> ff77496ac08e9ce775f516e54590730a635bce41
+
   return (
     <AdminLayout>
       <Box className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -302,7 +324,7 @@ export default function RestaurantSetup() {
                                 <IconButton onClick={() => handleEditProduct(item)} size="small" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
                                   <FiEdit size={16} />
                                 </IconButton>
-                                <IconButton size="small" className="text-slate-400 hover:text-red-600 hover:bg-red-50">
+                                <IconButton onClick={() => handleDeleteProduct(item._id)} size="small" className="text-slate-400 hover:text-red-600 hover:bg-red-50">
                                   <FiTrash2 size={16} />
                                 </IconButton>
                               </Box>
