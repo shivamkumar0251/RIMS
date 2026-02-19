@@ -9,5 +9,6 @@ router.post("/bulk/create", authenticate, authorizeRoles('admin'), setupStock.ad
 router.get("/", authenticate, setupStock.getSetupStock);
 router.put("/:id", authenticate, authorizeRoles('admin'), setupStock.updateSetupStock);
 router.delete("/:id", authenticate, authorizeRoles('admin'), setupStock.deleteSetupStock);
+router.get("/logs", authenticate, setupStock.getSetupStockLogs);
 
 module.exports = router;

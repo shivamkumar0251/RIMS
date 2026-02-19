@@ -33,6 +33,17 @@ const setupStockSchema = new mongoose.Schema({
     expiryDate: { type: Date },
     warrantyDate: { type: Date },
 
+    condition: {
+        type: String,
+        enum: ['Good', 'Fair', 'Poor', 'Broken', 'Lost'],
+        default: 'Good'
+    },
+    assetStatus: {
+        type: String,
+        enum: ['Working', 'Under Repair', 'Out of Order', 'Discarded'],
+        default: 'Working'
+    },
+
     remarks: { type: String }
 }, { timestamps: true });
 

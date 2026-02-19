@@ -44,6 +44,7 @@ import ConsumptionReport from "./pages/admin/reports/ConsumptionReport";
 import ConsumablesReport from "./pages/admin/reports/ConsumablesReport";
 import SalesReport from "./pages/admin/reports/SalesReport";
 import PurchaseOriginReport from "./pages/admin/reports/PurchaseOriginReport";
+import SetupInventoryReport from "./pages/admin/reports/SetupInventoryReport";
 import RestaurantSetup from "./pages/admin/RestaurantSetup";
 import ForgetPassword from "./pages/auth/Forgetpassword";
 import ResetPassword from "./pages/auth/Resetpassword";
@@ -88,6 +89,7 @@ function App() {
             <Route path="/admin/reports/consumables" element={<ConsumablesReport />} />
             <Route path="/admin/reports/sales" element={<SalesReport />} />
             <Route path="/admin/reports/purchase-origin" element={<PurchaseOriginReport />} />
+            <Route path="/admin/reports/setup-inventory" element={<SetupInventoryReport />} />
             {/* <Route path="/addAdminProducts/:categoryName/:subCategoryName" element={<AddProductAdvanced />} /> */}
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
