@@ -12,6 +12,7 @@ export interface SetupStockPostData {
     qty: number;
     expiryDate?: string;
     type?: string;
+    remarks?: string;
 }
 
 export interface SetupStock {
@@ -23,8 +24,22 @@ export interface SetupStock {
     closingStock: number;
     expiryDate?: string;
     warrantyDate?: string;
+    condition?: string;
+    assetStatus?: string;
+    remarks?: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface SetupStockLog {
+    _id: string;
+    productId: { _id: string, productName: string };
+    qty: number;
+    type: 'receipt' | 'issue' | 'damaged' | 'lost';
+    remarks: string;
+    prevClosing: number;
+    newClosing: number;
+    createdAt: string;
 }
 
 export interface PaginationInfo {
@@ -46,12 +61,16 @@ interface SetupStockState {
     error: string | null;
     setupStocks: SetupStock[];
     allSetupStocksData: GetSetupStocksResponse | null;
+    logs: SetupStockLog[];
+    logsPagination: PaginationInfo | null;
 }
 const initialState: SetupStockState = {
     loading: false,
     error: null,
     setupStocks: [],
     allSetupStocksData: null,
+    logs: [],
+    logsPagination: null,
 };
 
 // ---------------- Thunks ----------------
@@ -177,6 +196,37 @@ export const deleteSetupStock = createAsyncThunk<
     }
 );
 
+// GET LOGS
+export const getSetupStockLogs = createAsyncThunk<
+    { success: boolean, data: SetupStockLog[], pagination: PaginationInfo },
+    { productId?: string; fromDate?: string; toDate?: string; page?: number; limit?: number },
+    { rejectValue: { message: string } }
+>(
+    'setupStock/getSetupStockLogs',
+    async (params, thunkAPI) => {
+        try {
+            const query = new URLSearchParams(params as any).toString();
+            const response = await apiCaller({
+                url: `${API_ENDPOINTS.GET_SETUP_STOCK_LOGS}?${query}`,
+                method: 'GET'
+            });
+
+            if (response.status === 200) {
+                return response.data as { success: boolean, data: SetupStockLog[], pagination: PaginationInfo };
+            }
+
+            return thunkAPI.rejectWithValue({
+                message: (response.data as { message?: string })?.message || 'Failed to fetch logs',
+            });
+        } catch (error) {
+            const err = error as AxiosError<{ message: string }>;
+            return thunkAPI.rejectWithValue({
+                message: err.response?.data?.message || 'Server error',
+            });
+        }
+    }
+);
+
 // ---------------- Slice ----------------
 const setupStockSlice = createSlice({
     name: 'setupStocks',
@@ -242,6 +292,20 @@ const setupStockSlice = createSlice({
             .addCase(deleteSetupStock.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message || 'Delete setup stock failed';
+            })
+
+            // LOGS
+            .addCase(getSetupStockLogs.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(getSetupStockLogs.fulfilled, (state, action) => {
+                state.loading = false;
+                state.logs = action.payload.data;
+                state.logsPagination = action.payload.pagination;
+            })
+            .addCase(getSetupStockLogs.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || 'Failed to fetch logs';
             });
     },
 });

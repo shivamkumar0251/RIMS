@@ -89,6 +89,7 @@ export const API_ENDPOINTS = {
   ADD_BULK_SETUP_STOCK: `${API_BASE_URL}/setupStock/bulk/create`,
   UPDATE_SETUP_STOCK: (id: string) => `${API_BASE_URL}/setupStock/${id}`,
   DELETE_SETUP_STOCK: (id: string) => `${API_BASE_URL}/setupStock/${id}`,
+  GET_SETUP_STOCK_LOGS: `${API_BASE_URL}/setupStock/logs`,
   // ===== Product Requirements =====
   ADD_PRODUCT_REQUIREMENT: `${API_BASE_URL}/product-requirements`,
   GET_PRODUCT_REQUIREMENTS: `${API_BASE_URL}/product-requirements`,

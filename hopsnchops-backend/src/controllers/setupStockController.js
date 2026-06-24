@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const SetupStocks = require("../models/setupStockModel");
 const Products = require("../models/productsModel");
+const SetupStockLogs = require("../models/setupStockLogModel");
 
 const normalizeDate = (d) => {
     const dt = new Date(d || Date.now());
@@ -57,10 +58,10 @@ const processStockUpdate = async (franchiseId, { productId, qty, type, remarks }
         setupStock.rcvdStockQty = (setupStock.rcvdStockQty || 0) + transferQty;
     } else if (type === 'issue') {
         setupStock.issuedQty = (setupStock.issuedQty || 0) + transferQty;
-    } else if (type === 'damaged') {
+    } else if (type === 'damaged' || type === 'lost') {
         setupStock.damagedQty = (setupStock.damagedQty || 0) + transferQty;
     } else {
-        throw new Error("Invalid type. Must be receipt, issue, or damaged");
+        throw new Error("Invalid type. Must be receipt, issue, damaged, or lost");
     }
 
     // Recalculate Closing Stock
@@ -69,10 +70,23 @@ const processStockUpdate = async (franchiseId, { productId, qty, type, remarks }
         (setupStock.issuedQty || 0) -
         (setupStock.damagedQty || 0);
 
+    const prevClosing = setupStock.closingStock;
     setupStock.closingStock = Math.max(0, calculatedClosing);
     if (remarks) setupStock.remarks = remarks;
 
     await setupStock.save();
+
+    // Create a transaction log
+    await SetupStockLogs.create({
+        franchiseId,
+        productId: pid,
+        qty: transferQty,
+        type: type,
+        remarks: remarks || "",
+        prevClosing: prevClosing,
+        newClosing: setupStock.closingStock
+    });
+
     return setupStock;
 };
 
@@ -213,6 +227,8 @@ exports.updateSetupStock = async (req, res) => {
         // Allow updating specific fields
         if (updates.expiryDate !== undefined) setupStock.expiryDate = updates.expiryDate;
         if (updates.warrantyDate !== undefined) setupStock.warrantyDate = updates.warrantyDate;
+        if (updates.condition !== undefined) setupStock.condition = updates.condition;
+        if (updates.assetStatus !== undefined) setupStock.assetStatus = updates.assetStatus;
         if (updates.remarks !== undefined) setupStock.remarks = updates.remarks;
 
         await setupStock.save();
@@ -235,5 +251,45 @@ exports.deleteSetupStock = async (req, res) => {
         return res.status(200).json({ success: true, message: "SetupStock deleted", data: deleted });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    }
+};
+
+exports.getSetupStockLogs = async (req, res) => {
+    try {
+        const franchiseId = req.user.franchiseId;
+        const { productId, fromDate, toDate, page = 1, limit = 50 } = req.query;
+
+        const query = { franchiseId };
+        if (productId) query.productId = productId;
+
+        if (fromDate || toDate) {
+            query.createdAt = {};
+            if (fromDate) query.createdAt.$gte = normalizeDate(fromDate);
+            if (toDate) {
+                const t = normalizeDate(toDate);
+                t.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = t;
+            }
+        }
+
+        const p = Math.max(1, parseInt(page));
+        const l = Math.max(1, parseInt(limit));
+
+        const total = await SetupStockLogs.countDocuments(query);
+        const logs = await SetupStockLogs.find(query)
+            .populate("productId", "productName")
+            .sort({ createdAt: -1 })
+            .skip((p - 1) * l)
+            .limit(l)
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            data: logs,
+            pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) }
+        });
+    } catch (error) {
+        console.error("Error fetching SetupStockLogs:", error);
+        return res.status(500).json({ success: false, message: "Server Error" });
     }
 };
