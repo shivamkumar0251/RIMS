@@ -108,28 +108,21 @@ export const logout = createAsyncThunk<
   { rejectValue: { message: string } }
 >(
   'auth/logout',
-  async (_, thunkAPI) => {
+  async () => {
     try {
-      const response = await apiCaller({
+      await apiCaller({
         url: API_ENDPOINTS.logout,
         method: 'POST',
       });
-
-      if (response.status === 200) {
-        deleteCookie('token');
-        deleteCookie('userId');
-        return { message: (response.data as { message?: string })?.message || 'Logout successful' };
-      } else {
-        return thunkAPI.rejectWithValue({
-          message: (response.data as { message?: string })?.message || 'Logout failed',
-        });
-      }
     } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue({
-        message: err.response?.data?.message || 'Logout error',
-      });
+      console.warn('Backend logout API failed/offline, completing local logout:', error);
+    } finally {
+      deleteCookie('token');
+      deleteCookie('userId');
+      localStorage.removeItem('rims_role');
+      localStorage.removeItem('rims_userId');
     }
+    return { message: 'Logout successful' };
   }
 );
 
@@ -187,9 +180,13 @@ const authSlice = createSlice({
     clearToken: (state) => {
       deleteCookie('userId');
       deleteCookie('token');
+      localStorage.removeItem('rims_role');
+      localStorage.removeItem('rims_userId');
       state.token = null;
       state.isAuthenticated = false;
       state.user = null;
+      state.usersList = [];
+      state.selectedUser = null;
     },
   },
   extraReducers: (builder) => {

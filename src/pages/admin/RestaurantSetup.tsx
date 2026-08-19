@@ -162,7 +162,7 @@ export default function RestaurantSetup() {
       await dispatch(addCategory({ categoryName: name })).unwrap();
       dispatch(getCategories({ page: 1, limit: 1000 }));
       toast.success("Category added");
-    } catch (e: Error) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleSaveBrand = async (name: string) => {
@@ -170,7 +170,7 @@ export default function RestaurantSetup() {
       await dispatch(addCompany({ brandName: name })).unwrap();
       dispatch(getCompanies({ page: 1, limit: 1000 }));
       toast.success("Brand added");
-    } catch (e: Error) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleSaveVendor = async (data: any) => {
@@ -179,7 +179,7 @@ export default function RestaurantSetup() {
       dispatch(getVendorNameList());
       toast.success("Vendor added");
       setVendorDrawerOpen(false);
-    } catch (e: Error) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDeleteProduct = async (id: string) => {

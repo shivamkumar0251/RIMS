@@ -15,7 +15,6 @@ import {
     Pie,
     Cell,
     Legend,
-    type PieLabelRenderProps,
 } from "recharts";
 
 import { Card, CardContent, Typography, LinearProgress, Button, Box } from "@mui/material";
@@ -178,16 +177,10 @@ const Dashboard: React.FC = () => {
                                     outerRadius={100}
                                     fill="#8884d8"
                                     labelLine={false}
-                                    // Use the imported type from recharts: PieLabelRenderProps
-                                    label={(props: PieLabelRenderProps) => {
-                                        // We safely destructure the necessary properties from the props object
-                                        const { name, percent } = props.payload as { name: string, percent: number };
-
-                                        // recharts passes the percentage as a decimal (0.0 to 1.0) in the payload
-                                        // The props object itself contains coordinates, not the percent value directly
-                                        // The percent is usually nested inside the 'payload' of the props object.
-
-                                        return `${name} (${(percent * 100).toFixed(0)}%)`;
+                                    label={(entry: any) => {
+                                        const name = entry?.name || entry?.payload?.name || "";
+                                        const pct = entry?.percent != null ? entry.percent : (entry?.payload?.percent || 0);
+                                        return `${name} (${(pct * 100).toFixed(0)}%)`;
                                     }}
                                 >
                                     {pieData.map((_entry, index) => (

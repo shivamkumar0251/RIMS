@@ -11,7 +11,9 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { logout } from '../redux/slices/authSlice';
+import { logout, clearToken } from '../redux/slices/authSlice';
+import { clearAuth } from '../redux/slices/checkTokenSlice';
+import { deleteCookie } from '../utils/cookieUtils';
 import type { AppDispatch, RootState } from '../redux/store/store';
 import { MdBlindsClosed } from "react-icons/md";
 
@@ -46,7 +48,13 @@ const UserSidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   }, [location.pathname]);
 
   const handleLogout = () => {
-    dispatch(logout()).then(() => {
+    deleteCookie("token");
+    deleteCookie("userId");
+    localStorage.removeItem("rims_role");
+    localStorage.removeItem("rims_userId");
+    dispatch(clearAuth());
+    dispatch(clearToken());
+    dispatch(logout()).finally(() => {
       window.location.href = "/login";
     });
   };

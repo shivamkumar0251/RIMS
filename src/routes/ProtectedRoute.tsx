@@ -34,8 +34,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [dispatch, data, token, loading, error]);
 
-  // While checking token, show spinner if token exists but no data yet
-  if (token && !data && (loading || !error)) {
+  // While checking token, show spinner if loading
+  if (loading) {
     return <MainSpinner />;
   }
 
@@ -65,8 +65,8 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({
     }
   }, [dispatch, token, data, loading, error]);
 
-  // While checking token, show spinner if token exists but no data yet
-  if (token && !data && (loading || !error)) {
+  // While checking token, show spinner if loading
+  if (loading) {
     return <MainSpinner />;
   }
 

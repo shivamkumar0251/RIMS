@@ -144,14 +144,14 @@ function Admindashboard() {
   }, [dispatch]);
 
   const kpiData = [
-    { title: "Store Items", value: data?.kpi.storeItems || 0, icon: <FiBox size={24} />, grad: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", shadow: "#6366f1" },
-    { title: "Kitchen Stock", value: data?.kpi.kitchenItems || 0, icon: <FiShoppingBag size={24} />, grad: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)", shadow: "#0ea5e9" },
-    { title: "Low Alerts", value: data?.kpi.lowAlerts || 0, icon: <FiAlertTriangle size={24} />, grad: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", shadow: "#f59e0b" },
-    { title: "Usage (Today)", value: data?.kpi.usageToday.toFixed(1) || 0, icon: <FiTrendingUp size={24} />, grad: "linear-gradient(135deg, #10b981 0%, #059669 100%)", shadow: "#10b981" },
-    { title: "Wastage (Today)", value: data?.kpi.wastageToday.toFixed(1) || 0, icon: <FiTrash2 size={24} />, grad: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", shadow: "#ef4444" }
+    { title: "Store Items", value: data?.kpi?.storeItems ?? 0, icon: <FiBox size={24} />, grad: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", shadow: "#6366f1" },
+    { title: "Kitchen Stock", value: data?.kpi?.kitchenItems ?? 0, icon: <FiShoppingBag size={24} />, grad: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)", shadow: "#0ea5e9" },
+    { title: "Low Alerts", value: data?.kpi?.lowAlerts ?? 0, icon: <FiAlertTriangle size={24} />, grad: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", shadow: "#f59e0b" },
+    { title: "Usage (Today)", value: data?.kpi?.usageToday != null ? data.kpi.usageToday.toFixed(1) : "0", icon: <FiTrendingUp size={24} />, grad: "linear-gradient(135deg, #10b981 0%, #059669 100%)", shadow: "#10b981" },
+    { title: "Wastage (Today)", value: data?.kpi?.wastageToday != null ? data.kpi.wastageToday.toFixed(1) : "0", icon: <FiTrash2 size={24} />, grad: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", shadow: "#ef4444" }
   ];
 
-  const wastageRatio = data?.kpi.usageToday ? (data.kpi.wastageToday / data.kpi.usageToday) : 0;
+  const wastageRatio = (data?.kpi?.usageToday && data?.kpi?.wastageToday) ? (data.kpi.wastageToday / data.kpi.usageToday) : 0;
 
   return (
     <AdminLayout>
@@ -306,9 +306,9 @@ function Admindashboard() {
                     </Typography>
                     <Box className="space-y-6 relative z-10">
                       {[
-                        { label: 'Received', val: `${data?.dailyStats.receivedProducts || 0} Products`, p: (data?.dailyStats.receivedProducts || 0) * 10, col: '#6366f1' },
-                        { label: 'Issued Qty', val: `${data?.dailyStats.issuedQty.toFixed(1) || 0} Units`, p: Math.min((data?.dailyStats.issuedQty || 0) * 2, 100), col: '#0ea5e9' },
-                        { label: 'Consumed Qty', val: `${data?.dailyStats.consumedQty.toFixed(1) || 0} Units`, p: Math.min((data?.dailyStats.consumedQty || 0) * 2, 100), col: '#10b981' }
+                        { label: 'Received', val: `${data?.dailyStats?.receivedProducts ?? 0} Products`, p: (data?.dailyStats?.receivedProducts ?? 0) * 10, col: '#6366f1' },
+                        { label: 'Issued Qty', val: `${data?.dailyStats?.issuedQty != null ? data.dailyStats.issuedQty.toFixed(1) : '0'} Units`, p: Math.min((data?.dailyStats?.issuedQty ?? 0) * 2, 100), col: '#0ea5e9' },
+                        { label: 'Consumed Qty', val: `${data?.dailyStats?.consumedQty != null ? data.dailyStats.consumedQty.toFixed(1) : '0'} Units`, p: Math.min((data?.dailyStats?.consumedQty ?? 0) * 2, 100), col: '#10b981' }
                       ].map((item, i) => (
                         <Box key={i}>
                           <Box className="flex justify-between items-end mb-2">

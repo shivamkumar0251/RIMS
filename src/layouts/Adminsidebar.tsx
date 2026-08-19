@@ -30,7 +30,9 @@ import {
 import { SiMaterialdesignicons } from "react-icons/si";
 import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { logout } from "../redux/slices/authSlice";
+import { logout, clearToken } from "../redux/slices/authSlice";
+import { clearAuth } from "../redux/slices/checkTokenSlice";
+import { deleteCookie } from "../utils/cookieUtils";
 import type { AppDispatch } from "../redux/store/store";
 import { PiOvenDuotone } from "react-icons/pi";
 import { BiSolidPurchaseTag } from "react-icons/bi";
@@ -188,7 +190,13 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
   };
 
   const handleLogout = () => {
-    dispatch(logout()).then(() => {
+    deleteCookie("token");
+    deleteCookie("userId");
+    localStorage.removeItem("rims_role");
+    localStorage.removeItem("rims_userId");
+    dispatch(clearAuth());
+    dispatch(clearToken());
+    dispatch(logout()).finally(() => {
       window.location.href = "/login";
     });
   };
